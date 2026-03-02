@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -70,7 +71,11 @@ export function AccessSecurity({ logs, flaggedCount, labAccessCount, userRole }:
 					{flagged.map((l) => (
 						<div key={l.id} className="flex items-center justify-between rounded-lg border border-red-800/30 bg-red-950/20 p-3">
 							<div className="flex items-center gap-3">
-								{l.userAvatar ? <img src={l.userAvatar} className="h-6 w-6 rounded-full object-cover" alt="" /> : <div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">{l.userLogin[0].toUpperCase()}</div>}
+								{l.userAvatar ? (
+									<Image src={l.userAvatar} width={24} height={24} className="h-6 w-6 rounded-full object-cover" alt="" />
+								) : (
+									<div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">{l.userLogin[0].toUpperCase()}</div>
+								)}
 								<div>
 									<p className="text-sm text-text-primary">{l.userName} <span className="text-text-muted">@{l.userLogin}</span></p>
 									<div className="flex items-center gap-2 text-xs text-text-muted">
@@ -109,3 +114,4 @@ export function AccessSecurity({ logs, flaggedCount, labAccessCount, userRole }:
 		</div>
 	);
 }
+

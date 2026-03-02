@@ -21,7 +21,7 @@ async function main() {
 		{ login: "blackholed_user", name: "Finley Cross", role: Role.STUDENT, status: Status.BLACKHOLED, currentRank: Rank.D, labAccessEnabled: false },
 	];
 
-	const createdUsers = {};
+	const createdUsers: Record<string, any> = {};
 	for (const u of usersToCreate) {
 		const user = await prisma.user.upsert({
 			where: { login: u.login },
@@ -30,7 +30,7 @@ async function main() {
 				fortyTwoId: `42_${u.login}`,
 				login: u.login,
 				name: u.name,
-				avatar: null,
+				image: null,
 				role: u.role,
 				status: u.status,
 				currentRank: u.currentRank,
@@ -103,7 +103,7 @@ async function main() {
 		},
 	];
 
-	const createdProjects = {};
+	const createdProjects: Record<string, any> = {};
 	for (const p of projectsToCreate) {
 		const project = await prisma.project.upsert({
 			where: { id: `seed-proj-${p.title.replace(/\s+/g, '-').toLowerCase()}` },
@@ -195,7 +195,7 @@ async function main() {
 	});
 
 	// --- 6. User Achievements ---
-	const assignAchievements = async (login, keys) => {
+	const assignAchievements = async (login: string, keys: string[]) => {
 		const user = createdUsers[login];
 		for (const key of keys) {
 			const achievement = await prisma.achievement.findUnique({ where: { key } });
@@ -214,7 +214,7 @@ async function main() {
 	await assignAchievements("student_b", ["FIRST_PROJECT_COMPLETED", "TEAM_LEADER"]);
 
 	// --- 7. User Skill Progress ---
-	const assignSkills = async (login, skills) => {
+	const assignSkills = async (login: string, skills: Record<string, number>) => {
 		const user = createdUsers[login];
 		for (const [skillTag, projectsCompleted] of Object.entries(skills)) {
 			await prisma.userSkillProgress.upsert({

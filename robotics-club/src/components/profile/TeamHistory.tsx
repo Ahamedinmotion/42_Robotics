@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 // ── Types ────────────────────────────────────────────
 
@@ -8,7 +9,7 @@ interface TeamHistoryTeam {
 		project: { title: string };
 		members: {
 			userId: string;
-			user: { login: string; avatar: string | null };
+			user: { login: string; image: string | null };
 		}[];
 	};
 }
@@ -57,11 +58,13 @@ export function TeamHistory({ teams, currentUserId }: TeamHistoryProps) {
 								const repeats = pairingCount.get(m.userId) || 0;
 								return (
 									<div key={m.userId} className="relative">
-										{m.user.avatar ? (
-											<img
-												src={m.user.avatar}
+										{m.user.image ? (
+											<Image
+												src={m.user.image}
 												alt={m.user.login}
 												title={m.user.login}
+												width={20}
+												height={20}
 												className="h-5 w-5 rounded-full border border-background object-cover"
 											/>
 										) : (
@@ -90,3 +93,4 @@ export function TeamHistory({ teams, currentUserId }: TeamHistoryProps) {
 		</ul>
 	);
 }
+

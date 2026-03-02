@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ThemeInitializer } from "@/components/layout/ThemeInitializer";
@@ -9,7 +10,7 @@ interface StudentLayoutProps {
 	children: React.ReactNode;
 	user: {
 		login: string;
-		avatar: string | null;
+		image: string | null;
 		activeTheme: "FORGE" | "FIELD";
 	};
 }
@@ -33,10 +34,12 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 				<div className="flex items-center gap-4">
 					<NotificationBell />
 					<div className="flex items-center gap-2">
-						{user.avatar ? (
-							<img
-								src={user.avatar}
+						{user.image ? (
+							<Image
+								src={user.image}
 								alt={user.login}
+								width={32}
+								height={32}
 								className="h-8 w-8 rounded-full border border-border-color object-cover"
 							/>
 						) : (
@@ -59,3 +62,4 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 		</>
 	);
 }
+

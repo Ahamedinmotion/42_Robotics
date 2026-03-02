@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +14,7 @@ interface TeamMemberUser {
 	id: string;
 	login: string;
 	name: string;
-	avatar: string | null;
+	image: string | null;
 	githubHandle: string | null;
 }
 
@@ -249,8 +250,16 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 				</div>
 				<div className="flex -space-x-2">
 					{team.members.map((m) =>
-						m.user.avatar ? (
-							<img key={m.userId} src={m.user.avatar} alt={m.user.login} title={m.user.login} className="h-7 w-7 rounded-full border-2 border-background object-cover" />
+						m.user.image ? (
+							<Image
+								key={m.userId}
+								src={m.user.image}
+								alt={m.user.login}
+								title={m.user.login}
+								width={28}
+								height={28}
+								className="h-7 w-7 rounded-full border-2 border-background object-cover"
+							/>
 						) : (
 							<div key={m.userId} title={m.user.login} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-panel2 text-[10px] font-bold text-text-muted">
 								{m.user.login.charAt(0).toUpperCase()}
@@ -405,8 +414,8 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 							<li key={mr.id} className="flex items-center justify-between rounded-lg bg-panel2 p-2">
 								<span className="text-sm text-text-primary">{mr.itemName} ×{mr.quantity}</span>
 								<span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${mr.status === "APPROVED" ? "bg-green-900/40 text-green-400" :
-										mr.status === "DENIED" ? "bg-red-900/40 text-red-400" :
-											"bg-yellow-900/40 text-yellow-400"
+									mr.status === "DENIED" ? "bg-red-900/40 text-red-400" :
+										"bg-yellow-900/40 text-yellow-400"
 									}`}>
 									{mr.status}
 								</span>

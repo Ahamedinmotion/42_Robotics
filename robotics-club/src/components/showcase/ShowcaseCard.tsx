@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 
 // ── Helpers ──────────────────────────────────────────
@@ -28,7 +29,7 @@ interface ShowcaseTeam {
 		skillTags: string[];
 	};
 	members: {
-		user: { id: string; login: string; name: string; avatar: string | null };
+		user: { id: string; login: string; name: string; image: string | null };
 	}[];
 	leader: { githubHandle: string | null } | null;
 	_count: { evaluations: number };
@@ -84,12 +85,14 @@ export function ShowcaseCard({ team }: ShowcaseCardProps) {
 					<span className="text-xs text-text-muted">By</span>
 					<div className="flex -space-x-1.5">
 						{visibleMembers.map((m) =>
-							m.user.avatar ? (
+							m.user.image ? (
 								<Link key={m.user.id} href={`/profile/${m.user.id}`}>
-									<img
-										src={m.user.avatar}
+									<Image
+										src={m.user.image}
 										alt={m.user.login}
 										title={m.user.login}
+										width={24}
+										height={24}
 										className="h-6 w-6 rounded-full border border-background object-cover"
 									/>
 								</Link>
@@ -129,3 +132,4 @@ export function ShowcaseCard({ team }: ShowcaseCardProps) {
 		</div>
 	);
 }
+

@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 
@@ -23,7 +24,7 @@ interface CompletedTeam {
 			skillTags: string[];
 		};
 		members: {
-			user: { login: string; avatar: string | null };
+			user: { login: string; image: string | null };
 		}[];
 		leader: { githubHandle: string | null } | null;
 	};
@@ -72,8 +73,16 @@ export function ProjectHistory({ teams }: ProjectHistoryProps) {
 
 						<div className="flex -space-x-1.5">
 							{tm.team.members.slice(0, 5).map((m, j) =>
-								m.user.avatar ? (
-									<img key={j} src={m.user.avatar} alt={m.user.login} title={m.user.login} className="h-5 w-5 rounded-full border border-background object-cover" />
+								m.user.image ? (
+									<Image
+										key={j}
+										src={m.user.image}
+										alt={m.user.login}
+										title={m.user.login}
+										width={20}
+										height={20}
+										className="h-5 w-5 rounded-full border border-background object-cover"
+									/>
 								) : (
 									<div key={j} title={m.user.login} className="flex h-5 w-5 items-center justify-center rounded-full border border-background bg-panel2 text-[8px] font-bold text-text-muted">
 										{m.user.login.charAt(0).toUpperCase()}
@@ -87,3 +96,4 @@ export function ProjectHistory({ teams }: ProjectHistoryProps) {
 		</ul>
 	);
 }
+

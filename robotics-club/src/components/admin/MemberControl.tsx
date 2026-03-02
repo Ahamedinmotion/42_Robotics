@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,7 +14,7 @@ interface MemberUser {
 	id: string;
 	login: string;
 	name: string;
-	avatar: string | null;
+	image: string | null;
 	currentRank: string;
 	status: string;
 	labAccessEnabled: boolean;
@@ -96,7 +97,11 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 									<tr key={m.id} className={`border-b border-border-color border-l-2 ${healthColour(m.daysAgo, bhDays)}`}>
 										<td className="py-2">
 											<div className="flex items-center gap-2">
-												{m.avatar ? <img src={m.avatar} className="h-6 w-6 rounded-full object-cover" alt="" /> : <div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">{m.login[0].toUpperCase()}</div>}
+												{m.image ? (
+													<Image src={m.image} width={24} height={24} className="h-6 w-6 rounded-full object-cover" alt="" />
+												) : (
+													<div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">{m.login[0].toUpperCase()}</div>
+												)}
 												<div><p className="font-medium text-text-primary">{m.name}</p><p className="text-[10px] text-text-muted">@{m.login}</p></div>
 											</div>
 										</td>
@@ -135,7 +140,16 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 							{waitlist.map((m, i) => (
 								<tr key={m.id} className="border-b border-border-color">
 									<td className="py-2 text-text-muted">{i + 1}</td>
-									<td><div className="flex items-center gap-2">{m.avatar ? <img src={m.avatar} className="h-5 w-5 rounded-full object-cover" alt="" /> : <div className="flex h-5 w-5 items-center justify-center rounded-full bg-panel2 text-[8px] font-bold text-text-muted">{m.login[0].toUpperCase()}</div>}<span className="text-text-primary">{m.name}</span><span className="text-xs text-text-muted">@{m.login}</span></div></td>
+									<td>
+										<div className="flex items-center gap-2">
+											{m.image ? (
+												<Image src={m.image} width={20} height={20} className="h-5 w-5 rounded-full object-cover" alt="" />
+											) : (
+												<div className="flex h-5 w-5 items-center justify-center rounded-full bg-panel2 text-[8px] font-bold text-text-muted">{m.login[0].toUpperCase()}</div>
+											)}
+											<span className="text-text-primary">{m.name}</span><span className="text-xs text-text-muted">@{m.login}</span>
+										</div>
+									</td>
 									<td className="text-xs text-text-muted">{formatDate(m.joinedAt)}</td>
 									<td><Button variant="primary" size="sm" disabled={activeCount >= cap || loading !== null} onClick={() => callApi(`/api/admin/users/${m.id}/status`, { status: "ACTIVE" }, `${m.login} promoted`)}>Promote</Button></td>
 								</tr>
@@ -162,3 +176,4 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 		</div>
 	);
 }
+

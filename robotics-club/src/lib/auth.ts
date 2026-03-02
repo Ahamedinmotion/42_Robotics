@@ -18,11 +18,11 @@ export const authOptions: NextAuthOptions = {
 				return {
 					id: profile.id.toString(),
 					name: profile.usual_full_name || profile.displayname || profile.login,
-					email: profile.email || `${profile.login}@42.placeholder`,
+					email: profile.email,
 					image: profile.image?.versions?.medium || profile.image?.link,
-					login: profile.login,
 				};
 			},
+			allowDangerousEmailAccountLinking: true,
 		},
 	],
 	session: {
@@ -32,8 +32,10 @@ export const authOptions: NextAuthOptions = {
 		signIn: "/login",
 		error: "/login",
 	},
+	debug: true,
 	callbacks: {
 		async signIn({ user, account, profile }) {
+			console.log("NextAuth SignIn Callback:", { user, account, profile });
 			if (!account || !profile) return true;
 
 			// Update login and fortyTwoId after adapter creates the user
@@ -43,7 +45,7 @@ export const authOptions: NextAuthOptions = {
 					data: {
 						login: (profile as any).login,
 						fortyTwoId: account.providerAccountId,
-						avatar: (profile as any).image?.versions?.medium || (profile as any).image?.link || null,
+						image: (profile as any).image?.versions?.medium || (profile as any).image?.link || null,
 					},
 				});
 			} catch {

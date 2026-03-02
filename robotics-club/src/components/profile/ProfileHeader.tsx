@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 
 // ── Helpers ──────────────────────────────────────────
@@ -25,7 +26,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 interface ProfileHeaderProps {
 	user: {
-		avatar: string | null;
+		image: string | null;
 		name: string;
 		login: string;
 		currentRank: string;
@@ -41,10 +42,12 @@ export function ProfileHeader({ user, title, completedProjects, evalsGiven }: Pr
 	return (
 		<div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-panel p-6 sm:flex-row sm:items-center">
 			<div className="flex items-center gap-5">
-				{user.avatar ? (
-					<img
-						src={user.avatar}
+				{user.image ? (
+					<Image
+						src={user.image || "/placeholder-avatar.png"}
 						alt={user.login}
+						width={80}
+						height={80}
 						className="h-20 w-20 rounded-full border-2 border-accent object-cover"
 					/>
 				) : (

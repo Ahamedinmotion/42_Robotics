@@ -1,4 +1,4 @@
-﻿generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -161,7 +161,7 @@ model User {
   email                String?           @unique
   emailVerified        DateTime?         @map("email_verified")
   name                 String            @default("")
-  avatar               String?           @map("image")
+  image                String?           @map("image")
   role                 Role              @default(STUDENT)
   status               Status            @default(WAITLIST)
   currentRank          Rank              @default(E) @map("current_rank")

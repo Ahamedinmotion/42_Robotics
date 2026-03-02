@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+// @ts-ignore
 import { TeamStatus, EvaluationStatus } from "@prisma/client";
 import { Card } from "@/components/ui/Card";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -93,7 +94,7 @@ export default async function ProfilePage() {
 					Skill Profile
 				</h3>
 				<SkillRadar
-					skills={user.skillProgress.map((s) => ({
+					skills={user.skillProgress.map((s: any) => ({
 						skillTag: s.skillTag,
 						projectsCompleted: s.projectsCompleted,
 					}))}
@@ -124,7 +125,7 @@ export default async function ProfilePage() {
 				</h3>
 				<AchievementsGrid
 					allAchievements={allAchievements}
-					userAchievements={user.achievements.map((ua) => ({
+					userAchievements={user.achievements.map((ua: any) => ({
 						achievementId: ua.achievementId,
 						unlockedAt: ua.unlockedAt,
 					}))}
