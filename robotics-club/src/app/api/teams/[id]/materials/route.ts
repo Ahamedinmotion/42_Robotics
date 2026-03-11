@@ -29,8 +29,8 @@ export async function POST(
 				requestedById: session.user.id,
 				itemName,
 				quantity: Number(quantity),
-				estimatedCost: estimatedCost ? parseFloat(estimatedCost) : null,
-				justification: justification || null,
+				estimatedCost: estimatedCost ? parseFloat(estimatedCost) : 0,
+				justification: justification || "",
 				status: "PENDING",
 			},
 		});

@@ -119,7 +119,7 @@ export default async function PublicProfilePage({
 					allAchievements={allAchievements}
 					userAchievements={user.achievements.map((ua) => ({
 						achievementId: ua.achievementId,
-						unlockedAt: ua.unlockedAt,
+						unlockedAt: ua.unlockedAt.toISOString(),
 					}))}
 				/>
 			</Card>

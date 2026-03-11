@@ -139,6 +139,7 @@ export async function POST(
 			const newEval = await tx.evaluation.create({
 				data: {
 					teamId: slot.teamId,
+					projectId: slot.team.project.id,
 					evaluatorId: userId,
 					slotId: slot.id,
 					status: EvaluationStatus.PENDING,

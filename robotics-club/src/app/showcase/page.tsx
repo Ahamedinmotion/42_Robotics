@@ -62,14 +62,14 @@ export default async function ShowcasePage({
 	const skillCount = new Map<string, number>();
 
 	for (const t of allCompleted) {
-		rankSet.add(t.rank);
+		if (t.rank) rankSet.add(t.rank);
 		for (const tag of (t.project.skillTags as string[]) || []) {
 			skillCount.set(tag, (skillCount.get(tag) || 0) + 1);
 		}
 	}
 
 	const availableRanks = ["E", "D", "C", "B", "A", "S"].filter((r) => rankSet.has(r));
-	const topSkillTags = [...skillCount.entries()]
+	const topSkillTags = Array.from(skillCount.entries())
 		.sort((a, b) => b[1] - a[1])
 		.slice(0, 8)
 		.map(([tag]) => tag);

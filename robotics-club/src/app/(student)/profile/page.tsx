@@ -29,7 +29,7 @@ export default async function ProfilePage() {
 			},
 			userTitles: {
 				include: { title: true },
-				orderBy: { createdAt: "desc" }
+				orderBy: { unlockedAt: "desc" }
 			},
 			alumniEvaluatorOptIn: true,
 		} as any,
@@ -146,7 +146,7 @@ export default async function ProfilePage() {
 					allAchievements={allAchievements}
 					userAchievements={u.achievements.map((ua: any) => ({
 						achievementId: ua.achievementId,
-						unlockedAt: ua.unlockedAt,
+						unlockedAt: ua.unlockedAt.toISOString(),
 					}))}
 				/>
 			</Card>
