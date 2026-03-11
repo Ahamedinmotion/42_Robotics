@@ -13,6 +13,8 @@ export function AdminNav({ userRole }: { userRole?: string }) {
 		{ key: "analytics", label: "Analytics" },
 		{ key: "content", label: "Content" },
 		{ key: "access", label: "Access" },
+		{ key: "board", label: "Board" },
+		{ key: "achievements", label: "Achievements" },
 	];
 
 	if (userRole === "PRESIDENT") {

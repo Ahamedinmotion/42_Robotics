@@ -80,7 +80,7 @@ export const authOptions: NextAuthOptions = {
 		async jwt({ token, user }) {
 			// 'user' is only available on the first call (sign in)
 			if (user) {
-				const dbUser = await prisma.user.findUnique({
+				const dbUser = await (prisma.user as any).findUnique({
 					where: { id: (user as any).id },
 					select: {
 						id: true,
@@ -89,6 +89,7 @@ export const authOptions: NextAuthOptions = {
 						status: true,
 						currentRank: true,
 						activeTheme: true,
+						adminPermissions: true,
 					},
 				});
 				if (dbUser) {
@@ -98,20 +99,23 @@ export const authOptions: NextAuthOptions = {
 					token.status = dbUser.status;
 					token.currentRank = dbUser.currentRank;
 					token.activeTheme = dbUser.activeTheme;
+					token.adminPermissions = dbUser.adminPermissions;
 				}
 			}
 			return token;
 		},
 		async session({ session, token }) {
 			if (token && session.user) {
-				session.user.id = token.id as string;
-				session.user.login = token.login as string;
-				session.user.role = token.role as any;
-				session.user.status = token.status as any;
-				session.user.currentRank = token.currentRank as any;
-				session.user.activeTheme = token.activeTheme as any;
+				(session.user as any).id = token.id as string;
+				(session.user as any).login = token.login as string;
+				(session.user as any).role = token.role as any;
+				(session.user as any).status = token.status as any;
+				(session.user as any).currentRank = token.currentRank as any;
+				(session.user as any).activeTheme = token.activeTheme as any;
+				(session.user as any).adminPermissions = token.adminPermissions as any;
 			}
 			return session;
 		},
+
 	},
 };

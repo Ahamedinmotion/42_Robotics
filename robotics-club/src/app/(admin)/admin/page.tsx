@@ -8,6 +8,8 @@ import { Analytics } from "@/components/admin/Analytics";
 import { ContentManagement } from "@/components/admin/ContentManagement";
 import { AccessSecurity } from "@/components/admin/AccessSecurity";
 import { RoleManagement } from "@/components/admin/RoleManagement";
+import { MoodBoard } from "@/components/admin/MoodBoard";
+import { AchievementEditor } from "@/components/admin/AchievementEditor";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -372,6 +374,20 @@ export default async function AdminPage({
 				userRole={userRole}
 			/>
 		);
+	}
+
+	// ═══════════════════════════════════════════════
+	// SECTION: Board (Mood Board)
+	// ═══════════════════════════════════════════════
+	if (section === "board") {
+		return <MoodBoard />;
+	}
+
+	// ═══════════════════════════════════════════════
+	// SECTION: Achievements
+	// ═══════════════════════════════════════════════
+	if (section === "achievements") {
+		return <AchievementEditor />;
 	}
 
 	// ═══════════════════════════════════════════════

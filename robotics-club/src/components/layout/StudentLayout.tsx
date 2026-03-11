@@ -5,6 +5,7 @@ import { NotificationBell } from "@/components/ui/NotificationBell";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ThemeManager } from "@/components/layout/ThemeManager";
 import { StudentNav } from "@/components/layout/StudentNav";
+import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 
 interface StudentLayoutProps {
 	children: React.ReactNode;
@@ -60,6 +61,7 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 
 			{/* Theme toggle */}
 			<ThemeToggle />
+			<KeyboardShortcuts hasAdminAccess={user.role !== "STUDENT"} />
 		</>
 	);
 }

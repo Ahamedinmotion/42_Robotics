@@ -11,6 +11,7 @@ export function StudentNav({ role }: { role?: string }) {
 		{ href: "/cursus", label: "Cursus" },
 		{ href: "/profile", label: "Profile" },
 		{ href: "/showcase", label: "Showcase" },
+		{ href: "/requests", label: "Requests" },
 	];
 
 	if (role === "PRESIDENT" || role === "VP" || role === "SECRETARY") {

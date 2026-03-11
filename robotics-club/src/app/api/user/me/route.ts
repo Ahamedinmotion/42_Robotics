@@ -48,3 +48,34 @@ export async function GET() {
 		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }
+export async function PATCH(req: Request) {
+	try {
+		const session = await getServerSession(authOptions);
+		if (!session?.user?.id) return err("Unauthorized", 401);
+
+		const body = await req.json();
+		const { equippedTitle } = body;
+
+		// Verify user actually has this achievement if it's a title from one
+		if (equippedTitle) {
+			const hasAchievement = await prisma.userAchievement.findFirst({
+				where: {
+					userId: session.user.id,
+					achievement: { title: equippedTitle },
+				},
+			});
+			if (!hasAchievement && equippedTitle !== "") {
+				return err("You haven't unlocked this title yet", 403);
+			}
+		}
+
+		const updated = await prisma.user.update({
+			where: { id: session.user.id },
+			data: { equippedTitle },
+		});
+
+		return ok(updated);
+	} catch (error) {
+		return err((error as Error).message || "Internal Server Error", 500);
+	}
+}

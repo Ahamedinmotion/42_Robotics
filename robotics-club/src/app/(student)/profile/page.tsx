@@ -10,6 +10,8 @@ import { ProjectHistory } from "@/components/profile/ProjectHistory";
 import { TeamHistory } from "@/components/profile/TeamHistory";
 import { AchievementsGrid } from "@/components/profile/AchievementsGrid";
 import { AlumniToggle } from "@/components/profile/AlumniToggle";
+import { ComplimentWall } from "@/components/profile/ComplimentWall";
+import { TitleSelector } from "@/components/profile/TitleSelector";
 
 export default async function ProfilePage() {
 	const session = await getServerSession(authOptions);
@@ -87,6 +89,13 @@ export default async function ProfilePage() {
 				evalsGiven={evalsGivenCount}
 			/>
 
+			<div className="flex justify-end pt-2">
+				<TitleSelector
+					initialTitle={(user as any).equippedTitle}
+					unlockedTitles={user.achievements.map((ua) => ua.achievement.title)}
+				/>
+			</div>
+
 			{/* Section 2 — Skill Radar */}
 			<Card className="space-y-3">
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
@@ -117,7 +126,10 @@ export default async function ProfilePage() {
 				<TeamHistory teams={allTeams} currentUserId={userId} />
 			</Card>
 
-			{/* Section 5 — Achievements */}
+			{/* Section 5 — Compliments */}
+			<ComplimentWall />
+
+			{/* Section 6 — Achievements awareness */}
 			<Card className="space-y-3" id="achievements">
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
 					Achievements
@@ -131,7 +143,7 @@ export default async function ProfilePage() {
 				/>
 			</Card>
 
-			{/* Section 6 — Alumni Evaluator (conditional) */}
+			{/* Section 7 — Alumni Evaluator (conditional) */}
 			{user.status === "ALUMNI" && (
 				<Card>
 					<AlumniToggle isOptedIn={user.alumniEvaluatorOptIn?.isActive ?? false} />

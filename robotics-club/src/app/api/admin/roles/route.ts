@@ -4,46 +4,101 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 
+export async function GET() {
+	try {
+		const session = await getServerSession(authOptions);
+		if (!session?.user?.id || session.user.role !== "PRESIDENT") {
+			return err("Unauthorized", 401);
+		}
+
+		const users = await (prisma.user as any).findMany({
+			where: {
+				status: { not: "WAITLIST" },
+			},
+			select: {
+				id: true,
+				login: true,
+				name: true,
+				image: true,
+				role: true,
+				adminPermissions: true,
+			},
+			orderBy: { login: "asc" },
+		});
+
+		return ok(users);
+	} catch (error) {
+		return err("Internal Server Error", 500);
+	}
+}
+
 export async function PATCH(req: Request) {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session?.user?.id) return err("Unauthorized", 401);
 
 		if (session.user.role !== "PRESIDENT") {
-			return err("Forbidden. Only the President can modify roles.", 403);
+			return err("Forbidden. Only the President can modify roles and permissions.", 403);
 		}
 
 		const body = await req.json();
-		const { targetUserId, newRole } = body;
+		const { targetUserId, newRole, permissions } = body;
 
-		if (!targetUserId || !newRole) {
-			return err("Missing parameters", 400);
+		if (!targetUserId) {
+			return err("Target user ID is required", 400);
 		}
 
-		const validRoles = ["STUDENT", "SECRETARY", "PROJECT_MANAGER", "SOCIAL_MEDIA_MANAGER", "VP", "PRESIDENT"];
-		if (!validRoles.includes(newRole)) {
-			return err("Invalid role", 400);
-		}
-
-		const target = await prisma.user.findUnique({
+		const target = await (prisma.user as any).findUnique({
 			where: { id: targetUserId },
-			select: { id: true, role: true }
+			include: { adminPermissions: true },
 		});
 
 		if (!target) return err("User not found", 404);
 
-		// Prevent demoting self or another PRESIDENT for safety (unless explicit DB override)
+		// Prevent demoting another PRESIDENT for safety
 		if (target.role === "PRESIDENT" && session.user.id !== targetUserId) {
 			return err("Cannot modify another President's role.", 403);
 		}
 
-		const updatedUser = await prisma.user.update({
+		const data: any = {};
+		if (newRole) {
+			const validRoles = ["STUDENT", "SECRETARY", "PROJECT_MANAGER", "SOCIAL_MEDIA_MANAGER", "VP", "PRESIDENT"];
+			if (!validRoles.includes(newRole)) return err("Invalid role", 400);
+			data.role = newRole;
+		}
+
+		if (permissions) {
+			data.adminPermissions = {
+				upsert: {
+					create: {
+						canManageMembers: permissions.canManageMembers ?? false,
+						canManageContent: permissions.canManageContent ?? false,
+						canManageAccess: permissions.canManageAccess ?? false,
+						canViewAnalytics: permissions.canViewAnalytics ?? false,
+						customTitle: permissions.customTitle || null,
+					},
+					update: {
+						canManageMembers: permissions.canManageMembers ?? false,
+						canManageContent: permissions.canManageContent ?? false,
+						canManageAccess: permissions.canManageAccess ?? false,
+						canViewAnalytics: permissions.canViewAnalytics ?? false,
+						customTitle: permissions.customTitle || null,
+					},
+				},
+			};
+		}
+
+		const updatedUser = await (prisma.user as any).update({
 			where: { id: targetUserId },
-			data: { role: newRole as any },
+			data,
+			include: { adminPermissions: true },
 		});
 
-		return ok({ id: updatedUser.id, login: updatedUser.login, newRole: updatedUser.role });
+		return ok(updatedUser);
+
 	} catch (error) {
+		console.error("Role PATCH Error:", error);
 		return err("Internal Server Error", 500);
 	}
 }
+

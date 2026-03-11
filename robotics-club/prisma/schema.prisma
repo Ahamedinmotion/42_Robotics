@@ -148,6 +148,13 @@ enum AuthMethod {
   QR_CODE
 }
 
+enum FeatureRequestStatus {
+  OPEN
+  PLANNED
+  DONE
+  DISMISSED
+}
+
 // =======================
 // Models
 // =======================
@@ -168,6 +175,7 @@ model User {
   labAccessEnabled     Boolean           @default(false) @map("lab_access_enabled")
   githubHandle         String?           @map("github_handle")
   activeTheme          Theme             @default(FORGE) @map("active_theme")
+  equippedTitle        String?           @map("equipped_title")
   joinedAt             DateTime          @default(now()) @map("joined_at")
 
   // Relations
@@ -196,6 +204,12 @@ model User {
   feedbackReceived     EvaluationFeedback[] @relation("FeedbackReceiver")
   skillProgress        UserSkillProgress[]
   accounts             Account[]
+  complimentsSent      Compliment[]       @relation("ComplimentSender")
+  complimentsReceived  Compliment[]       @relation("ComplimentReceiver")
+  moodBoardNotes       MoodBoardNote[]
+  featureRequests      FeatureRequest[]   @relation("FeatureRequestCreator")
+  featureRequestVotes  FeatureRequestVote[]
+  adminPermissions     AdminPermission?
 
   @@map("users")
 }
@@ -663,3 +677,80 @@ model AlumniEvaluator {
   @@map("alumni_evaluators")
   @@index([userId])
 }
+
+model Compliment {
+  id            String      @id @default(cuid())
+  createdAt     DateTime    @default(now()) @map("created_at")
+  fromUserId    String      @map("from_user_id")
+  toUserId      String      @map("to_user_id")
+  evaluationId  String?     @map("evaluation_id")
+  message       String      @db.Text
+
+  fromUser      User        @relation("ComplimentSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser        User        @relation("ComplimentReceiver", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId, evaluationId])
+  @@map("compliments")
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model MoodBoardNote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  authorId  String   @map("author_id")
+  content   String   @db.Text
+  color     String   @default("#FFD700")
+  pinned    Boolean  @default(false)
+
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("mood_board_notes")
+  @@index([authorId])
+}
+
+model FeatureRequest {
+  id          String               @id @default(cuid())
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  userId      String               @map("user_id")
+  title       String
+  description String               @db.Text
+  status      FeatureRequestStatus @default(OPEN)
+
+  user        User                 @relation("FeatureRequestCreator", fields: [userId], references: [id], onDelete: Cascade)
+  votes       FeatureRequestVote[]
+
+  @@map("feature_requests")
+  @@index([userId])
+}
+
+model FeatureRequestVote {
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now()) @map("created_at")
+  userId    String         @map("user_id")
+  requestId String         @map("request_id")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request   FeatureRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, requestId])
+  @@map("feature_request_votes")
+  @@index([userId])
+  @@index([requestId])
+}
+
+model AdminPermission {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  canManageMembers Boolean  @default(false) @map("can_manage_members")
+  canManageContent Boolean  @default(false) @map("can_manage_content")
+  canManageAccess  Boolean  @default(false) @map("can_manage_access")
+  canViewAnalytics Boolean  @default(false) @map("can_view_analytics")
+  customTitle      String?  @map("custom_title")
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_permissions")
+}
+

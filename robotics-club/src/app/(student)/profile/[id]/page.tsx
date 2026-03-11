@@ -8,6 +8,7 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { SkillRadar } from "@/components/profile/SkillRadar";
 import { ProjectHistory } from "@/components/profile/ProjectHistory";
 import { AchievementsGrid } from "@/components/profile/AchievementsGrid";
+import { SendCompliment } from "@/components/profile/SendCompliment";
 
 export default async function PublicProfilePage({
 	params,
@@ -82,6 +83,10 @@ export default async function PublicProfilePage({
 				completedProjects={completedTeams.length}
 				evalsGiven={evalsGivenCount}
 			/>
+
+			<div className="flex justify-end">
+				<SendCompliment toUserId={user.id} toUserLogin={user.login} />
+			</div>
 
 			<Card className="space-y-3">
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
