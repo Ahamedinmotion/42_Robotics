@@ -48,8 +48,10 @@ export async function DELETE() {
 		const session = await getServerSession(authOptions);
 		if (!session?.user?.id) return err("Unauthorized", 401);
 
+		const realAdminId = (session.user as any).realAdminId || session.user.id;
+
 		await (prisma.user as any).update({
-			where: { id: session.user.id },
+			where: { id: realAdminId },
 			data: { impersonatorId: null }
 		});
 
