@@ -102,13 +102,13 @@ export async function POST(
 			where: { teamId: team.id },
 			include: {
 				user: {
-					select: { id: true, name: true, login: true, avatar: true, currentRank: true },
+					select: { id: true, name: true, login: true, image: true, currentRank: true },
 				},
 			},
 		});
 
 		return ok({ members: updatedMembers, hasWorkedTogether: !!hasWorkedTogether });
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

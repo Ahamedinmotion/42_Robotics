@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navLinks = [
-	{ href: "/home", label: "Home" },
-	{ href: "/cursus", label: "Cursus" },
-	{ href: "/profile", label: "Profile" },
-	{ href: "/showcase", label: "Showcase" },
-];
-
-export function StudentNav() {
+export function StudentNav({ role }: { role?: string }) {
 	const pathname = usePathname();
+
+	const navLinks = [
+		{ href: "/home", label: "Home" },
+		{ href: "/cursus", label: "Cursus" },
+		{ href: "/profile", label: "Profile" },
+		{ href: "/showcase", label: "Showcase" },
+	];
+
+	if (role === "PRESIDENT" || role === "VP" || role === "SECRETARY") {
+		navLinks.push({ href: "/admin", label: "Admin Space" });
+	}
 
 	return (
 		<nav className="flex items-center gap-6">

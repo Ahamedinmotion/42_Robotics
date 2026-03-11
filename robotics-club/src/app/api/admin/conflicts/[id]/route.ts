@@ -17,7 +17,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 		// NEVER return raisedById
 		return ok({ success: true });
-	} catch (e: any) {
-		return err(e.message || "Internal Server Error", 500);
+	} catch (e: unknown) {
+		const errorMessage = e instanceof Error ? (e as Error).message : "Internal Server Error";
+		return err(errorMessage, 500);
 	}
 }

@@ -10,10 +10,10 @@ const config: Config = {
     extend: {
       colors: {
         background: "var(--background)",
-        panel: "var(--panel)",
-        panel2: "var(--panel-2)",
+        panel: "rgb(var(--panel-rgb) / <alpha-value>)",
+        panel2: "rgb(var(--panel-2-rgb) / <alpha-value>)",
         "border-color": "var(--border)",
-        accent: "var(--accent)",
+        accent: "rgb(var(--accent-rgb) / <alpha-value>)",
         "accent-secondary": "var(--accent-secondary)",
         "accent-urgency": "var(--accent-urgency)",
         "text-primary": "var(--text-primary)",

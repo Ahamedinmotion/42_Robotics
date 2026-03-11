@@ -41,7 +41,7 @@ export async function GET(
 										id: true,
 										login: true,
 										name: true,
-										avatar: true,
+										image: true,
 									},
 								},
 							},
@@ -56,7 +56,7 @@ export async function GET(
 		}
 
 		return ok(project);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

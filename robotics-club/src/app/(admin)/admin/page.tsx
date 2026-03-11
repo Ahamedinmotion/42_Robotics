@@ -7,6 +7,7 @@ import { ModerationQueue } from "@/components/admin/ModerationQueue";
 import { Analytics } from "@/components/admin/Analytics";
 import { ContentManagement } from "@/components/admin/ContentManagement";
 import { AccessSecurity } from "@/components/admin/AccessSecurity";
+import { RoleManagement } from "@/components/admin/RoleManagement";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -54,16 +55,16 @@ export default async function AdminPage({
 
 		const completedCounts = await prisma.teamMember.groupBy({
 			by: ["userId"],
-			where: { userId: { in: activeUsers.map((u: any) => u.id) }, team: { status: "COMPLETED" } },
+			where: { userId: { in: activeUsers.map((u) => u.id) }, team: { status: "COMPLETED" } },
 			_count: true,
 		});
-		const completedMap = new Map(completedCounts.map((c: any) => [c.userId, c._count]));
+		const completedMap = new Map(completedCounts.map((c) => [c.userId, c._count]));
 
-		const activeMembers = activeUsers.map((u: any) => {
+		const activeMembers = activeUsers.map((u) => {
 			const activeTeam = u.teams[0]?.team ?? null;
 			const lastRead = u.notifications[0]?.readAt;
 			return {
-				id: u.id, login: u.login, name: u.name, image: u.avatar,
+				id: u.id, login: u.login, name: u.name, image: u.image,
 				currentRank: u.currentRank, status: u.status,
 				labAccessEnabled: u.labAccessEnabled,
 				joinedAt: u.joinedAt.toISOString(), updatedAt: u.updatedAt.toISOString(),
@@ -83,13 +84,15 @@ export default async function AdminPage({
 			where: { status: "ALUMNI" }, include: { alumniEvaluatorOptIn: true },
 		});
 
-		const ser = (u: any) => ({ id: u.id, login: u.login, name: u.name, image: u.avatar, currentRank: u.currentRank, status: u.status, labAccessEnabled: u.labAccessEnabled, joinedAt: u.joinedAt.toISOString(), updatedAt: u.updatedAt.toISOString() });
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const ser = (u: any) => ({ ...u, joinedAt: u.joinedAt.toISOString(), updatedAt: u.updatedAt.toISOString() });
 
 		return (
 			<MemberControl
 				activeMembers={activeMembers}
 				waitlist={waitlist.map(ser)}
 				blackholed={blackholed.map(ser)}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				alumni={alumniRaw.map((u: any) => ({ ...ser(u), alumniOptedIn: u.alumniEvaluatorOptIn?.isActive ?? false }))}
 				activeCount={activeMembers.length}
 			/>
@@ -123,32 +126,43 @@ export default async function AdminPage({
 			}),
 		]);
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapFab = (f: any) => ({
+			id: f.id, userName: f.user.name, userLogin: f.user.login, machineType: f.machineType,
+			purpose: f.purpose, estimatedTime: f.estimatedMinutes, material: f.material,
+			modelFileUrl: f.modelFileUrl, status: f.status,
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapMat = (m: any) => ({
+			id: m.id, teamName: m.teamId, projectTitle: m.team.project.title,
+			itemName: m.itemName, quantity: m.quantity, estimatedCost: m.estimatedCost,
+			justification: m.justification, status: m.status,
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapProp = (p: any) => ({
+			id: p.id, proposedByName: p.proposedBy.name, proposedByRank: p.proposedBy.currentRank,
+			title: p.title, proposedRank: p.proposedRank, description: p.description,
+			learningObjectives: p.learningObjectives, buildPlan: p.buildPlan, status: p.status,
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapConf = (c: any) => ({
+			id: c.id, teamName: c.teamId, projectTitle: c.team.project.title,
+			description: c.description, status: c.status,
+			createdAt: c.createdAt.toISOString(), moderatorNote: c.moderatorNote,
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapDam = (d: any) => ({
+			id: d.id, reporterName: d.reportedBy.name, itemDescription: d.itemName,
+			estimatedValue: d.estimatedValue, description: d.description, status: d.status,
+		});
+
 		return (
 			<ModerationQueue
-				fabrication={fabReqs.map((f: any) => ({
-					id: f.id, userName: f.user.name, userLogin: f.user.login, machineType: f.machineType,
-					purpose: f.purpose, estimatedTime: f.estimatedMinutes, material: f.material,
-					modelFileUrl: f.modelFileUrl, status: f.status,
-				}))}
-				materials={matReqs.map((m: any) => ({
-					id: m.id, teamName: m.teamId, projectTitle: m.team.project.title,
-					itemName: m.itemName, quantity: m.quantity, estimatedCost: m.estimatedCost,
-					justification: m.justification, status: m.status,
-				}))}
-				proposals={proposals.map((p: any) => ({
-					id: p.id, proposedByName: p.proposedBy.name, proposedByRank: p.proposedBy.currentRank,
-					title: p.title, proposedRank: p.proposedRank, description: p.description,
-					learningObjectives: p.learningObjectives, buildPlan: p.buildPlan, status: p.status,
-				}))}
-				conflicts={conflictFlags.map((c: any) => ({
-					id: c.id, teamName: c.teamId, projectTitle: c.team.project.title,
-					description: c.description, status: c.status,
-					createdAt: c.createdAt.toISOString(), moderatorNote: c.moderatorNote,
-				}))}
-				damage={damageReports.map((d: any) => ({
-					id: d.id, reporterName: d.reportedBy.name, itemDescription: d.itemName,
-					estimatedValue: d.estimatedValue, description: d.description, status: d.status,
-				}))}
+				fabrication={fabReqs.map(mapFab)}
+				materials={matReqs.map(mapMat)}
+				proposals={proposals.map(mapProp)}
+				conflicts={conflictFlags.map(mapConf)}
+				damage={damageReports.map(mapDam)}
 			/>
 		);
 	}
@@ -160,32 +174,32 @@ export default async function AdminPage({
 		const rankDist = await prisma.user.groupBy({
 			by: ["currentRank"], where: { status: "ACTIVE" }, _count: true,
 		});
-		const rankDistribution = RANKS.map((r: any) => ({
-			rank: r, count: rankDist.find((d: any) => d.currentRank === r)?._count ?? 0,
+		const rankDistribution = RANKS.map((r) => ({
+			rank: r, count: rankDist.find((d) => d.currentRank === r)?._count ?? 0,
 		}));
 
 		const teamsByRank = await prisma.team.groupBy({
 			by: ["rank", "status"], _count: true,
 		});
-		const completionRates = RANKS.map((r: any) => {
-			const all = teamsByRank.filter((t: any) => t.rank === r);
-			const total = all.reduce((s: any, t: any) => s + t._count, 0);
-			const completed = all.filter((t: any) => t.status === "COMPLETED").reduce((s: any, t: any) => s + t._count, 0);
+		const completionRates = RANKS.map((r) => {
+			const all = teamsByRank.filter((t) => t.rank === r);
+			const total = all.reduce((s, t) => s + t._count, 0);
+			const completed = all.filter((t) => t.status === "COMPLETED").reduce((s, t) => s + t._count, 0);
 			return { rank: r, completed, total };
 		});
 
 		const fabStats = await prisma.fabricationRequest.groupBy({
 			by: ["machineType", "status"], _count: true,
 		});
-		const machines = Array.from(new Set(fabStats.map((f: any) => f.machineType)));
-		const equipment = machines.map((mt: any) => {
-			const rows = fabStats.filter((f: any) => f.machineType === mt);
+		const machines = Array.from(new Set(fabStats.map((f) => f.machineType)));
+		const equipment = machines.map((mt) => {
+			const rows = fabStats.filter((f) => f.machineType === mt);
 			return {
 				machineType: mt,
-				pending: rows.find((r: any) => r.status === "PENDING")?._count ?? 0,
-				approved: rows.find((r: any) => r.status === "APPROVED")?._count ?? 0,
-				completed: rows.find((r: any) => r.status === "COMPLETED")?._count ?? 0,
-				rejected: rows.find((r: any) => r.status === "REJECTED")?._count ?? 0,
+				pending: rows.find((r) => r.status === "PENDING")?._count ?? 0,
+				approved: rows.find((r) => r.status === "APPROVED")?._count ?? 0,
+				completed: rows.find((r) => r.status === "COMPLETED")?._count ?? 0,
+				rejected: rows.find((r) => r.status === "REJECTED")?._count ?? 0,
 			};
 		});
 
@@ -205,7 +219,7 @@ export default async function AdminPage({
 		});
 		let avgEvalDays: number | null = null;
 		if (evalTeams.length > 0) {
-			const totalDays = evalTeams.reduce((sum: any, t: any) => {
+			const totalDays = evalTeams.reduce((sum, t) => {
 				if (t.activatedAt && t.evaluations[0]?.completedAt) {
 					return sum + (t.evaluations[0].completedAt.getTime() - t.activatedAt.getTime()) / 86400000;
 				}
@@ -220,7 +234,7 @@ export default async function AdminPage({
 				completionRates={completionRates}
 				equipment={equipment}
 				retention={{ total: totalUsers, activeAndAlumni }}
-				blackholeEvents={recentBH.map((u: any) => ({ login: u.login, rank: u.currentRank, date: formatShortDate(u.updatedAt) }))}
+				blackholeEvents={recentBH.map((u) => ({ login: u.login, rank: u.currentRank, date: formatShortDate(u.updatedAt) }))}
 				avgEvalDays={avgEvalDays}
 			/>
 		);
@@ -235,17 +249,20 @@ export default async function AdminPage({
 			include: { _count: { select: { teams: true } } },
 		});
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapProj = (p: any) => ({
+			id: p.id, title: p.title, rank: p.rank, status: p.status,
+			teamCount: p._count.teams, description: p.description,
+			teamSizeMin: p.teamSizeMin, teamSizeMax: p.teamSizeMax,
+			blackholeDays: p.blackholeDays,
+			skillTags: (p.skillTags as string[]) || [],
+			isUnique: p.isUnique,
+			subjectSheetUrl: p.subjectSheetUrl, evaluationSheetUrl: p.evaluationSheetUrl,
+		});
+
 		return (
 			<ContentManagement
-				projects={projects.map((p: any) => ({
-					id: p.id, title: p.title, rank: p.rank, status: p.status,
-					teamCount: p._count.teams, description: p.description,
-					teamSizeMin: p.teamSizeMin, teamSizeMax: p.teamSizeMax,
-					blackholeDays: p.blackholeDays,
-					skillTags: (p.skillTags as string[]) || [],
-					isUnique: p.isUnique,
-					subjectSheetUrl: p.subjectSheetUrl, evaluationSheetUrl: p.evaluationSheetUrl,
-				}))}
+				projects={projects.map(mapProj)}
 				userRole={userRole}
 			/>
 		);
@@ -257,23 +274,38 @@ export default async function AdminPage({
 	if (section === "access") {
 		const logs = await prisma.labAccessLog.findMany({
 			take: 50, orderBy: { createdAt: "desc" },
-			include: { user: { select: { name: true, login: true, avatar: true } } },
+			include: { user: { select: { name: true, login: true, image: true } } },
 		});
 		const flaggedCount = await prisma.labAccessLog.count({ where: { flagged: true } });
 		const labAccessCount = await prisma.user.count({ where: { labAccessEnabled: true } });
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mapLog = (l: any) => ({
+			id: l.id, userName: l.user.name, userLogin: l.user.login,
+			userImage: l.user.image, method: l.method, success: l.success,
+			flagged: l.flagged, note: l.note, timestamp: l.createdAt.toISOString(),
+		});
+
 		return (
 			<AccessSecurity
-				logs={logs.map((l: any) => ({
-					id: l.id, userName: l.user.name, userLogin: l.user.login,
-					userImage: l.user.avatar, method: l.method, success: l.success,
-					flagged: l.flagged, note: l.note, timestamp: l.createdAt.toISOString(),
-				}))}
+				logs={logs.map(mapLog)}
 				flaggedCount={flaggedCount}
 				labAccessCount={labAccessCount}
 				userRole={userRole}
 			/>
 		);
+	}
+
+	// ═══════════════════════════════════════════════
+	// SECTION: Roles
+	// ═══════════════════════════════════════════════
+	if (section === "roles" && userRole === "PRESIDENT") {
+		const allUsers = await prisma.user.findMany({
+			select: { id: true, login: true, name: true, image: true, role: true },
+			orderBy: [{ role: 'asc' }, { name: 'asc' }]
+		});
+
+		return <RoleManagement users={allUsers} />;
 	}
 
 	// Fallback

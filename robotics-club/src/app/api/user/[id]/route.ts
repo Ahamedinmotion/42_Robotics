@@ -24,7 +24,7 @@ export async function GET(
 				id: true,
 				login: true,
 				name: true,
-				avatar: true,
+				image: true,
 				currentRank: true,
 				status: true,
 				joinedAt: true,
@@ -67,7 +67,7 @@ export async function GET(
 		}
 
 		return ok(user);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

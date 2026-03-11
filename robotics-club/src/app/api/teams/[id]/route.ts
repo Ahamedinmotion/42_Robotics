@@ -27,7 +27,7 @@ export async function GET(
 				members: {
 					include: {
 						user: {
-							select: { id: true, name: true, login: true, avatar: true, currentRank: true },
+							select: { id: true, name: true, login: true, image: true, currentRank: true },
 						},
 					},
 				},
@@ -59,8 +59,8 @@ export async function GET(
 		}
 
 		return ok(team);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }
 
@@ -104,7 +104,7 @@ export async function PATCH(
 		});
 
 		return ok(updatedTeam);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

@@ -62,6 +62,11 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 	const containerRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
 
+	const [scale, setScale] = useState(1);
+	const [pan, setPan] = useState({ x: 0, y: 0 });
+	const [isDragging, setIsDragging] = useState(false);
+	const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
 	const userRankVal = RANK_VALUES[userRank] ?? 1;
 	const sRankRevealed = userRankVal >= RANK_VALUES.A;
 
@@ -109,8 +114,39 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 		}
 	};
 
+	// ── Pan & Zoom Handlers ─────────
+	const handleWheel = (e: React.WheelEvent) => {
+		e.preventDefault();
+		const zoomSensitivity = 0.001;
+		const delta = -e.deltaY * zoomSensitivity;
+		setScale((s) => Math.min(Math.max(0.5, s + delta), 3));
+	};
+
+	const handleMouseDown = (e: React.MouseEvent) => {
+		setIsDragging(true);
+		setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+	};
+
+	const handleMouseMove = (e: React.MouseEvent) => {
+		if (!isDragging) return;
+		setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+	};
+
+	const handleMouseUp = () => {
+		setIsDragging(false);
+	};
+
 	return (
-		<div ref={containerRef} className="relative mx-auto w-full" style={{ aspectRatio: "1" }}>
+		<div 
+			ref={containerRef} 
+			className="relative mx-auto w-full overflow-hidden rounded-2xl border border-border-color bg-panel2/30" 
+			style={{ aspectRatio: "1" }}
+			onWheel={handleWheel}
+			onMouseDown={handleMouseDown}
+			onMouseMove={handleMouseMove}
+			onMouseUp={handleMouseUp}
+			onMouseLeave={handleMouseUp}
+		>
 			{/* CSS animations */}
 			<style>{`
         @keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -119,7 +155,14 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
         .s-ring-revealed { opacity: 1; transition: opacity 1.5s ease-in; }
       `}</style>
 
-			<svg viewBox="0 0 600 600" width="100%" height="100%">
+			<div 
+				className="absolute inset-0 origin-center transition-transform" 
+				style={{ 
+					transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+					transitionDuration: isDragging ? '0ms' : '150ms'
+				}}
+			>
+				<svg viewBox="0 0 600 600" width="100%" height="100%">
 				{/* Glow filter */}
 				<defs>
 					<filter id="glow">
@@ -238,34 +281,35 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 				<text x={CX} y={CY + 12} textAnchor="middle" dominantBaseline="middle" fill={RANK_COLOURS[userRank] || "#888"} fontSize={10}>{userRank}</text>
 			</svg>
 
-			{/* Tooltip overlay (HTML positioned over SVG) */}
-			{hovered && (
-				<div
-					className="pointer-events-none absolute z-50 w-56 rounded-xl border border-border-color bg-panel p-3 shadow-lg"
-					style={{
-						left: `${(hoveredPos.x / 600) * 100}%`,
-						top: `${(hoveredPos.y / 600) * 100}%`,
-						transform: `translate(${hoveredPos.x > 300 ? "-110%" : "10%"}, ${hoveredPos.y > 300 ? "-110%" : "10%"})`,
-					}}
-				>
-					<div className="mb-2 flex items-center gap-2">
-						<span className="text-sm font-bold text-text-primary">{hovered.title}</span>
-						<Badge rank={hovered.rank as any} size="sm" />
-					</div>
-					{hovered.skillTags.length > 0 && (
-						<div className="mb-2 flex flex-wrap gap-1">
-							{hovered.skillTags.map((tag) => (
-								<span key={tag} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted">
-									{tag}
-								</span>
-							))}
+				{/* Tooltip overlay (HTML positioned over SVG) */}
+				{hovered && (
+					<div
+						className="pointer-events-none absolute z-50 w-56 rounded-xl border border-border-color bg-panel p-3 shadow-lg"
+						style={{
+							left: `${(hoveredPos.x / 600) * 100}%`,
+							top: `${(hoveredPos.y / 600) * 100}%`,
+							transform: `translate(${hoveredPos.x > 300 ? "-110%" : "10%"}, ${hoveredPos.y > 300 ? "-110%" : "10%"})`,
+						}}
+					>
+						<div className="mb-2 flex items-center gap-2">
+							<span className="text-sm font-bold text-text-primary">{hovered.title}</span>
+							<Badge rank={hovered.rank as any} size="sm" />
 						</div>
-					)}
-					<p className="text-xs text-text-muted">{hovered.teamSizeMin}–{hovered.teamSizeMax} members · {hovered.blackholeDays} days</p>
-					{hovered.isUnique && <p className="mt-0.5 text-[10px] font-semibold text-accent-secondary">Unique project</p>}
-					<p className="mt-1 text-[10px] text-accent">View Details →</p>
-				</div>
-			)}
+						{hovered.skillTags.length > 0 && (
+							<div className="mb-2 flex flex-wrap gap-1">
+								{hovered.skillTags.map((tag) => (
+									<span key={tag} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted">
+										{tag}
+									</span>
+								))}
+							</div>
+						)}
+						<p className="text-xs text-text-muted">{hovered.teamSizeMin}–{hovered.teamSizeMax} members · {hovered.blackholeDays} days</p>
+						{hovered.isUnique && <p className="mt-0.5 text-[10px] font-semibold text-accent-secondary">Unique project</p>}
+						<p className="mt-1 text-[10px] text-accent">View Details →</p>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

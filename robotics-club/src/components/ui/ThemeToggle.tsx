@@ -9,12 +9,17 @@ export function ThemeToggle() {
 	useEffect(() => {
 		const saved = localStorage.getItem("rc-theme") as "FORGE" | "FIELD" | null;
 		if (saved) setCurrent(saved);
+		else {
+			const hour = new Date().getHours();
+			setCurrent(hour >= 19 || hour < 7 ? "FORGE" : "FIELD");
+		}
 	}, []);
 
 	const toggle = async () => {
 		const next = current === "FORGE" ? "FIELD" : "FORGE";
 		setCurrent(next);
 		applyTheme(next);
+		localStorage.setItem("rc-theme-override", "true");
 
 		try {
 			await fetch("/api/user/theme", {
@@ -23,7 +28,7 @@ export function ThemeToggle() {
 				body: JSON.stringify({ theme: next }),
 			});
 		} catch {
-			// Silently fail — localStorage is the primary persistence
+			// Silently fail
 		}
 	};
 

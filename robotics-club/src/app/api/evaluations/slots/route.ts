@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 		}
 
 		return ok({ slot, eligibleCount });
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

@@ -3,17 +3,21 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-const sections = [
-	{ key: "members", label: "Members" },
-	{ key: "queue", label: "Queue" },
-	{ key: "analytics", label: "Analytics" },
-	{ key: "content", label: "Content" },
-	{ key: "access", label: "Access" },
-];
-
-export function AdminNav() {
+export function AdminNav({ userRole }: { userRole?: string }) {
 	const searchParams = useSearchParams();
 	const active = searchParams.get("section") || "members";
+
+	const sections = [
+		{ key: "members", label: "Members" },
+		{ key: "queue", label: "Queue" },
+		{ key: "analytics", label: "Analytics" },
+		{ key: "content", label: "Content" },
+		{ key: "access", label: "Access" },
+	];
+
+	if (userRole === "PRESIDENT") {
+		sections.push({ key: "roles", label: "Roles" });
+	}
 
 	return (
 		<nav className="flex items-center gap-5">

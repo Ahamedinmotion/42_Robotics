@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
 		if (!title || !rank) return err("title and rank are required", 400);
 
-		const auth2 = auth as { user: any };
+		const auth2 = auth as { user: { role: string; id: string } };
 		const role = auth2.user.role;
 
 		// PROJECT_MANAGER can only save as DRAFT
@@ -26,8 +26,8 @@ export async function POST(req: Request) {
 			data: {
 				title,
 				description: description || "",
-				rank: rank as any,
-				status: finalStatus as any,
+				rank: rank as "E" | "D" | "C" | "B" | "A" | "S",
+				status: finalStatus as "ACTIVE" | "DRAFT",
 				teamSizeMin: Number(teamSizeMin) || 2,
 				teamSizeMax: Number(teamSizeMax) || 4,
 				blackholeDays: Number(blackholeDays) || 28,
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 			},
 		});
 		return ok(project);
-	} catch (e: any) {
-		return err(e.message || "Internal Server Error", 500);
+	} catch (e) {
+		return err((e as Error).message || "Internal Server Error", 500);
 	}
 }

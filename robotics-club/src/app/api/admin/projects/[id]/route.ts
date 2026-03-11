@@ -39,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 		const updated = await prisma.project.update({ where: { id: params.id }, data });
 		return ok(updated);
-	} catch (e: any) {
-		return err(e.message || "Internal Server Error", 500);
+	} catch (e: unknown) {
+		return err((e as Error).message || "Internal Server Error", 500);
 	}
 }

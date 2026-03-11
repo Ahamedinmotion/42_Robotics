@@ -44,7 +44,7 @@ export default async function ShowcasePage({
 			project: { select: { title: true, description: true, skillTags: true } },
 			members: {
 				include: {
-					user: { select: { id: true, login: true, name: true, avatar: true } },
+					user: { select: { id: true, login: true, name: true, image: true } },
 				},
 			},
 			leader: { select: { githubHandle: true } },

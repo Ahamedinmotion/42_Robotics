@@ -23,14 +23,14 @@ export async function GET(
 			orderBy: { weekNumber: "asc" },
 			include: {
 				submittedBy: {
-					select: { id: true, name: true, login: true, avatar: true },
+					select: { id: true, name: true, login: true, image: true },
 				},
 			},
 		});
 
 		return ok(reports);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }
 
@@ -95,7 +95,7 @@ export async function POST(
 		});
 
 		return ok(report);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

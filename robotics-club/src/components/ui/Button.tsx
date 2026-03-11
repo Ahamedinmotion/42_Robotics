@@ -41,7 +41,7 @@ export function Button({
 
 	if (href) {
 		return (
-			<a href={href} className={base}>
+			<a href={href} className={`inline-block text-center ${base}`}>
 				{children}
 			</a>
 		);

@@ -1,9 +1,9 @@
 import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
-	adapter: PrismaAdapter(prisma) as any,
+	// We remove the adapter and handle user creation manually in the signIn callback.
+	// This gives us complete control over the 'login' field and avoids adapter-related schema errors.
 	providers: [
 		{
 			id: "42-school",
@@ -17,6 +17,7 @@ export const authOptions: NextAuthOptions = {
 			profile(profile) {
 				return {
 					id: profile.id.toString(),
+					login: profile.login,
 					name: profile.usual_full_name || profile.displayname || profile.login,
 					email: profile.email,
 					image: profile.image?.versions?.medium || profile.image?.link,
@@ -32,44 +33,55 @@ export const authOptions: NextAuthOptions = {
 		signIn: "/login",
 		error: "/login",
 	},
-	debug: true,
 	callbacks: {
 		async signIn({ user, account, profile }) {
 			console.log("NextAuth SignIn Callback:", { user, account, profile });
-			if (!account || !profile) return true;
+			if (!account || !profile) return false;
 
-			// Update login and fortyTwoId after adapter creates the user
 			try {
-				await prisma.user.update({
-					where: { id: user.id },
-					data: {
-						login: (profile as any).login,
-						fortyTwoId: account.providerAccountId,
-						image: (profile as any).image?.versions?.medium || (profile as any).image?.link || null,
+				const p = profile as any;
+
+				// Manually upsert the user to ensure 'login' and 'fortyTwoId' are set.
+				const dbUser = await prisma.user.upsert({
+					where: {
+						fortyTwoId: account.providerAccountId
 					},
+					update: {
+						name: p.usual_full_name || p.displayname || p.login,
+						email: p.email,
+						image: p.image?.versions?.medium || p.image?.link || null,
+						login: p.login,
+					},
+					create: {
+						fortyTwoId: account.providerAccountId,
+						login: p.login,
+						name: p.usual_full_name || p.displayname || p.login,
+						email: p.email,
+						image: p.image?.versions?.medium || p.image?.link || null,
+						status: "WAITLIST",
+						role: "STUDENT",
+					}
 				});
-			} catch {
-				// First sign-in — user might just have been created,
-				// login/fortyTwoId may already be set by defaults.
+
+				console.log("Manual User Upsert Success:", dbUser.id);
+
+				if (dbUser.status === "BLACKHOLED") return "/blackholed";
+
+				// Explicitly link the database ID to the NextAuth user object
+				// so the JWT callback can use it.
+				(user as any).id = dbUser.id;
+
+				return true;
+			} catch (error) {
+				console.error("Manual SignIn Error:", error);
+				return false;
 			}
-
-			// Check blackhole status
-			const dbUser = await prisma.user.findUnique({
-				where: { id: user.id },
-				select: { status: true },
-			});
-
-			if (dbUser?.status === "BLACKHOLED") {
-				return "/blackholed";
-			}
-
-			return true;
 		},
 		async jwt({ token, user }) {
+			// 'user' is only available on the first call (sign in)
 			if (user) {
-				// First sign in — fetch custom fields
 				const dbUser = await prisma.user.findUnique({
-					where: { id: user.id },
+					where: { id: (user as any).id },
 					select: {
 						id: true,
 						login: true,

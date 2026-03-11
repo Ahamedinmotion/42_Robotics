@@ -62,7 +62,7 @@ export async function DELETE(
 		});
 
 		return ok({ success: true });
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error: unknown) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

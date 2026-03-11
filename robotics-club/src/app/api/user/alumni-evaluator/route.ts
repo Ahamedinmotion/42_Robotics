@@ -34,7 +34,7 @@ export async function PATCH() {
 			data: { userId: session.user.id, isActive: true },
 		});
 		return ok(created);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

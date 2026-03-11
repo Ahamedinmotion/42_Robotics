@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-// @ts-ignore
 import { TeamStatus, EvaluationStatus } from "@prisma/client";
 import { Card } from "@/components/ui/Card";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -39,7 +38,7 @@ export default async function ProfilePage() {
 				include: {
 					project: { select: { title: true, rank: true, skillTags: true } },
 					members: {
-						include: { user: { select: { login: true, avatar: true } } },
+						include: { user: { select: { login: true, image: true } } },
 					},
 					leader: { select: { githubHandle: true } },
 				},
@@ -56,7 +55,7 @@ export default async function ProfilePage() {
 				include: {
 					project: { select: { title: true } },
 					members: {
-						include: { user: { select: { login: true, avatar: true } } },
+						include: { user: { select: { login: true, image: true } } },
 					},
 				},
 			},
@@ -94,7 +93,7 @@ export default async function ProfilePage() {
 					Skill Profile
 				</h3>
 				<SkillRadar
-					skills={user.skillProgress.map((s: any) => ({
+					skills={user.skillProgress.map((s) => ({
 						skillTag: s.skillTag,
 						projectsCompleted: s.projectsCompleted,
 					}))}
@@ -106,7 +105,7 @@ export default async function ProfilePage() {
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
 					Project History
 				</h3>
-				<ProjectHistory teams={completedTeams as any} />
+				<ProjectHistory teams={completedTeams} />
 			</Card>
 
 			{/* Section 4 — Team History */}
@@ -115,7 +114,7 @@ export default async function ProfilePage() {
 					Team History
 				</h3>
 				<p className="text-xs text-text-muted">All past teammates across every project</p>
-				<TeamHistory teams={allTeams as any} currentUserId={userId} />
+				<TeamHistory teams={allTeams} currentUserId={userId} />
 			</Card>
 
 			{/* Section 5 — Achievements */}
@@ -125,7 +124,7 @@ export default async function ProfilePage() {
 				</h3>
 				<AchievementsGrid
 					allAchievements={allAchievements}
-					userAchievements={user.achievements.map((ua: any) => ({
+					userAchievements={user.achievements.map((ua) => ({
 						achievementId: ua.achievementId,
 						unlockedAt: ua.unlockedAt,
 					}))}

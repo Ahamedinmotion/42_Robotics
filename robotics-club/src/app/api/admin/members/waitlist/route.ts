@@ -1,5 +1,5 @@
 // GET /api/admin/members/waitlist
-import { NextResponse } from "next/server";
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -29,14 +29,14 @@ export async function GET() {
 				id: true,
 				login: true,
 				name: true,
-				avatar: true,
+				image: true,
 				joinedAt: true,
 				currentRank: true,
 			}
 		});
 
 		return ok(waitlist);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

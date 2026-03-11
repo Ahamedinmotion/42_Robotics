@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 					RC Admin
 				</Link>
 
-				<AdminNav />
+				<AdminNav userRole={session.user.role} />
 
 				<div className="flex items-center gap-4">
 					<span className="text-sm text-text-muted">{session.user.login}</span>

@@ -45,7 +45,7 @@ interface EvalSlot {
 interface TeamData {
 	id: string;
 	status: string;
-	rank: string;
+	rank: string | null;
 	blackholeDeadline: string | null;
 	activatedAt: string | null;
 	project: {
@@ -61,6 +61,8 @@ interface TeamData {
 	weeklyReports: WeeklyReport[];
 	evaluationSlots: EvalSlot[];
 	materialRequests: MaterialRequest[];
+	fabricationRequests: any[];
+	checkouts: any[];
 }
 
 interface ProjectCockpitProps {
@@ -99,6 +101,20 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 	const [matQuantity, setMatQuantity] = useState("1");
 	const [matCost, setMatCost] = useState("");
 	const [matJustification, setMatJustification] = useState("");
+
+	// Fab form state
+	const [showFabForm, setShowFabForm] = useState(false);
+	const [fabType, setFabType] = useState<"PRINTER_FDM" | "PRINTER_RESIN" | "CNC">("PRINTER_FDM");
+	const [fabModelUrl, setFabModelUrl] = useState("");
+	const [fabTime, setFabTime] = useState("");
+	const [fabGrams, setFabGrams] = useState("");
+	const [fabPurpose, setFabPurpose] = useState("");
+
+	// Checkout form state
+	const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+	const [checkoutItemName, setCheckoutItemName] = useState("");
+	const [checkoutQuantity, setCheckoutQuantity] = useState("1");
+	const [checkoutReturnAt, setCheckoutReturnAt] = useState("");
 
 	// Conflict form state
 	const [conflictDesc, setConflictDesc] = useState("");
@@ -210,6 +226,53 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 			setMatQuantity("1");
 			setMatCost("");
 			setMatJustification("");
+			router.refresh();
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	const submitFab = async () => {
+		setSubmitting(true);
+		try {
+			await fetch(`/api/teams/${team.id}/fabrication`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					machineType: fabType,
+					modelFileUrl: fabModelUrl,
+					estimatedMinutes: Number(fabTime),
+					estimatedMaterialGrams: Number(fabGrams),
+					purpose: fabPurpose,
+				}),
+			});
+			setShowFabForm(false);
+			setFabModelUrl("");
+			setFabTime("");
+			setFabGrams("");
+			setFabPurpose("");
+			router.refresh();
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	const submitCheckout = async () => {
+		setSubmitting(true);
+		try {
+			await fetch(`/api/teams/${team.id}/checkout`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					itemName: checkoutItemName,
+					quantity: Number(checkoutQuantity),
+					expectedReturnAt: checkoutReturnAt,
+				}),
+			});
+			setShowCheckoutForm(false);
+			setCheckoutItemName("");
+			setCheckoutQuantity("1");
+			setCheckoutReturnAt("");
 			router.refresh();
 		} finally {
 			setSubmitting(false);
@@ -438,6 +501,76 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 						<div className="flex gap-2">
 							<Button variant="primary" size="sm" onClick={submitMaterial} disabled={submitting || !matItemName}>Submit</Button>
 							<Button variant="ghost" size="sm" onClick={() => setShowMaterialForm(false)}>Cancel</Button>
+						</div>
+					</div>
+				)}
+
+				{/* Checkouts */}
+				<h4 className="mt-4 text-xs font-bold uppercase tracking-wider text-text-muted border-t border-border-color pt-3">Checked Out Items</h4>
+				{team.checkouts?.length > 0 && (
+					<ul className="space-y-2 mt-2">
+						{team.checkouts.map((c: any) => (
+							<li key={c.id} className="flex items-center justify-between rounded-lg bg-panel2 p-2">
+								<span className="text-sm text-text-primary">{c.itemName} ×{c.quantity}</span>
+								<span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.status === "OUT" ? "bg-orange-900/40 text-orange-400" : "bg-green-900/40 text-green-400"}`}>
+									{c.status}
+								</span>
+							</li>
+						))}
+					</ul>
+				)}
+				{!showCheckoutForm ? (
+					<Button variant="secondary" size="sm" onClick={() => setShowCheckoutForm(true)} className="mt-2">
+						Checkout Item
+					</Button>
+				) : (
+					<div className="space-y-2 rounded-lg border border-border-color bg-panel2 p-3 mt-2">
+						<input placeholder="Item name" value={checkoutItemName} onChange={(e) => setCheckoutItemName(e.target.value)} className="w-full rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted" />
+						<div className="flex gap-2">
+							<input placeholder="Qty" type="number" value={checkoutQuantity} onChange={(e) => setCheckoutQuantity(e.target.value)} className="w-20 rounded-md border border-border-color bg-background p-2 text-sm text-text-primary" />
+							<input type="date" value={checkoutReturnAt} onChange={(e) => setCheckoutReturnAt(e.target.value)} className="flex-1 rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted" title="Expected return date" />
+						</div>
+						<div className="flex gap-2">
+							<Button variant="primary" size="sm" onClick={submitCheckout} disabled={submitting || !checkoutItemName || !checkoutReturnAt}>Submit</Button>
+							<Button variant="ghost" size="sm" onClick={() => setShowCheckoutForm(false)}>Cancel</Button>
+						</div>
+					</div>
+				)}
+
+				{/* Fabrication (3D Print/CNC) */}
+				<h4 className="mt-4 text-xs font-bold uppercase tracking-wider text-text-muted border-t border-border-color pt-3">Fabrication Requests</h4>
+				{team.fabricationRequests?.length > 0 && (
+					<ul className="space-y-2 mt-2">
+						{team.fabricationRequests.map((fr: any) => (
+							<li key={fr.id} className="flex items-center justify-between rounded-lg bg-panel2 p-2">
+								<span className="text-sm text-text-primary">{fr.machineType.replace('PRINTER_', '')} </span>
+								<span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${fr.status === "PENDING" ? "bg-yellow-900/40 text-yellow-400" : fr.status === "APPROVED" ? "bg-green-900/40 text-green-400" : "bg-blue-900/40 text-blue-400"}`}>
+									{fr.status}
+								</span>
+							</li>
+						))}
+					</ul>
+				)}
+				{!showFabForm ? (
+					<Button variant="secondary" size="sm" onClick={() => setShowFabForm(true)} className="mt-2">
+						New Fabrication Req
+					</Button>
+				) : (
+					<div className="space-y-2 rounded-lg border border-border-color bg-panel2 p-3 mt-2">
+						<select value={fabType} onChange={(e) => setFabType(e.target.value as any)} className="w-full rounded-md border border-border-color bg-background p-2 text-sm text-text-primary">
+							<option value="PRINTER_FDM">FDM 3D Printer</option>
+							<option value="PRINTER_RESIN">Resin 3D Printer</option>
+							<option value="CNC">CNC Router</option>
+						</select>
+						<input placeholder="Link to STL / File" value={fabModelUrl} onChange={(e) => setFabModelUrl(e.target.value)} className="w-full rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted" />
+						<div className="flex gap-2">
+							<input placeholder="Est. Min" type="number" value={fabTime} onChange={(e) => setFabTime(e.target.value)} className="w-1/2 rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted" />
+							<input placeholder="Est. Grams" type="number" value={fabGrams} onChange={(e) => setFabGrams(e.target.value)} className="w-1/2 rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted" />
+						</div>
+						<textarea placeholder="Purpose" value={fabPurpose} onChange={(e) => setFabPurpose(e.target.value)} className="w-full rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted" rows={2} />
+						<div className="flex gap-2">
+							<Button variant="primary" size="sm" onClick={submitFab} disabled={submitting || !fabModelUrl}>Submit</Button>
+							<Button variant="ghost" size="sm" onClick={() => setShowFabForm(false)}>Cancel</Button>
 						</div>
 					</div>
 				)}

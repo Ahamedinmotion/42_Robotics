@@ -17,19 +17,19 @@ export default async function BlackholedPage() {
 
 		// Fetch last blackholed team
 		const lastTeam = await prisma.teamMember.findFirst({
-			where: { userId: session.user.id, team: { status: "FAILED" } },
+			where: { userId: session.user.id, team: { status: "BLACKHOLED" } },
 			include: { team: { include: { project: { select: { title: true } } } } },
 			orderBy: { team: { updatedAt: "desc" } },
 		});
 
-		return <BlackholedUI name={user?.name} projectTitle={lastTeam?.team.project.title} />;
+		return <BlackholedUI projectTitle={lastTeam?.team.project.title} />;
 	}
 
 	// No session — still show the page
 	return <BlackholedUI />;
 }
 
-function BlackholedUI({ name, projectTitle }: { name?: string | null; projectTitle?: string | null }) {
+function BlackholedUI({ projectTitle }: { projectTitle?: string | null }) {
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-background p-4">
 			<div className="w-full max-w-md space-y-6 rounded-2xl bg-panel p-8 text-center">

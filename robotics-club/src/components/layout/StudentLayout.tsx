@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { ThemeInitializer } from "@/components/layout/ThemeInitializer";
+import { ThemeManager } from "@/components/layout/ThemeManager";
 import { StudentNav } from "@/components/layout/StudentNav";
 
 interface StudentLayoutProps {
@@ -12,13 +12,14 @@ interface StudentLayoutProps {
 		login: string;
 		image: string | null;
 		activeTheme: "FORGE" | "FIELD";
+		role?: string;
 	};
 }
 
 export function StudentLayout({ children, user }: StudentLayoutProps) {
 	return (
 		<>
-			<ThemeInitializer theme={user.activeTheme} />
+			<ThemeManager />
 
 			{/* Top navigation bar */}
 			<header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-color bg-background/90 px-4 backdrop-blur-sm">
@@ -28,7 +29,7 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 				</Link>
 
 				{/* Center: Nav links (client component for active state) */}
-				<StudentNav />
+				<StudentNav role={user.role} />
 
 				{/* Right: Bell + Avatar + Login */}
 				<div className="flex items-center gap-4">

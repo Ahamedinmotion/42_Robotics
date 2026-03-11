@@ -13,7 +13,7 @@ interface LogEntry {
 	id: string;
 	userName: string;
 	userLogin: string;
-	userAvatar: string | null;
+	userImage: string | null;
 	method: string;
 	success: boolean;
 	flagged: boolean;
@@ -71,8 +71,8 @@ export function AccessSecurity({ logs, flaggedCount, labAccessCount, userRole }:
 					{flagged.map((l) => (
 						<div key={l.id} className="flex items-center justify-between rounded-lg border border-red-800/30 bg-red-950/20 p-3">
 							<div className="flex items-center gap-3">
-								{l.userAvatar ? (
-									<Image src={l.userAvatar} width={24} height={24} className="h-6 w-6 rounded-full object-cover" alt="" />
+								{l.userImage ? (
+									<Image src={l.userImage} width={24} height={24} className="h-6 w-6 rounded-full object-cover" alt="" />
 								) : (
 									<div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">{l.userLogin[0].toUpperCase()}</div>
 								)}

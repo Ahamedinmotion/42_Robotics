@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { ProjectStatus, TeamStatus, Rank } from "@prisma/client";
+import { ProjectStatus, TeamStatus } from "@prisma/client";
 import { SkillTree, type ProjectNode } from "@/components/cursus/SkillTree";
 import { ProjectCockpit } from "@/components/cursus/ProjectCockpit";
 
@@ -64,7 +64,7 @@ export default async function CursusPage({
 	);
 	const activeProjectIds = new Set(
 		userTeams
-			.filter((tm) => [TeamStatus.ACTIVE, TeamStatus.EVALUATING].includes(tm.team.status as any))
+			.filter((tm) => tm.team.status === TeamStatus.ACTIVE || tm.team.status === TeamStatus.EVALUATING)
 			.map((tm) => tm.team.projectId)
 	);
 
@@ -120,7 +120,7 @@ export default async function CursusPage({
 					members: {
 						include: {
 							user: {
-								select: { id: true, login: true, name: true, avatar: true, githubHandle: true },
+								select: { id: true, login: true, name: true, image: true, githubHandle: true },
 							},
 						},
 					},
@@ -129,6 +129,8 @@ export default async function CursusPage({
 						include: { evaluations: { select: { id: true, status: true } } },
 					},
 					materialRequests: { orderBy: { createdAt: "desc" } },
+					fabricationRequests: { orderBy: { createdAt: "desc" } },
+					checkouts: { orderBy: { createdAt: "desc" } },
 				},
 			},
 		},
@@ -170,6 +172,19 @@ export default async function CursusPage({
 				estimatedCost: mr.estimatedCost,
 				status: mr.status,
 				createdAt: mr.createdAt.toISOString(),
+			})),
+			fabricationRequests: activeTeamMember.team.fabricationRequests.map((fr) => ({
+				id: fr.id,
+				machineType: fr.machineType,
+				status: fr.status,
+				createdAt: fr.createdAt.toISOString(),
+			})),
+			checkouts: activeTeamMember.team.checkouts.map((co) => ({
+				id: co.id,
+				itemName: co.itemName,
+				quantity: co.quantity,
+				status: co.status,
+				createdAt: co.createdAt.toISOString(),
 			})),
 		}
 		: null;

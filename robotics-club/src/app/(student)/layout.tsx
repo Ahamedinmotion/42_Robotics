@@ -18,8 +18,9 @@ export default async function StudentGroupLayout({
 		<StudentLayout
 			user={{
 				login: session.user.login,
-				avatar: (session.user as any).image ?? null,
+				image: (session.user as { image?: string | null }).image ?? null,
 				activeTheme: session.user.activeTheme ?? "FORGE",
+				role: session.user.role,
 			}}
 		>
 			{children}

@@ -99,7 +99,7 @@ export async function POST(req: Request) {
 								id: true,
 								name: true,
 								login: true,
-								avatar: true,
+								image: true,
 								currentRank: true,
 							},
 						},
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
 		});
 
 		return ok(team);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

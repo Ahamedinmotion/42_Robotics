@@ -72,7 +72,7 @@ export async function GET() {
 		}
 
 		return ok(grouped);
-	} catch (error: any) {
-		return err(error.message || "Internal Server Error", 500);
+	} catch (error) {
+		return err((error as Error).message || "Internal Server Error", 500);
 	}
 }

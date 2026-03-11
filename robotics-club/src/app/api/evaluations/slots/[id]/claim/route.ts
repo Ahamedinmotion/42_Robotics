@@ -160,14 +160,14 @@ export async function POST(
 		});
 
 		return ok(evaluation);
-	} catch (error: any) {
+	} catch (error: unknown) {
 		const statusMap: Record<string, number> = {
 			"Evaluation slot not yet available": 403,
 			"Forbidden": 403,
 			"You are not eligible to claim this evaluation": 403,
 			"Evaluation slot not found": 404,
 		};
-		const errorMessage = error.message.replace(/^Error: /, "");
+		const errorMessage = (error as Error).message.replace(/^Error: /, "");
 		const status = statusMap[errorMessage] || 400;
 
 		return err(errorMessage, status);

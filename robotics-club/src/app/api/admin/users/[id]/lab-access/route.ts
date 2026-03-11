@@ -16,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 			select: { id: true, login: true, labAccessEnabled: true },
 		});
 		return ok(updated);
-	} catch (e: any) {
-		return err(e.message || "Internal Server Error", 500);
+	} catch (e: unknown) {
+		return err((e as Error).message || "Internal Server Error", 500);
 	}
 }

@@ -3,7 +3,6 @@ import Image from "next/image";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-// @ts-ignore
 import { TeamStatus, EvaluationStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -136,9 +135,9 @@ export default async function HomePage() {
 
 	// Check user RSVP status for each workshop
 	const userRsvps = await prisma.workshopRSVP.findMany({
-		where: { userId, workshopId: { in: workshops.map((w: any) => w.id) } },
+		where: { userId, workshopId: { in: workshops.map((w) => w.id) } },
 	});
-	const rsvpMap = new Map(userRsvps.map((r: any) => [r.workshopId, r.status]));
+	const rsvpMap = new Map(userRsvps.map((r) => [r.workshopId, r.status]));
 
 	// ── Derived data ───────────────────────────
 	const activeTeamMember = user.teams[0] ?? null;
@@ -153,9 +152,9 @@ export default async function HomePage() {
 			{/* ── Identity Strip ──────────────────────── */}
 			<div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<div className="flex items-center gap-4">
-					{user.avatar ? (
+					{user.image ? (
 						<Image
-							src={user.avatar}
+							src={user.image}
 							alt={user.login}
 							width={48}
 							height={48}
@@ -169,7 +168,7 @@ export default async function HomePage() {
 					<div>
 						<div className="flex items-center gap-3">
 							<h1 className="text-xl font-bold text-text-primary">{user.name}</h1>
-							<Badge rank={user.currentRank as any} size="lg" />
+							<Badge rank={user.currentRank as "E" | "D" | "C" | "B" | "A" | "S"} size="lg" />
 						</div>
 						<p className="text-sm text-text-muted">@{user.login}</p>
 					</div>
@@ -195,7 +194,7 @@ export default async function HomePage() {
 									<h2 className="text-lg font-bold text-text-primary">
 										{activeTeam.project.title}
 									</h2>
-									<Badge rank={activeTeam.project.rank as any} size="sm" />
+									<Badge rank={activeTeam.project.rank as "E" | "D" | "C" | "B" | "A" | "S"} size="sm" />
 								</div>
 								<span
 									className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${activeTeam.status === TeamStatus.ACTIVE
@@ -217,11 +216,11 @@ export default async function HomePage() {
 							<div>
 								<p className="mb-1 text-xs text-text-muted">Team</p>
 								<div className="flex -space-x-2">
-									{activeTeam.members.map((m: any) =>
-										m.user.avatar ? (
+									{activeTeam.members.map((m) =>
+										m.user.image ? (
 											<Image
 												key={m.user.id}
-												src={m.user.avatar}
+												src={m.user.image}
 												alt={m.user.login}
 												title={m.user.login}
 												width={24}
@@ -284,7 +283,7 @@ export default async function HomePage() {
 							)}
 						</div>
 						<NotificationList
-							notifications={unreadNotifications.map((n: any) => ({
+							notifications={unreadNotifications.map((n) => ({
 								id: n.id,
 								type: n.type,
 								title: n.title,
@@ -315,7 +314,7 @@ export default async function HomePage() {
 										</p>
 									</div>
 								)}
-								{workshops.slice(0, 1).map((w: any) => (
+								{workshops.slice(0, 1).map((w) => (
 									<div key={w.id} className="rounded-lg bg-panel2 p-3">
 										<p className="text-sm font-semibold text-text-primary">{w.title}</p>
 										<p className="text-xs text-text-muted">{formatEventDate(w.scheduledAt)}</p>
@@ -335,7 +334,7 @@ export default async function HomePage() {
 							<p className="text-sm italic text-text-muted">No achievements yet</p>
 						) : (
 							<ul className="space-y-3">
-								{user.achievements.map((ua: any) => (
+								{user.achievements.map((ua) => (
 									<li key={ua.id} className="flex items-start gap-2">
 										<span className="text-lg">
 											{iconEmoji[ua.achievement.icon ?? ""] ?? "🏆"}

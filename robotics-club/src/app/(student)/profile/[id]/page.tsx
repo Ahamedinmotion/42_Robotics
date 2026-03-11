@@ -29,7 +29,7 @@ export default async function PublicProfilePage({
 			id: true,
 			login: true,
 			name: true,
-			avatar: true,
+			image: true,
 			currentRank: true,
 			status: true,
 			joinedAt: true,
@@ -52,7 +52,7 @@ export default async function PublicProfilePage({
 				include: {
 					project: { select: { title: true, rank: true, skillTags: true } },
 					members: {
-						include: { user: { select: { login: true, avatar: true } } },
+						include: { user: { select: { login: true, image: true } } },
 					},
 					leader: { select: { githubHandle: true } },
 				},
@@ -99,7 +99,7 @@ export default async function PublicProfilePage({
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
 					Project History
 				</h3>
-				<ProjectHistory teams={completedTeams as any} />
+				<ProjectHistory teams={completedTeams} />
 			</Card>
 
 			<Card className="space-y-3" id="achievements">
