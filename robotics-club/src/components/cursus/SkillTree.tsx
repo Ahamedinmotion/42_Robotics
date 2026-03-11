@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 
@@ -115,12 +115,20 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 	};
 
 	// ── Pan & Zoom Handlers ─────────
-	const handleWheel = (e: React.WheelEvent) => {
+	const handleWheel = useCallback((e: WheelEvent) => {
 		e.preventDefault();
 		const zoomSensitivity = 0.001;
 		const delta = -e.deltaY * zoomSensitivity;
 		setScale((s) => Math.min(Math.max(0.5, s + delta), 3));
-	};
+	}, []);
+
+	// Attach wheel listener with { passive: false } to allow preventDefault
+	useEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+		el.addEventListener("wheel", handleWheel, { passive: false });
+		return () => el.removeEventListener("wheel", handleWheel);
+	}, [handleWheel]);
 
 	const handleMouseDown = (e: React.MouseEvent) => {
 		setIsDragging(true);
@@ -136,34 +144,63 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 		setIsDragging(false);
 	};
 
+	// ── Touch handlers for mobile ─────
+	const touchRef = useRef<{ x: number; y: number } | null>(null);
+
+	const handleTouchStart = (e: React.TouchEvent) => {
+		const t = e.touches[0];
+		touchRef.current = { x: t.clientX - pan.x, y: t.clientY - pan.y };
+	};
+
+	const handleTouchMove = (e: React.TouchEvent) => {
+		if (!touchRef.current) return;
+		const t = e.touches[0];
+		setPan({ x: t.clientX - touchRef.current.x, y: t.clientY - touchRef.current.y });
+	};
+
+	const handleTouchEnd = () => {
+		touchRef.current = null;
+	};
+
 	return (
-		<div 
-			ref={containerRef} 
-			className="relative mx-auto w-full overflow-hidden rounded-2xl border border-border-color bg-panel2/30" 
-			style={{ aspectRatio: "1" }}
-			onWheel={handleWheel}
+		<div
+			ref={containerRef}
+			className="relative mx-auto w-full overflow-hidden"
+			style={{
+				aspectRatio: "1",
+				cursor: isDragging ? "grabbing" : "grab",
+			}}
 			onMouseDown={handleMouseDown}
 			onMouseMove={handleMouseMove}
 			onMouseUp={handleMouseUp}
 			onMouseLeave={handleMouseUp}
+			onTouchStart={handleTouchStart}
+			onTouchMove={handleTouchMove}
+			onTouchEnd={handleTouchEnd}
 		>
 			{/* CSS animations */}
 			<style>{`
         @keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes node-pulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px var(--glow-col)); } 50% { opacity: 0.75; filter: drop-shadow(0 0 8px var(--glow-col)); } }
+        @keyframes ring-drift { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -22; } }
         .node-active-ring { animation: orbit-spin 3s linear infinite; transform-origin: center; transform-box: fill-box; }
+        .node-completed { animation: node-pulse 3s ease-in-out infinite; }
+        .node-available { transition: transform 0.2s ease; }
+        .node-available:hover { transform: scale(1.3); transform-origin: center; transform-box: fill-box; }
+        .ring-orbit { animation: ring-drift 4s linear infinite; }
         .s-ring-hidden { opacity: 0.08; transition: opacity 1.5s ease-in; }
         .s-ring-revealed { opacity: 1; transition: opacity 1.5s ease-in; }
       `}</style>
 
-			<div 
-				className="absolute inset-0 origin-center transition-transform" 
-				style={{ 
+			<div
+				className="absolute inset-0 origin-center"
+				style={{
 					transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-					transitionDuration: isDragging ? '0ms' : '150ms'
+					transition: isDragging ? 'none' : 'transform 200ms ease-out',
 				}}
 			>
 				<svg viewBox="0 0 600 600" width="100%" height="100%">
-				{/* Glow filter */}
+				{/* Glow + ambient filters */}
 				<defs>
 					<filter id="glow">
 						<feGaussianBlur stdDeviation="3" result="blur" />
@@ -172,7 +209,30 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 							<feMergeNode in="SourceGraphic" />
 						</feMerge>
 					</filter>
+					{/* Ambient ring glows */}
+					{RANKS.map((rank) => (
+						<radialGradient key={`rg-${rank}`} id={`ring-glow-${rank}`} cx="50%" cy="50%" r="50%">
+							<stop offset="0%" stopColor={RANK_COLOURS[rank]} stopOpacity="0.08" />
+							<stop offset="100%" stopColor={RANK_COLOURS[rank]} stopOpacity="0" />
+						</radialGradient>
+					))}
 				</defs>
+
+				{/* Ambient glow circles behind each ring */}
+				{RANKS.map((rank) => {
+					const isSRank = rank === "S";
+					if (isSRank && !sRankRevealed) return null;
+					return (
+						<circle
+							key={`ambient-${rank}`}
+							cx={CX}
+							cy={CY}
+							r={RING_RADII[rank] + 15}
+							fill={`url(#ring-glow-${rank})`}
+							className={isSRank ? (sRankRevealed ? "s-ring-revealed" : "s-ring-hidden") : ""}
+						/>
+					);
+				})}
 
 				{/* Ring circles */}
 				{RANKS.map((rank) => {
@@ -185,10 +245,10 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 							r={RING_RADII[rank]}
 							fill="none"
 							stroke={RANK_COLOURS[rank]}
-							strokeWidth={0.5}
-							strokeDasharray="3 8"
-							className={isSRank ? (sRankRevealed ? "s-ring-revealed" : "s-ring-hidden") : ""}
-							opacity={isSRank ? undefined : 0.3}
+							strokeWidth={1}
+							strokeDasharray="4 7"
+							className={`ring-orbit ${isSRank ? (sRankRevealed ? "s-ring-revealed" : "s-ring-hidden") : ""}`}
+							opacity={isSRank ? undefined : 0.55}
 						/>
 					);
 				})}
@@ -198,7 +258,8 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 					<line
 						key={`conn-${i}`}
 						x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
-						stroke="white" opacity={0.05} strokeWidth={0.5}
+						stroke="var(--text-muted)" opacity={0.15} strokeWidth={0.5}
+						strokeDasharray="2 4"
 					/>
 				))}
 
@@ -224,12 +285,16 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 										router.push(`/cursus/projects/${node.id}`);
 									}
 								}}
-								style={{ cursor: node.userState === "locked" ? "default" : "pointer" }}
+								style={{
+									cursor: node.userState === "locked" ? "default" : "pointer",
+									// @ts-ignore
+									"--glow-col": colour,
+								}}
 							>
 								{/* Completed */}
 								{node.userState === "completed" && (
 									<>
-										<circle cx={pos.x} cy={pos.y} r={r} fill={colour} filter="url(#glow)" />
+										<circle cx={pos.x} cy={pos.y} r={r} fill={colour} filter="url(#glow)" className="node-completed" />
 										<circle cx={pos.x} cy={pos.y} r={3} fill="white" />
 									</>
 								)}
@@ -253,6 +318,7 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 										cx={pos.x} cy={pos.y} r={r}
 										fill={colour} fillOpacity={0.3}
 										stroke={colour} strokeWidth={1.5}
+										className="node-available"
 									/>
 								)}
 
@@ -284,7 +350,7 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 				{/* Tooltip overlay (HTML positioned over SVG) */}
 				{hovered && (
 					<div
-						className="pointer-events-none absolute z-50 w-56 rounded-xl border border-border-color bg-panel p-3 shadow-lg"
+						className="pointer-events-none absolute z-50 w-56 rounded-xl border border-border-color bg-panel p-3 shadow-lg backdrop-blur-sm"
 						style={{
 							left: `${(hoveredPos.x / 600) * 100}%`,
 							top: `${(hoveredPos.y / 600) * 100}%`,

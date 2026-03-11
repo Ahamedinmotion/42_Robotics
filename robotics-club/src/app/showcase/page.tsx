@@ -91,12 +91,6 @@ export default async function ShowcasePage({
 						Robotics Club Showcase
 					</span>
 				</div>
-				<Link
-					href="/login"
-					className="text-sm text-text-muted transition-colors hover:text-accent"
-				>
-					Sign in
-				</Link>
 			</header>
 
 			{/* Content */}
