@@ -21,6 +21,7 @@ export default async function StudentGroupLayout({
 				image: (session.user as { image?: string | null }).image ?? null,
 				activeTheme: session.user.activeTheme ?? "FORGE",
 				role: session.user.role,
+				isImpersonating: (session.user as any).isImpersonating,
 			}}
 		>
 			{children}

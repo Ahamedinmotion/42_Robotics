@@ -7,6 +7,7 @@ import { ThemeManager } from "@/components/layout/ThemeManager";
 import { StudentNav } from "@/components/layout/StudentNav";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { TerminalProvider } from "@/components/ui/TerminalProvider";
+import { ImpersonationBanner } from "@/components/layout/ImpersonationBanner";
 
 interface StudentLayoutProps {
 	children: React.ReactNode;
@@ -15,6 +16,7 @@ interface StudentLayoutProps {
 		image: string | null;
 		activeTheme: "FORGE" | "FIELD";
 		role?: string;
+		isImpersonating?: boolean;
 	};
 }
 
@@ -22,6 +24,7 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 	return (
 		<>
 			<ThemeManager />
+			<ImpersonationBanner isImpersonating={!!user.isImpersonating} login={user.login} />
 
 			{/* Top navigation bar */}
 			<header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-color bg-background/90 px-4 backdrop-blur-sm">
