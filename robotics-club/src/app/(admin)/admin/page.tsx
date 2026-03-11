@@ -228,6 +228,78 @@ export default async function AdminPage({
 			avgEvalDays = Math.round(totalDays / evalTeams.length);
 		}
 
+		// ── New analytics data ──────────────────
+
+		// Projects created this month
+		const startOfMonth = new Date();
+		startOfMonth.setDate(1);
+		startOfMonth.setHours(0, 0, 0, 0);
+		const projectsThisMonth = await prisma.project.count({
+			where: { createdAt: { gte: startOfMonth } },
+		});
+
+		// Avg team size
+		const teamSizes = await prisma.teamMember.groupBy({
+			by: ["teamId"], _count: true,
+		});
+		const avgTeamSize = teamSizes.length > 0
+			? Math.round((teamSizes.reduce((s, t) => s + t._count, 0) / teamSizes.length) * 10) / 10
+			: null;
+
+		// Workshops this month
+		const workshopsThisMonth = await prisma.workshop.count({
+			where: { scheduledAt: { gte: startOfMonth } },
+		});
+
+		// Top skill tag
+		const allProjects = await prisma.project.findMany({
+			where: { status: "ACTIVE" }, select: { skillTags: true },
+		});
+		const tagCounts = new Map<string, number>();
+		for (const p of allProjects) {
+			for (const tag of (p.skillTags as string[]) || []) {
+				tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+			}
+		}
+		let topSkillTag: string | null = null;
+		let maxTagCount = 0;
+		tagCounts.forEach((count, tag) => {
+			if (count > maxTagCount) { maxTagCount = count; topSkillTag = tag; }
+		});
+
+		// Top evaluators
+		const topEvalsRaw = await prisma.evaluation.groupBy({
+			by: ["evaluatorId"],
+			where: { status: "COMPLETED" },
+			_count: true,
+			orderBy: { _count: { evaluatorId: "desc" } },
+			take: 5,
+		});
+		const topEvalUsers = await prisma.user.findMany({
+			where: { id: { in: topEvalsRaw.map((e) => e.evaluatorId) } },
+			select: { id: true, login: true, name: true },
+		});
+		const topEvaluators = topEvalsRaw.map((e) => {
+			const u = topEvalUsers.find((u) => u.id === e.evaluatorId);
+			return { login: u?.login || "", name: u?.name || "", count: e._count };
+		});
+
+		// Member growth (last 6 months)
+		const memberGrowth: { month: string; count: number }[] = [];
+		for (let i = 5; i >= 0; i--) {
+			const d = new Date();
+			d.setMonth(d.getMonth() - i);
+			const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+			const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+			const count = await prisma.user.count({
+				where: { joinedAt: { gte: monthStart, lte: monthEnd } },
+			});
+			memberGrowth.push({
+				month: new Intl.DateTimeFormat("en-US", { month: "short" }).format(monthStart),
+				count,
+			});
+		}
+
 		return (
 			<Analytics
 				rankDistribution={rankDistribution}
@@ -236,6 +308,12 @@ export default async function AdminPage({
 				retention={{ total: totalUsers, activeAndAlumni }}
 				blackholeEvents={recentBH.map((u) => ({ login: u.login, rank: u.currentRank, date: formatShortDate(u.updatedAt) }))}
 				avgEvalDays={avgEvalDays}
+				projectsThisMonth={projectsThisMonth}
+				avgTeamSize={avgTeamSize}
+				workshopsThisMonth={workshopsThisMonth}
+				topSkillTag={topSkillTag}
+				topEvaluators={topEvaluators}
+				memberGrowth={memberGrowth}
 			/>
 		);
 	}

@@ -99,10 +99,22 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 					<input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputCls} />
 					<textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={inputCls} />
 					<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-						<select value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value })} className={inputCls}>{RANKS_LIST.map((r) => <option key={r} value={r}>{r}</option>)}</select>
-						<input placeholder="Min size" type="number" value={form.teamSizeMin} onChange={(e) => setForm({ ...form, teamSizeMin: e.target.value })} className={inputCls} />
-						<input placeholder="Max size" type="number" value={form.teamSizeMax} onChange={(e) => setForm({ ...form, teamSizeMax: e.target.value })} className={inputCls} />
-						<input placeholder="BH days" type="number" value={form.blackholeDays} onChange={(e) => setForm({ ...form, blackholeDays: e.target.value })} className={inputCls} />
+						<div>
+							<label className="mb-1 block text-xs font-medium text-text-muted">Rank</label>
+							<select value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value })} className={inputCls}>{RANKS_LIST.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+						</div>
+						<div>
+							<label className="mb-1 block text-xs font-medium text-text-muted">Min Team Size</label>
+							<input placeholder="2" type="number" value={form.teamSizeMin} onChange={(e) => setForm({ ...form, teamSizeMin: e.target.value })} className={inputCls} />
+						</div>
+						<div>
+							<label className="mb-1 block text-xs font-medium text-text-muted">Max Team Size</label>
+							<input placeholder="4" type="number" value={form.teamSizeMax} onChange={(e) => setForm({ ...form, teamSizeMax: e.target.value })} className={inputCls} />
+						</div>
+						<div>
+							<label className="mb-1 block text-xs font-medium text-text-muted">Blackhole Days</label>
+							<input placeholder="28" type="number" value={form.blackholeDays} onChange={(e) => setForm({ ...form, blackholeDays: e.target.value })} className={inputCls} />
+						</div>
 					</div>
 					<input placeholder="Skill tags (comma-separated)" value={form.skillTags} onChange={(e) => setForm({ ...form, skillTags: e.target.value })} className={inputCls} />
 					<div className="flex items-center gap-4">

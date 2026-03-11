@@ -7,6 +7,7 @@ interface RankDist { rank: string; count: number; }
 interface CompletionRate { rank: string; completed: number; total: number; }
 interface EquipRow { machineType: string; pending: number; approved: number; completed: number; rejected: number; }
 interface BlackholeEvent { login: string; rank: string; date: string; }
+interface TopEvaluator { login: string; name: string; count: number; }
 
 interface AnalyticsProps {
 	rankDistribution: RankDist[];
@@ -15,6 +16,12 @@ interface AnalyticsProps {
 	retention: { total: number; activeAndAlumni: number };
 	blackholeEvents: BlackholeEvent[];
 	avgEvalDays: number | null;
+	projectsThisMonth: number;
+	avgTeamSize: number | null;
+	workshopsThisMonth: number;
+	topSkillTag: string | null;
+	topEvaluators: TopEvaluator[];
+	memberGrowth: { month: string; count: number }[];
 }
 
 // ── Helpers ──────────────────────────────────────────
@@ -36,14 +43,77 @@ function rateColour(pct: number) {
 	return "#FF6B00";
 }
 
+function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+	return (
+		<Card className="text-center">
+			<p className={`text-2xl font-bold ${accent ? "text-accent" : "text-text-primary"}`}>{value}</p>
+			<p className="mt-1 text-xs text-text-muted">{label}</p>
+		</Card>
+	);
+}
+
 // ── Component ────────────────────────────────────────
 
-export function Analytics({ rankDistribution, completionRates, equipment, retention, blackholeEvents, avgEvalDays }: AnalyticsProps) {
+export function Analytics({
+	rankDistribution, completionRates, equipment, retention, blackholeEvents,
+	avgEvalDays, projectsThisMonth, avgTeamSize, workshopsThisMonth, topSkillTag,
+	topEvaluators, memberGrowth,
+}: AnalyticsProps) {
 	const maxRankCount = Math.max(...rankDistribution.map((r) => r.count), 1);
 	const retPct = retention.total > 0 ? Math.round((retention.activeAndAlumni / retention.total) * 100) : 0;
+	const maxGrowth = Math.max(...memberGrowth.map((m) => m.count), 1);
 
 	return (
 		<div className="space-y-6">
+			{/* Quick Stats Row */}
+			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+				<StatCard label="Retention Rate" value={`${retPct}%`} accent />
+				<StatCard label="Projects This Month" value={projectsThisMonth} />
+				<StatCard label="Avg. Team Size" value={avgTeamSize !== null ? avgTeamSize.toFixed(1) : "—"} />
+				<StatCard label="Workshops This Month" value={workshopsThisMonth} />
+			</div>
+
+			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+				<StatCard label="Avg. Eval Turnaround" value={avgEvalDays !== null ? `${avgEvalDays}d` : "—"} />
+				<StatCard label="Top Skill Tag" value={topSkillTag || "—"} accent />
+				<StatCard label="Active + Alumni" value={retention.activeAndAlumni} />
+				<StatCard label="Total Members" value={retention.total} />
+			</div>
+
+			{/* Member Growth Sparkline */}
+			{memberGrowth.length > 0 && (
+				<Card className="space-y-3">
+					<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Member Growth (Last 6 Months)</h3>
+					<div className="flex items-end gap-1" style={{ height: "80px" }}>
+						{memberGrowth.map((m) => (
+							<div key={m.month} className="flex flex-1 flex-col items-center gap-1">
+								<div
+									className="w-full rounded-t bg-accent transition-all"
+									style={{ height: `${(m.count / maxGrowth) * 100}%`, minHeight: "2px" }}
+								/>
+								<span className="text-[9px] text-text-muted">{m.month}</span>
+							</div>
+						))}
+					</div>
+				</Card>
+			)}
+
+			{/* Top Evaluators */}
+			{topEvaluators.length > 0 && (
+				<Card className="space-y-3">
+					<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Top Evaluators</h3>
+					<div className="space-y-2">
+						{topEvaluators.map((e, i) => (
+							<div key={e.login} className="flex items-center gap-3">
+								<span className="w-5 text-xs font-bold text-accent">#{i + 1}</span>
+								<span className="flex-1 text-sm text-text-primary">{e.name} <span className="text-text-muted">@{e.login}</span></span>
+								<span className="text-sm font-bold text-accent">{e.count}</span>
+							</div>
+						))}
+					</div>
+				</Card>
+			)}
+
 			{/* Rank Distribution */}
 			<Card className="space-y-3">
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Rank Distribution</h3>
@@ -83,18 +153,6 @@ export function Analytics({ rankDistribution, completionRates, equipment, retent
 					</table>
 				</div>
 			</Card>
-
-			{/* Retention + Eval Throughput */}
-			<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-				<Card>
-					<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Retention</h3>
-					<p className="mt-2 text-text-primary">{retention.activeAndAlumni} of {retention.total} members who joined are still active or alumni (<span className="font-bold text-accent">{retPct}%</span>)</p>
-				</Card>
-				<Card>
-					<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Avg. Eval Turnaround</h3>
-					<p className="mt-2 text-text-primary">{avgEvalDays !== null ? `${avgEvalDays} days from activation to first evaluation` : "No data yet"}</p>
-				</Card>
-			</div>
 
 			{/* Recent Blackholes */}
 			<Card className="space-y-3">
