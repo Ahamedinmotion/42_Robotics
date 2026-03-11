@@ -78,7 +78,11 @@ export default async function PublicProfilePage({
 	return (
 		<div className="space-y-6">
 			<ProfileHeader
-				user={user}
+				user={{
+					...user,
+					id: user.id,
+					skillProgress: user.skillProgress,
+				}}
 				title={title}
 				completedProjects={completedTeams.length}
 				evalsGiven={evalsGivenCount}

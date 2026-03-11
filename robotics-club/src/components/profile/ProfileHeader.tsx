@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
+import { ProfileCard } from "./ProfileCard";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -32,6 +33,8 @@ interface ProfileHeaderProps {
 		currentRank: string;
 		githubHandle: string | null;
 		joinedAt: Date | string;
+		skillProgress: { skillTag: string; projectsCompleted: number }[];
+		id: string;
 	};
 	title: string | null;
 	completedProjects: number;
@@ -40,7 +43,23 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ user, title, completedProjects, evalsGiven }: ProfileHeaderProps) {
 	return (
-		<div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-panel p-6 sm:flex-row sm:items-center">
+		<div className="relative flex flex-col items-start justify-between gap-6 rounded-2xl bg-panel p-6 sm:flex-row sm:items-center">
+			{/* Profile ID Card Trigger */}
+			<div className="absolute right-4 top-4">
+				<ProfileCard
+					user={{
+						id: user.id,
+						name: user.name,
+						login: user.login,
+						avatar: user.image,
+						currentRank: user.currentRank,
+						joinedAt: user.joinedAt,
+						skillProgress: user.skillProgress,
+						completedProjects: completedProjects,
+					}}
+				/>
+			</div>
+
 			<div className="flex items-center gap-5">
 				{user.image ? (
 					<Image
