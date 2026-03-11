@@ -15,6 +15,7 @@ const config: Config = {
         "border-color": "var(--border)",
         accent: "rgb(var(--accent-rgb) / <alpha-value>)",
         "accent-secondary": "var(--accent-secondary)",
+        "accent-tertiary": "var(--accent-tertiary)",
         "accent-urgency": "var(--accent-urgency)",
         "text-primary": "var(--text-primary)",
         "text-muted": "var(--text-muted)",

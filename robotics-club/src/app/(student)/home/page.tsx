@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { BlackholeTimer } from "@/components/ui/BlackholeTimer";
 import { NotificationList } from "@/components/home/NotificationList";
 import { WorkshopRsvpButton } from "@/components/home/WorkshopRsvpButton";
+import { QuoteBar } from "@/components/profile/QuoteBar";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -148,7 +149,9 @@ export default async function HomePage() {
 	// ── Render ─────────────────────────────────
 
 	return (
-		<div className="space-y-6">
+		<>
+			<QuoteBar />
+			<div className="space-y-6">
 			{/* ── Identity Strip ──────────────────────── */}
 			<div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<div className="flex items-center gap-4">
@@ -400,5 +403,6 @@ export default async function HomePage() {
 				</div>
 			</div>
 		</div>
+		</>
 	);
 }
