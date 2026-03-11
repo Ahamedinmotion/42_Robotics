@@ -54,8 +54,14 @@ export function AchievementEditor() {
 				fetch("/api/admin/achievements"),
 				fetch("/api/admin/titles")
 			]);
-			if (aRes.ok) setAchievements(await aRes.json());
-			if (tRes.ok) setTitles(await tRes.json());
+			if (aRes.ok) {
+				const raw = await aRes.json();
+				setAchievements(Array.isArray(raw) ? raw : raw.data || []);
+			}
+			if (tRes.ok) {
+				const raw = await tRes.json();
+				setTitles(Array.isArray(raw) ? raw : raw.data || []);
+			}
 		} finally {
 			setLoading(false);
 		}

@@ -27,7 +27,10 @@ export function TitleManager() {
 	async function fetchTitles() {
 		try {
 			const res = await fetch("/api/admin/titles");
-			if (res.ok) setTitles(await res.json());
+			if (res.ok) {
+				const raw = await res.json();
+				setTitles(Array.isArray(raw) ? raw : raw.data || []);
+			}
 		} finally {
 			setLoading(false);
 		}
