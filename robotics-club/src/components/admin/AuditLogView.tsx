@@ -19,8 +19,8 @@ export function AuditLogView() {
 	useEffect(() => {
 		fetch("/api/admin/audit-logs")
 			.then(res => res.json())
-			.then(data => {
-				setLogs(data);
+			.then(raw => {
+				setLogs(Array.isArray(raw) ? raw : raw.data || []);
 				setLoading(false);
 			})
 			.catch(() => setLoading(false));

@@ -29,7 +29,10 @@ export function MoodBoard() {
 	const fetchNotes = async () => {
 		try {
 			const res = await fetch("/api/admin/moodboard");
-			if (res.ok) setNotes(await res.json());
+			if (res.ok) {
+				const raw = await res.json();
+				setNotes(Array.isArray(raw) ? raw : raw.data || []);
+			}
 		} finally {
 			setLoading(false);
 		}

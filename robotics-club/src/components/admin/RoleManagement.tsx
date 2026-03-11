@@ -52,8 +52,8 @@ export function RoleManagement({ initialUsers = [] }: RoleManagementProps) {
 		try {
 			const res = await fetch("/api/admin/roles");
 			if (res.ok) {
-				const data = await res.json();
-				setUsers(data);
+				const raw = await res.json();
+				setUsers(Array.isArray(raw) ? raw : raw.data || []);
 			}
 		} finally {
 			setLoading(false);
