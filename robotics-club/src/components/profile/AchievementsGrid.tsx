@@ -1,17 +1,20 @@
-import React from "react";
+"use client";
 
-// ── Types ────────────────────────────────────────────
+import React from "react";
+import { Badge } from "@/components/ui/Badge";
+import { useSound } from "@/components/providers/SoundProvider";
 
 interface Achievement {
 	id: string;
 	title: string;
-	description: string | null;
-	icon: string | null;
+	description: string;
+	icon: string;
+	unlockedTitle?: { name: string } | null;
 }
 
 interface UserAchievement {
 	achievementId: string;
-	unlockedAt: Date | string;
+	unlockedAt: string;
 }
 
 interface AchievementsGridProps {
@@ -19,52 +22,56 @@ interface AchievementsGridProps {
 	userAchievements: UserAchievement[];
 }
 
-// ── Helpers ─────────────────────────────────────────
-
-const iconEmoji: Record<string, string> = {
-	star: "⭐", rocket: "🚀", clock: "⏰", brain: "🧠",
-	flag: "🚩", lightbulb: "💡", eye: "👁", crown: "👑",
-};
-
-function formatDate(d: Date | string) {
-	return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(new Date(d));
-}
-
-// ── Component ────────────────────────────────────────
-
 export function AchievementsGrid({ allAchievements, userAchievements }: AchievementsGridProps) {
-	const unlockedMap = new Map(userAchievements.map((ua) => [ua.achievementId, ua]));
+	const { playSFX } = useSound();
+	const unlockedIds = new Set(userAchievements.map((ua) => ua.achievementId));
 
 	return (
-		<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{allAchievements.map((a) => {
-				const unlocked = unlockedMap.get(a.id);
-				const emoji = iconEmoji[a.icon ?? ""] ?? "🏆";
-
+				const isUnlocked = unlockedIds.has(a.id);
 				return (
 					<div
 						key={a.id}
-						className={`rounded-xl border p-3 transition-colors ${unlocked
-								? "border-accent/30 bg-panel"
-								: "border-border-color bg-panel opacity-40 grayscale"
+						onClick={() => isUnlocked && playSFX("achievement")}
+						className={`group relative overflow-hidden rounded-xl border p-4 transition-all duration-300 ${isUnlocked
+							? "border-accent/30 bg-panel shadow-lg shadow-accent/5 hover:border-accent/50 hover:shadow-accent/10"
+							: "border-border-color bg-panel/30 grayscale opacity-60"
 							}`}
 					>
-						<span className="text-xl">{emoji}</span>
-						<p className={`mt-1 text-sm font-bold ${unlocked ? "text-text-primary" : "text-text-muted"}`}>
-							{a.title}
-						</p>
-						{unlocked ? (
-							<>
-								{a.description && (
-									<p className="mt-0.5 text-xs text-text-muted">{a.description}</p>
-								)}
-								<p className="mt-1 text-[10px] text-text-muted">
-									{formatDate(unlocked.unlockedAt)}
-								</p>
-							</>
-						) : (
-							<p className="mt-0.5 text-xs italic text-text-muted">Locked</p>
+						{/* Glow effect for unlocked */}
+						{isUnlocked && (
+							<div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/10 blur-2xl transition-opacity group-hover:opacity-100" />
 						)}
+
+						<div className="flex items-start gap-4">
+							<div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-500 group-hover:scale-110 ${isUnlocked ? "bg-accent/10 text-accent shadow-inner shadow-accent/20" : "bg-panel2 text-text-muted"}`}>
+								<span className="text-2xl">{a.icon || "🏆"}</span>
+							</div>
+
+							<div className="min-w-0 flex-1">
+								<h4 className="truncate text-sm font-black uppercase tracking-tight text-text-primary">
+									{a.title}
+								</h4>
+								<p className="mt-1 line-clamp-2 text-xs leading-relaxed text-text-muted">
+									{a.description}
+								</p>
+
+								{isUnlocked && a.unlockedTitle && (
+									<div className="mt-3 flex items-center gap-1.5">
+										<span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent border border-accent/20">
+											Title Reward
+										</span>
+										<span className="text-[10px] font-bold uppercase tracking-widest text-accent/80">
+											{a.unlockedTitle.name}
+										</span>
+									</div>
+								)}
+							</div>
+						</div>
+
+						{/* Progress tracking line at bottom */}
+						<div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-700 ${isUnlocked ? "w-full bg-accent/40" : "w-0 bg-border-color"}`} />
 					</div>
 				);
 			})}

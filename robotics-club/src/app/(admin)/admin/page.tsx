@@ -10,6 +10,7 @@ import { AccessSecurity } from "@/components/admin/AccessSecurity";
 import { RoleManagement } from "@/components/admin/RoleManagement";
 import { MoodBoard } from "@/components/admin/MoodBoard";
 import { AchievementEditor } from "@/components/admin/AchievementEditor";
+import { AuditLogView } from "@/components/admin/AuditLogView";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -352,12 +353,18 @@ export default async function AdminPage({
 	// SECTION: Access
 	// ═══════════════════════════════════════════════
 	if (section === "access") {
-		const logs = await prisma.labAccessLog.findMany({
-			take: 50, orderBy: { createdAt: "desc" },
-			include: { user: { select: { name: true, login: true, image: true } } },
-		});
-		const flaggedCount = await prisma.labAccessLog.count({ where: { flagged: true } });
-		const labAccessCount = await prisma.user.count({ where: { labAccessEnabled: true } });
+		const [logs, flaggedCount, membersWithAccess] = await Promise.all([
+			prisma.labAccessLog.findMany({
+				take: 50, orderBy: { createdAt: "desc" },
+				include: { user: { select: { name: true, login: true, image: true } } },
+			}),
+			prisma.labAccessLog.count({ where: { flagged: true } }),
+			prisma.user.findMany({
+				where: { labAccessEnabled: true },
+				select: { id: true, login: true, name: true, image: true },
+				orderBy: { login: "asc" }
+			})
+		]);
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const mapLog = (l: any) => ({
@@ -370,7 +377,8 @@ export default async function AdminPage({
 			<AccessSecurity
 				logs={logs.map(mapLog)}
 				flaggedCount={flaggedCount}
-				labAccessCount={labAccessCount}
+				membersWithAccess={membersWithAccess}
+				labAccessCount={membersWithAccess.length}
 				userRole={userRole}
 			/>
 		);
@@ -391,15 +399,22 @@ export default async function AdminPage({
 	}
 
 	// ═══════════════════════════════════════════════
+	// SECTION: Audit Log
+	// ═══════════════════════════════════════════════
+	if (section === "audit" && userRole === "PRESIDENT") {
+		return <AuditLogView />;
+	}
+
+	// ═══════════════════════════════════════════════
 	// SECTION: Roles
 	// ═══════════════════════════════════════════════
 	if (section === "roles" && userRole === "PRESIDENT") {
 		const allUsers = await prisma.user.findMany({
-			select: { id: true, login: true, name: true, image: true, role: true },
+			select: { id: true, login: true, name: true, image: true, role: true, adminPermissions: true },
 			orderBy: [{ role: 'asc' }, { name: 'asc' }]
 		});
 
-		return <RoleManagement users={allUsers} />;
+		return <RoleManagement initialUsers={allUsers as any} />;
 	}
 
 	// Fallback

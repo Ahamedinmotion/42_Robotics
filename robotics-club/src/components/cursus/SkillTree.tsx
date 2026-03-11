@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 
+import { useSound } from "@/components/providers/SoundProvider";
+
 // ── Types ────────────────────────────────────────────
 
 export interface ProjectNode {
@@ -16,7 +18,7 @@ export interface ProjectNode {
 	teamSizeMax: number;
 	activeTeamCount: number;
 	isUnique: boolean;
-	userState: "completed" | "active" | "available" | "locked";
+	userState: "locked" | "available" | "active" | "completed";
 }
 
 interface SkillTreeProps {
@@ -51,18 +53,19 @@ const RANK_VALUES: Record<string, number> = {
 	E: 1, D: 2, C: 3, B: 4, A: 5, S: 6,
 };
 
-const CX = 300;
-const CY = 300;
+const CX = 400;
+const CY = 400;
 
 // ── Component ────────────────────────────────────────
 
 export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTreeProps) {
+	const { playSFX } = useSound();
 	const [hovered, setHovered] = useState<ProjectNode | null>(null);
 	const [hoveredPos, setHoveredPos] = useState({ x: 0, y: 0 });
 	const containerRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
 
-	const [scale, setScale] = useState(1);
+	const [scale, setScale] = useState(0.8);
 	const [pan, setPan] = useState({ x: 0, y: 0 });
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -282,6 +285,7 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 								onMouseLeave={() => setHovered(null)}
 								onClick={() => {
 									if (node.userState !== "locked") {
+										playSFX("button");
 										router.push(`/cursus/projects/${node.id}`);
 									}
 								}}
@@ -352,9 +356,9 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 					<div
 						className="pointer-events-none absolute z-50 w-56 rounded-xl border border-border-color bg-panel p-3 shadow-lg backdrop-blur-sm"
 						style={{
-							left: `${(hoveredPos.x / 600) * 100}%`,
-							top: `${(hoveredPos.y / 600) * 100}%`,
-							transform: `translate(${hoveredPos.x > 300 ? "-110%" : "10%"}, ${hoveredPos.y > 300 ? "-110%" : "10%"})`,
+							left: `${(hoveredPos.x / 800) * 100}%`,
+							top: `${(hoveredPos.y / 800) * 100}%`,
+							transform: `translate(${hoveredPos.x > 400 ? "-110%" : "10%"}, ${hoveredPos.y > 400 ? "-110%" : "10%"})`,
 						}}
 					>
 						<div className="mb-2 flex items-center gap-2">

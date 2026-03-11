@@ -77,29 +77,69 @@ export const authOptions: NextAuthOptions = {
 				return false;
 			}
 		},
-		async jwt({ token, user }) {
-			// 'user' is only available on the first call (sign in)
-			if (user) {
-				const dbUser = await (prisma.user as any).findUnique({
-					where: { id: (user as any).id },
+		async jwt({ token, user, trigger, session }) {
+			// 'user' is only available on sign in, but we want to check for impersonation updates
+			// We fetch the current state of the logged-in admin user to see if they are impersonating someone.
+			if (token.id) {
+				const adminUser = await (prisma.user as any).findUnique({
+					where: { id: (token as any).realAdminId || token.id },
 					select: {
 						id: true,
 						login: true,
 						role: true,
-						status: true,
-						currentRank: true,
-						activeTheme: true,
+						impersonatorId: true,
 						adminPermissions: true,
 					},
 				});
-				if (dbUser) {
-					token.id = dbUser.id;
-					token.login = dbUser.login;
-					token.role = dbUser.role;
-					token.status = dbUser.status;
-					token.currentRank = dbUser.currentRank;
-					token.activeTheme = dbUser.activeTheme;
-					token.adminPermissions = dbUser.adminPermissions;
+
+				if (adminUser && adminUser.role === "PRESIDENT" && adminUser.impersonatorId) {
+					// We are impersonating someone! Fetch target user.
+					const targetUser = await (prisma.user as any).findUnique({
+						where: { id: adminUser.impersonatorId },
+						select: {
+							id: true,
+							login: true,
+							role: true,
+							status: true,
+							currentRank: true,
+							activeTheme: true,
+						},
+					});
+
+					if (targetUser) {
+						token.id = targetUser.id;
+						token.login = targetUser.login;
+						token.role = targetUser.role;
+						token.status = targetUser.status;
+						token.currentRank = targetUser.currentRank;
+						token.activeTheme = targetUser.activeTheme;
+						token.isImpersonating = true;
+						token.realAdminId = adminUser.id;
+						token.adminPermissions = adminUser.adminPermissions; // Keep perms for the switcher UI
+						return token;
+					}
+				}
+
+				// If no impersonation, fallback to normal user/token sync
+				if (user) {
+					const dbUser = await (prisma.user as any).findUnique({
+						where: { id: (user as any).id },
+						select: {
+							id: true, login: true, role: true, status: true,
+							currentRank: true, activeTheme: true, adminPermissions: true,
+						},
+					});
+					if (dbUser) {
+						token.id = dbUser.id;
+						token.login = dbUser.login;
+						token.role = dbUser.role;
+						token.status = dbUser.status;
+						token.currentRank = dbUser.currentRank;
+						token.activeTheme = dbUser.activeTheme;
+						token.adminPermissions = dbUser.adminPermissions;
+						token.isImpersonating = false;
+						token.realAdminId = dbUser.id;
+					}
 				}
 			}
 			return token;
@@ -113,6 +153,8 @@ export const authOptions: NextAuthOptions = {
 				(session.user as any).currentRank = token.currentRank as any;
 				(session.user as any).activeTheme = token.activeTheme as any;
 				(session.user as any).adminPermissions = token.adminPermissions as any;
+				(session.user as any).isImpersonating = !!token.isImpersonating;
+				(session.user as any).realAdminId = token.realAdminId as string;
 			}
 			return session;
 		},

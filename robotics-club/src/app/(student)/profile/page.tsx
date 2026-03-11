@@ -24,11 +24,15 @@ export default async function ProfilePage() {
 		include: {
 			skillProgress: { orderBy: { projectsCompleted: "desc" } },
 			achievements: {
-				include: { achievement: true },
+				include: { achievement: { include: { unlockedTitle: true } } } as any,
 				orderBy: { unlockedAt: "desc" },
 			},
+			userTitles: {
+				include: { title: true },
+				orderBy: { createdAt: "desc" }
+			},
 			alumniEvaluatorOptIn: true,
-		},
+		} as any,
 	});
 	if (!user) redirect("/login");
 
@@ -75,18 +79,18 @@ export default async function ProfilePage() {
 		orderBy: { title: "asc" },
 	});
 
-	// Derive title (most recent achievement)
-	const title = user.achievements[0]?.achievement?.title ?? null;
-
 	// ── Render ─────────────────────────────────────
+	const u = user as any;
+	// Derive title (most recent achievement)
+	const title = (u.achievements?.[0] as any)?.achievement?.title ?? null;
 	return (
 		<div className="space-y-6">
 			{/* Section 1 — Header */}
 			<ProfileHeader
 				user={{
-					...user,
-					id: user.id,
-					skillProgress: user.skillProgress,
+					...u,
+					id: u.id,
+					skillProgress: u.skillProgress,
 				}}
 				title={title}
 				completedProjects={completedTeams.length}
@@ -95,8 +99,8 @@ export default async function ProfilePage() {
 
 			<div className="flex justify-end pt-2">
 				<TitleSelector
-					initialTitle={(user as any).equippedTitle}
-					unlockedTitles={user.achievements.map((ua) => ua.achievement.title)}
+					initialTitle={u.equippedTitle}
+					unlockedTitles={u.userTitles.map((ut: any) => ut.title.name)}
 				/>
 			</div>
 
@@ -106,7 +110,7 @@ export default async function ProfilePage() {
 					Skill Profile
 				</h3>
 				<SkillRadar
-					skills={user.skillProgress.map((s) => ({
+					skills={u.skillProgress.map((s: any) => ({
 						skillTag: s.skillTag,
 						projectsCompleted: s.projectsCompleted,
 					}))}
@@ -118,7 +122,7 @@ export default async function ProfilePage() {
 				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
 					Project History
 				</h3>
-				<ProjectHistory teams={completedTeams} />
+				<ProjectHistory teams={completedTeams as any} />
 			</Card>
 
 			{/* Section 4 — Team History */}
@@ -127,7 +131,7 @@ export default async function ProfilePage() {
 					Team History
 				</h3>
 				<p className="text-xs text-text-muted">All past teammates across every project</p>
-				<TeamHistory teams={allTeams} currentUserId={userId} />
+				<TeamHistory teams={allTeams as any} currentUserId={userId} />
 			</Card>
 
 			{/* Section 5 — Compliments */}
@@ -140,7 +144,7 @@ export default async function ProfilePage() {
 				</h3>
 				<AchievementsGrid
 					allAchievements={allAchievements}
-					userAchievements={user.achievements.map((ua) => ({
+					userAchievements={u.achievements.map((ua: any) => ({
 						achievementId: ua.achievementId,
 						unlockedAt: ua.unlockedAt,
 					}))}
@@ -148,9 +152,9 @@ export default async function ProfilePage() {
 			</Card>
 
 			{/* Section 7 — Alumni Evaluator (conditional) */}
-			{user.status === "ALUMNI" && (
+			{u.status === "ALUMNI" && (
 				<Card>
-					<AlumniToggle isOptedIn={user.alumniEvaluatorOptIn?.isActive ?? false} />
+					<AlumniToggle isOptedIn={u.alumniEvaluatorOptIn?.isActive ?? false} />
 				</Card>
 			)}
 		</div>

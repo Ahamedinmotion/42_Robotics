@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useSound } from "@/components/providers/SoundProvider";
 
 export function AdminNav({ userRole }: { userRole?: string }) {
+	const { playSFX } = useSound();
 	const searchParams = useSearchParams();
 	const active = searchParams.get("section") || "members";
 
@@ -19,6 +21,7 @@ export function AdminNav({ userRole }: { userRole?: string }) {
 
 	if (userRole === "PRESIDENT") {
 		sections.push({ key: "roles", label: "Roles" });
+		sections.push({ key: "audit", label: "Audit" });
 	}
 
 	return (
@@ -27,6 +30,7 @@ export function AdminNav({ userRole }: { userRole?: string }) {
 				<Link
 					key={s.key}
 					href={`/admin?section=${s.key}`}
+					onClick={() => playSFX("button")}
 					className={`text-sm font-medium transition-colors ${active === s.key
 							? "border-b-2 border-accent pb-0.5 text-accent"
 							: "text-text-muted hover:text-text-primary"

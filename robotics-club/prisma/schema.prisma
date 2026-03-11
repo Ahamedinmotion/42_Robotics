@@ -177,6 +177,8 @@ model User {
   activeTheme          Theme             @default(FORGE) @map("active_theme")
   equippedTitle        String?           @map("equipped_title")
   joinedAt             DateTime          @default(now()) @map("joined_at")
+  soundsEnabled        Boolean           @default(true) @map("sounds_enabled")
+  impersonatorId       String?           @map("impersonator_id") // ID of admin impersonating this user or vice versa? Actually simpler to store on the session. But let's add it for tracking.
 
   // Relations
   teams                TeamMember[]
@@ -210,6 +212,9 @@ model User {
   featureRequests      FeatureRequest[]   @relation("FeatureRequestCreator")
   featureRequestVotes  FeatureRequestVote[]
   adminPermissions     AdminPermission?
+  userTitles           UserTitle[]
+  auditLogsActed       AdminAuditLog[]   @relation("AdminActor")
+  auditLogsTargeted    AdminAuditLog[]   @relation("AdminTarget")
 
   @@map("users")
 }
@@ -550,11 +555,60 @@ model Achievement {
   title       String
   description String            @db.Text
   icon        String
+  
+  // Optional link to a title that is unlocked with this achievement
+  unlockedTitleId String?      @unique @map("unlocked_title_id")
+  unlockedTitle   Title?       @relation("AchievementTitle", fields: [unlockedTitleId], references: [id])
 
   // Relations
   users       UserAchievement[]
 
   @@map("achievements")
+}
+
+model Title {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  
+  // Back-relation to achievement
+  achievement Achievement? @relation("AchievementTitle")
+
+  users       UserTitle[]
+  
+  @@map("titles")
+}
+
+model UserTitle {
+  id         String   @id @default(cuid())
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+  userId     String   @map("user_id")
+  titleId    String   @map("title_id")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, titleId])
+  @@map("user_titles")
+  @@index([userId])
+  @@index([titleId])
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  actorId     String   @map("actor_id")
+  targetId    String?  @map("target_id")
+  action      String   // e.g. "UPDATE_ROLE", "DELETE_PROJECT", "IMPERSONATE"
+  details     String?  @db.Text // JSON string or text details
+  
+  actor       User     @relation("AdminActor", fields: [actorId], references: [id])
+  target      User?    @relation("AdminTarget", fields: [targetId], references: [id])
+  
+  @@map("admin_audit_logs")
+  @@index([actorId])
+  @@index([targetId])
+  @@index([createdAt])
 }
 
 model UserAchievement {

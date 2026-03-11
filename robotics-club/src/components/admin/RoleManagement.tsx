@@ -24,11 +24,15 @@ interface UserWithPerms {
 	adminPermissions: AdminPermissions | null;
 }
 
-export function RoleManagement() {
+interface RoleManagementProps {
+	initialUsers?: UserWithPerms[];
+}
+
+export function RoleManagement({ initialUsers = [] }: RoleManagementProps) {
 	const router = useRouter();
 	const { toast } = useToast();
-	const [users, setUsers] = useState<UserWithPerms[]>([]);
-	const [loading, setLoading] = useState(true);
+	const [users, setUsers] = useState<UserWithPerms[]>(initialUsers);
+	const [loading, setLoading] = useState(initialUsers.length === 0);
 	const [submitting, setSubmitting] = useState<string | null>(null);
 
 	const availableRoles = [
@@ -108,6 +112,25 @@ export function RoleManagement() {
 		}
 	};
 
+	const handleImpersonate = async (targetUserId: string) => {
+		try {
+			const res = await fetch("/api/admin/impersonate", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ targetUserId }),
+			});
+			if (res.ok) {
+				toast("Impersonation active. Refreshing...");
+				window.location.href = "/home";
+			} else {
+				const data = await res.json();
+				toast(data.error || "Failed to impersonate", "error");
+			}
+		} catch {
+			toast("Network error", "error");
+		}
+	};
+
 	if (loading) return <div className="py-12 text-center text-text-muted">Verifying credentials...</div>;
 
 	return (
@@ -151,6 +174,17 @@ export function RoleManagement() {
 										<option key={r} value={r}>{r.replace(/_/g, " ")}</option>
 									))}
 								</select>
+
+								{u.id !== initialUsers.find(iu => iu.role === "PRESIDENT")?.id && (
+									<Button 
+										variant="secondary" 
+										size="sm" 
+										className="h-8 text-[10px] font-bold uppercase tracking-wider text-forge-purple border-forge-purple hover:bg-forge-purple/10"
+										onClick={() => handleImpersonate(u.id)}
+									>
+										Impersonate
+									</Button>
+								)}
 							</div>
 						</div>
 

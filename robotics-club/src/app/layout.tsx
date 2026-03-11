@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "A ranked engineering curriculum for makers at 42.",
 };
 
+import { Providers } from "@/components/providers/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -15,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-text-primary antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

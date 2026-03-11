@@ -28,14 +28,17 @@ export async function POST(req: Request) {
 
 	try {
 		const body = await req.json();
-		const { key, title, description, icon } = body;
+		const { key, title, description, icon, unlockedTitleId } = body;
 
 		if (!key || !title || !description || !icon) {
 			return NextResponse.json({ error: "All fields required" }, { status: 400 });
 		}
 
-		const achievement = await prisma.achievement.create({
-			data: { key, title, description, icon },
+		const achievement = await (prisma as any).achievement.create({
+			data: { 
+				key, title, description, icon,
+				unlockedTitleId: unlockedTitleId || null
+			},
 		});
 
 		return NextResponse.json(achievement, { status: 201 });
