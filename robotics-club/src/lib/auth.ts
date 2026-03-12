@@ -78,13 +78,18 @@ export const authOptions: NextAuthOptions = {
 			}
 		},
 		async jwt({ token, user, trigger, session }) {
-			// 1. Initial login: sync user from DB into token
+			// 1. Initial sign-in: set the token's ID and other basic fields from the user object.
 			if (user) {
 				const dbUser = await (prisma.user as any).findUnique({
 					where: { id: (user as any).id },
 					select: {
-						id: true, login: true, role: true, status: true,
-						currentRank: true, activeTheme: true, adminPermissions: true,
+						id: true,
+						login: true,
+						role: true,
+						status: true,
+						currentRank: true,
+						activeTheme: true,
+						adminPermissions: true,
 					},
 				});
 				if (dbUser) {
@@ -100,7 +105,7 @@ export const authOptions: NextAuthOptions = {
 				}
 			}
 
-			// 2. Continuous session check: handle impersonation state
+			// 2. Fetch/update current state for existing sessions (e.g. for impersonation or session-sync updates).
 			if (token.id) {
 				const adminUser = await (prisma.user as any).findUnique({
 					where: { id: (token as any).realAdminId || token.id },
@@ -114,7 +119,6 @@ export const authOptions: NextAuthOptions = {
 				});
 
 				if (adminUser && adminUser.role === "PRESIDENT" && adminUser.impersonatorId) {
-					// We are impersonating someone! Fetch target user.
 					const targetUser = await (prisma.user as any).findUnique({
 						where: { id: adminUser.impersonatorId },
 						select: {
@@ -137,10 +141,10 @@ export const authOptions: NextAuthOptions = {
 						token.isImpersonating = true;
 						token.realAdminId = adminUser.id;
 						token.adminPermissions = adminUser.adminPermissions; // Keep perms for the switcher UI
-						return token;
 					}
 				}
 			}
+
 			return token;
 		},
 		async session({ session, token }) {
