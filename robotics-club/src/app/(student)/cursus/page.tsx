@@ -216,15 +216,19 @@ export default async function CursusPage({
 			</div>
 
 			{/* Tab content */}
-			{tab === "overview" ? (
-				<SkillTree
-					projects={grouped}
-					userRank={user.currentRank}
-					activeTeamProjectId={activeTeamProjectId}
-				/>
-			) : (
-				<ProjectCockpit team={teamData} userId={userId} />
-			)}
+			<div className={tab === "overview" ? "" : "space-y-6"}>
+				{tab === "overview" ? (
+					<div className="-mx-4 sm:-mx-6 lg:-mx-8">
+						<SkillTree
+							projects={grouped}
+							userRank={user.currentRank}
+							activeTeamProjectId={activeTeamProjectId}
+						/>
+					</div>
+				) : (
+					<ProjectCockpit team={teamData} userId={userId} />
+				)}
+			</div>
 		</div>
 	);
 }

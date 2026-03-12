@@ -53,8 +53,8 @@ const RANK_VALUES: Record<string, number> = {
 	E: 1, D: 2, C: 3, B: 4, A: 5, S: 6,
 };
 
-const CX = 400;
-const CY = 400;
+const CX = 0;
+const CY = 0;
 
 // ── Component ────────────────────────────────────────
 
@@ -65,10 +65,10 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 	const containerRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
 
-	const [scale, setScale] = useState(0.8);
+	const [scale, setScale] = useState(0.85);
 	const [pan, setPan] = useState({ x: 0, y: 0 });
 	const [isDragging, setIsDragging] = useState(false);
-	const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+	const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
 
 	const userRankVal = RANK_VALUES[userRank] ?? 1;
 	const sRankRevealed = userRankVal >= RANK_VALUES.A;
@@ -78,7 +78,7 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 
 	RANKS.forEach((rank, rankIdx) => {
 		const nodes = projects[rank] || [];
-		const radius = RING_RADII[rank];
+		const radius = RING_RADII[rank] * 1.25; // Scale up for better spacing
 		nodes.forEach((node, nodeIdx) => {
 			const total = nodes.length || 1;
 			const angle = (2 * Math.PI * nodeIdx) / total - Math.PI / 2 + rankIdx * 0.25;
@@ -110,22 +110,21 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 
 	const nodeRadius = (state: string) => {
 		switch (state) {
-			case "completed": return 8;
-			case "active": return 9;
-			case "available": return 7;
-			default: return 5;
+			case "completed": return 10;
+			case "active": return 11;
+			case "available": return 9;
+			default: return 7;
 		}
 	};
 
 	// ── Pan & Zoom Handlers ─────────
 	const handleWheel = useCallback((e: WheelEvent) => {
 		e.preventDefault();
-		const zoomSensitivity = 0.001;
+		const zoomSensitivity = 0.0015;
 		const delta = -e.deltaY * zoomSensitivity;
-		setScale((s) => Math.min(Math.max(0.5, s + delta), 3));
+		setScale((s) => Math.min(Math.max(0.4, s + delta), 4));
 	}, []);
 
-	// Attach wheel listener with { passive: false } to allow preventDefault
 	useEffect(() => {
 		const el = containerRef.current;
 		if (!el) return;
@@ -135,42 +134,47 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 
 	const handleMouseDown = (e: React.MouseEvent) => {
 		setIsDragging(true);
-		setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+		setLastPos({ x: e.clientX, y: e.clientY });
 	};
 
 	const handleMouseMove = (e: React.MouseEvent) => {
 		if (!isDragging) return;
-		setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+		const dx = e.clientX - lastPos.x;
+		const dy = e.clientY - lastPos.y;
+		setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+		setLastPos({ x: e.clientX, y: e.clientY });
 	};
 
 	const handleMouseUp = () => {
 		setIsDragging(false);
 	};
 
-	// ── Touch handlers for mobile ─────
-	const touchRef = useRef<{ x: number; y: number } | null>(null);
-
+	// ── Touch handlers ──
 	const handleTouchStart = (e: React.TouchEvent) => {
 		const t = e.touches[0];
-		touchRef.current = { x: t.clientX - pan.x, y: t.clientY - pan.y };
+		setLastPos({ x: t.clientX, y: t.clientY });
 	};
 
 	const handleTouchMove = (e: React.TouchEvent) => {
-		if (!touchRef.current) return;
 		const t = e.touches[0];
-		setPan({ x: t.clientX - touchRef.current.x, y: t.clientY - touchRef.current.y });
+		const dx = t.clientX - lastPos.x;
+		const dy = t.clientY - lastPos.y;
+		setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+		setLastPos({ x: t.clientX, y: t.clientY });
 	};
 
-	const handleTouchEnd = () => {
-		touchRef.current = null;
+	const handleReset = () => {
+		setScale(0.85);
+		setPan({ x: 0, y: 0 });
+		playSFX("button");
 	};
 
 	return (
 		<div
 			ref={containerRef}
-			className="relative mx-auto w-full overflow-hidden"
+			className="relative w-full overflow-hidden border border-border-color bg-panel/20 rounded-3xl"
 			style={{
-				aspectRatio: "1",
+				height: "calc(100vh - 280px)",
 				cursor: isDragging ? "grabbing" : "grab",
 			}}
 			onMouseDown={handleMouseDown}
@@ -179,207 +183,216 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 			onMouseLeave={handleMouseUp}
 			onTouchStart={handleTouchStart}
 			onTouchMove={handleTouchMove}
-			onTouchEnd={handleTouchEnd}
+			onTouchEnd={() => {}}
 		>
-			{/* CSS animations */}
 			<style>{`
-        @keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes node-pulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px var(--glow-col)); } 50% { opacity: 0.75; filter: drop-shadow(0 0 8px var(--glow-col)); } }
-        @keyframes ring-drift { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -22; } }
-        .node-active-ring { animation: orbit-spin 3s linear infinite; transform-origin: center; transform-box: fill-box; }
-        .node-completed { animation: node-pulse 3s ease-in-out infinite; }
-        .node-available { transition: transform 0.2s ease; }
-        .node-available:hover { transform: scale(1.3); transform-origin: center; transform-box: fill-box; }
-        .ring-orbit { animation: ring-drift 4s linear infinite; }
-        .s-ring-hidden { opacity: 0.08; transition: opacity 1.5s ease-in; }
-        .s-ring-revealed { opacity: 1; transition: opacity 1.5s ease-in; }
-      `}</style>
+				@keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+				@keyframes node-pulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px var(--glow-col)); } 50% { opacity: 0.8; filter: drop-shadow(0 0 12px var(--glow-col)); } }
+				@keyframes ring-drift { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -22; } }
+				.node-active-ring { animation: orbit-spin 3s linear infinite; transform-origin: center; transform-box: fill-box; }
+				.node-completed { animation: node-pulse 3s ease-in-out infinite; }
+				.node-available { transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+				.node-available:hover { transform: scale(1.4); transform-origin: center; transform-box: fill-box; }
+				.ring-orbit { animation: ring-drift 6s linear infinite; }
+				.s-ring-hidden { opacity: 0.05; transition: opacity 1.5s ease; }
+				.s-ring-revealed { opacity: 1; transition: opacity 1.5s ease; }
+			`}</style>
+
+			{/* Controls */}
+			<div className="absolute bottom-4 right-4 z-50 flex flex-col gap-2">
+				<button
+					onClick={handleReset}
+					className="flex h-10 w-10 items-center justify-center rounded-full border border-border-color bg-panel shadow-lg hover:border-accent hover:text-accent transition-all"
+					title="Recenter View"
+				>
+					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+					</svg>
+				</button>
+				<button
+					onClick={() => setScale(s => Math.min(s + 0.2, 4))}
+					className="flex h-10 w-10 items-center justify-center rounded-full border border-border-color bg-panel shadow-lg hover:border-accent hover:text-accent transition-all"
+				>
+					<span className="text-xl font-bold">+</span>
+				</button>
+				<button
+					onClick={() => setScale(s => Math.max(s - 0.2, 0.4))}
+					className="flex h-10 w-10 items-center justify-center rounded-full border border-border-color bg-panel shadow-lg hover:border-accent hover:text-accent transition-all"
+				>
+					<span className="text-xl font-bold">-</span>
+				</button>
+			</div>
 
 			<div
-				className="absolute inset-0 origin-center"
+				className="absolute inset-0 flex items-center justify-center"
 				style={{
 					transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-					transition: isDragging ? 'none' : 'transform 200ms ease-out',
+					transition: isDragging ? 'none' : 'transform 100ms ease-out',
 				}}
 			>
-				<svg viewBox="0 0 600 600" width="100%" height="100%">
-				{/* Glow + ambient filters */}
-				<defs>
-					<filter id="glow">
-						<feGaussianBlur stdDeviation="3" result="blur" />
-						<feMerge>
-							<feMergeNode in="blur" />
-							<feMergeNode in="SourceGraphic" />
-						</feMerge>
-					</filter>
-					{/* Ambient ring glows */}
-					{RANKS.map((rank) => (
-						<radialGradient key={`rg-${rank}`} id={`ring-glow-${rank}`} cx="50%" cy="50%" r="50%">
-							<stop offset="0%" stopColor={RANK_COLOURS[rank]} stopOpacity="0.08" />
-							<stop offset="100%" stopColor={RANK_COLOURS[rank]} stopOpacity="0" />
-						</radialGradient>
+				<svg viewBox="-500 -500 1000 1000" className="h-[1000px] w-[1000px] pointer-events-none overflow-visible">
+					<defs>
+						<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+							<feGaussianBlur stdDeviation="4" result="blur" />
+							<feMerge>
+								<feMergeNode in="blur" />
+								<feMergeNode in="SourceGraphic" />
+							</feMerge>
+						</filter>
+						{RANKS.map((rank) => (
+							<radialGradient key={`rg-${rank}`} id={`ring-glow-${rank}`} cx="50%" cy="50%" r="50%">
+								<stop offset="0%" stopColor={RANK_COLOURS[rank]} stopOpacity="0.1" />
+								<stop offset="100%" stopColor={RANK_COLOURS[rank]} stopOpacity="0" />
+							</radialGradient>
+						))}
+					</defs>
+
+					{/* Background connections */}
+					{connections.map((c, i) => (
+						<line
+							key={`conn-${i}`}
+							x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
+							stroke="var(--text-muted)" opacity={0.12} strokeWidth={1}
+							strokeDasharray="4 8"
+						/>
 					))}
-				</defs>
 
-				{/* Ambient glow circles behind each ring */}
-				{RANKS.map((rank) => {
-					const isSRank = rank === "S";
-					if (isSRank && !sRankRevealed) return null;
-					return (
-						<circle
-							key={`ambient-${rank}`}
-							cx={CX}
-							cy={CY}
-							r={RING_RADII[rank] + 15}
-							fill={`url(#ring-glow-${rank})`}
-							className={isSRank ? (sRankRevealed ? "s-ring-revealed" : "s-ring-hidden") : ""}
-						/>
-					);
-				})}
-
-				{/* Ring circles */}
-				{RANKS.map((rank) => {
-					const isSRank = rank === "S";
-					return (
-						<circle
-							key={`ring-${rank}`}
-							cx={CX}
-							cy={CY}
-							r={RING_RADII[rank]}
-							fill="none"
-							stroke={RANK_COLOURS[rank]}
-							strokeWidth={1}
-							strokeDasharray="4 7"
-							className={`ring-orbit ${isSRank ? (sRankRevealed ? "s-ring-revealed" : "s-ring-hidden") : ""}`}
-							opacity={isSRank ? undefined : 0.55}
-						/>
-					);
-				})}
-
-				{/* Connection lines between rings */}
-				{connections.map((c, i) => (
-					<line
-						key={`conn-${i}`}
-						x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
-						stroke="var(--text-muted)" opacity={0.15} strokeWidth={0.5}
-						strokeDasharray="2 4"
-					/>
-				))}
-
-				{/* Nodes */}
-				{RANKS.map((rank) => {
-					const nodes = projects[rank] || [];
-					const isSRank = rank === "S";
-					if (isSRank && !sRankRevealed) return null;
-
-					return nodes.map((node) => {
-						const pos = nodePositions.get(node.id);
-						if (!pos) return null;
-						const colour = RANK_COLOURS[rank];
-						const r = nodeRadius(node.userState);
+					{/* Rings */}
+					{RANKS.map((rank) => {
+						const isSRank = rank === "S";
+						const radius = RING_RADII[rank] * 1.25;
+						if (isSRank && !sRankRevealed) return null;
 
 						return (
-							<g
-								key={node.id}
-								onMouseEnter={() => handleNodeHover(node, pos.x, pos.y)}
-								onMouseLeave={() => setHovered(null)}
-								onClick={() => {
-									if (node.userState !== "locked") {
-										playSFX("button");
-										router.push(`/cursus/projects/${node.id}`);
-									}
-								}}
-								style={{
-									cursor: node.userState === "locked" ? "default" : "pointer",
-									// @ts-ignore
-									"--glow-col": colour,
-								}}
-							>
-								{/* Completed */}
-								{node.userState === "completed" && (
-									<>
-										<circle cx={pos.x} cy={pos.y} r={r} fill={colour} filter="url(#glow)" className="node-completed" />
-										<circle cx={pos.x} cy={pos.y} r={3} fill="white" />
-									</>
-								)}
-
-								{/* Active */}
-								{node.userState === "active" && (
-									<>
-										<circle
-											cx={pos.x} cy={pos.y} r={r}
-											fill="none" stroke={colour} strokeWidth={2}
-											strokeDasharray="4 3"
-											className="node-active-ring"
-										/>
-										<circle cx={pos.x} cy={pos.y} r={5} fill={colour} />
-									</>
-								)}
-
-								{/* Available */}
-								{node.userState === "available" && (
-									<circle
-										cx={pos.x} cy={pos.y} r={r}
-										fill={colour} fillOpacity={0.3}
-										stroke={colour} strokeWidth={1.5}
-										className="node-available"
-									/>
-								)}
-
-								{/* Locked */}
-								{node.userState === "locked" && (
-									<circle
-										cx={pos.x} cy={pos.y} r={r}
-										fill="none" stroke={colour} strokeOpacity={0.3} strokeWidth={0.8}
-									/>
-								)}
-
-								{/* Active team indicator dot */}
-								{node.activeTeamCount > 0 && node.userState !== "locked" && (
-									<circle cx={pos.x + r - 1} cy={pos.y - r + 1} r={2} fill="var(--accent)">
-										<title>{`${node.activeTeamCount} team(s) active`}</title>
-									</circle>
-								)}
+							<g key={`ring-group-${rank}`}>
+								<circle
+									cx={CX} cy={CY} r={radius + 20}
+									fill={`url(#ring-glow-${rank})`}
+									className={isSRank ? "s-ring-revealed" : ""}
+								/>
+								<circle
+									cx={CX} cy={CY} r={radius}
+									fill="none"
+									stroke={RANK_COLOURS[rank]}
+									strokeWidth={1.5}
+									strokeDasharray="5 10"
+									className={`ring-orbit ${isSRank ? "s-ring-revealed" : ""}`}
+									opacity={isSRank ? 1 : 0.4}
+								/>
 							</g>
 						);
-					});
-				})}
+					})}
 
-				{/* Center element */}
-				<circle cx={CX} cy={CY} r={32} fill="var(--panel)" stroke={RANK_COLOURS[userRank] || "#888"} strokeWidth={1.5} />
-				<text x={CX} y={CY - 4} textAnchor="middle" dominantBaseline="middle" fill="var(--accent)" fontSize={14} fontWeight="bold">RC</text>
-				<text x={CX} y={CY + 12} textAnchor="middle" dominantBaseline="middle" fill={RANK_COLOURS[userRank] || "#888"} fontSize={10}>{userRank}</text>
-			</svg>
+					{/* Nodes */}
+					{RANKS.map((rank) => {
+						const nodes = projects[rank] || [];
+						if (rank === "S" && !sRankRevealed) return null;
 
-				{/* Tooltip overlay (HTML positioned over SVG) */}
+						return nodes.map((node) => {
+							const pos = nodePositions.get(node.id);
+							if (!pos) return null;
+							const colour = RANK_COLOURS[rank];
+							const r = nodeRadius(node.userState);
+
+							return (
+								<g
+									key={node.id}
+									onMouseEnter={() => handleNodeHover(node, pos.x, pos.y)}
+									onMouseLeave={() => setHovered(null)}
+									onClick={(e) => {
+										e.stopPropagation();
+										if (node.userState !== "locked") {
+											playSFX("button");
+											router.push(`/cursus/projects/${node.id}`);
+										}
+									}}
+									style={{
+										cursor: node.userState === "locked" ? "default" : "pointer",
+										// @ts-ignore
+										"--glow-col": colour,
+										pointerEvents: "auto",
+									}}
+								>
+									{/* Node drawing logic */}
+									{node.userState === "completed" && (
+										<>
+											<circle cx={pos.x} cy={pos.y} r={r + 4} fill={colour} fillOpacity={0.2} filter="url(#glow)" />
+											<circle cx={pos.x} cy={pos.y} r={r} fill={colour} className="node-completed" />
+											<circle cx={pos.x} cy={pos.y} r={r / 2} fill="white" />
+										</>
+									)}
+									{node.userState === "active" && (
+										<>
+											<circle
+												cx={pos.x} cy={pos.y} r={r + 4}
+												fill="none" stroke={colour} strokeWidth={2}
+												strokeDasharray="6 4"
+												className="node-active-ring"
+											/>
+											<circle cx={pos.x} cy={pos.y} r={r} fill={colour} />
+											<circle cx={pos.x} cy={pos.y} r={3} fill="white" fillOpacity={0.5} />
+										</>
+									)}
+									{node.userState === "available" && (
+										<circle
+											cx={pos.x} cy={pos.y} r={r}
+											fill={colour} fillOpacity={0.4}
+											stroke={colour} strokeWidth={2}
+											className="node-available"
+										/>
+									)}
+									{node.userState === "locked" && (
+										<circle
+											cx={pos.x} cy={pos.y} r={r}
+											fill="none" stroke={colour} strokeOpacity={0.25} strokeWidth={1}
+										/>
+									)}
+									{node.activeTeamCount > 0 && node.userState !== "locked" && (
+										<circle cx={pos.x + r} cy={pos.y - r} r={3} fill="var(--accent)" filter="url(#glow)" />
+									)}
+								</g>
+							);
+						});
+					})}
+
+					{/* Center Sun */}
+					<g className="filter drop-shadow-lg">
+						<circle cx={CX} cy={CY} r={40} fill="var(--panel)" stroke={RANK_COLOURS[userRank] || "#888"} strokeWidth={2} />
+						<text x={CX} y={CY - 5} textAnchor="middle" dominantBaseline="middle" fill="var(--accent)" fontSize={18} fontWeight="900">RC</text>
+						<text x={CX} y={CY + 15} textAnchor="middle" dominantBaseline="middle" fill={RANK_COLOURS[userRank] || "#888"} fontSize={12} fontWeight="bold">{userRank}</text>
+					</g>
+				</svg>
+
+				{/* Tooltip */}
 				{hovered && (
 					<div
-						className="pointer-events-none absolute z-50 w-56 rounded-xl border border-border-color bg-panel p-3 shadow-lg backdrop-blur-sm"
+						className="pointer-events-none fixed z-[60] w-64 rounded-2xl border border-border-color bg-panel/90 p-4 shadow-2xl backdrop-blur-md transition-opacity duration-200"
 						style={{
-							left: `${(hoveredPos.x / 800) * 100}%`,
-							top: `${(hoveredPos.y / 800) * 100}%`,
-							transform: `translate(${hoveredPos.x > 400 ? "-110%" : "10%"}, ${hoveredPos.y > 400 ? "-110%" : "10%"})`,
+							left: `${hoveredPos.x * scale + pan.x + (containerRef.current?.offsetWidth || 0) / 2}px`,
+							top: `${hoveredPos.y * scale + pan.y + (containerRef.current?.offsetHeight || 0) / 2}px`,
+							transform: `translate(${hoveredPos.x > 0 ? "-110%" : "10%"}, ${hoveredPos.y > 0 ? "-110%" : "10%"})`,
 						}}
 					>
-						<div className="mb-2 flex items-center gap-2">
-							<span className="text-sm font-bold text-text-primary">{hovered.title}</span>
+						<div className="mb-2 flex items-center justify-between">
+							<span className="text-base font-black text-text-primary tracking-tight">{hovered.title}</span>
 							<Badge rank={hovered.rank as any} size="sm" />
 						</div>
-						{hovered.skillTags.length > 0 && (
-							<div className="mb-2 flex flex-wrap gap-1">
-								{hovered.skillTags.map((tag) => (
-									<span key={tag} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted">
-										{tag}
-									</span>
-								))}
-							</div>
-						)}
-						<p className="text-xs text-text-muted">{hovered.teamSizeMin}–{hovered.teamSizeMax} members · {hovered.blackholeDays} days</p>
-						{hovered.isUnique && <p className="mt-0.5 text-[10px] font-semibold text-accent-secondary">Unique project</p>}
-						<p className="mt-1 text-[10px] text-accent">View Details →</p>
+						<div className="mb-3 flex flex-wrap gap-1.5">
+							{hovered.skillTags.map((tag) => (
+								<span key={tag} className="rounded-md bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
+									{tag}
+								</span>
+							))}
+						</div>
+						<div className="flex items-center justify-between text-[11px] text-text-muted">
+							<span>{hovered.teamSizeMin}–{hovered.teamSizeMax} Users</span>
+							<span>{hovered.blackholeDays}d Limit</span>
+						</div>
+						{hovered.isUnique && <div className="mt-2 text-[10px] font-bold text-accent-secondary uppercase tracking-widest text-center border-t border-border-color/30 pt-2">★ Unique Achievement</div>}
 					</div>
 				)}
 			</div>
 		</div>
 	);
 }
+
