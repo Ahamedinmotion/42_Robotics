@@ -76,10 +76,11 @@ export const authOptions: NextAuthOptions = {
 			}
 		},
 		async jwt({ token, user, trigger, session }) {
-			// 1. Initial sign-in: set the token's ID and other basic fields from the user object.
-			if (user) {
+			// 1. Initial sign-in or explicit update
+			if (user || trigger === "update") {
+				const userId = user?.id || token.id;
 				const dbUser = await prisma.user.findUnique({
-					where: { id: (user as any).id },
+					where: { id: userId as string },
 					select: {
 						id: true,
 						login: true,
@@ -89,8 +90,10 @@ export const authOptions: NextAuthOptions = {
 						activeTheme: true,
 						hasSeenIntro: true,
 						hasSeenWaitlistModal: true,
+						impersonatorId: true,
 					},
 				});
+
 				if (dbUser) {
 					token.id = dbUser.id;
 					token.login = dbUser.login;
@@ -100,49 +103,16 @@ export const authOptions: NextAuthOptions = {
 					token.activeTheme = dbUser.activeTheme;
 					token.hasSeenIntro = dbUser.hasSeenIntro;
 					token.hasSeenWaitlistModal = dbUser.hasSeenWaitlistModal;
-					token.isImpersonating = false;
-					token.realAdminId = dbUser.id;
+					token.realAdminId = (token as any).realAdminId || dbUser.id;
 
-					// Fetch permissions from the role
-					const permissions = await getRolePermissions(dbUser.role);
-					token.permissions = permissions;
-					token.isAdmin = await isRoleAdmin(dbUser.role);
-				}
-			}
-
-			// 2. Fetch/update current state for existing sessions
-			if (token.id) {
-				const realAdminId = (token as any).realAdminId || (token as any).id;
-				
-				const adminUser = await prisma.user.findUnique({
-					where: { id: realAdminId as string },
-					select: {
-						id: true,
-						login: true,
-						role: true,
-						impersonatorId: true,
-						status: true,
-						currentRank: true,
-						activeTheme: true,
-						hasSeenIntro: true,
-						hasSeenWaitlistModal: true,
-					},
-				});
-
-				if (adminUser && adminUser.role === "PRESIDENT" && adminUser.impersonatorId) {
-					// Only fetch target user if it's different from the current token ID
-					if (token.id !== adminUser.impersonatorId) {
+					// Impersonation logic
+					if (dbUser.role === "PRESIDENT" && dbUser.impersonatorId) {
 						const targetUser = await prisma.user.findUnique({
-							where: { id: adminUser.impersonatorId },
+							where: { id: dbUser.impersonatorId },
 							select: {
-								id: true,
-								login: true,
-								role: true,
-								status: true,
-								currentRank: true,
-								activeTheme: true,
-								hasSeenIntro: true,
-								hasSeenWaitlistModal: true,
+								id: true, login: true, role: true, status: true,
+								currentRank: true, activeTheme: true,
+								hasSeenIntro: true, hasSeenWaitlistModal: true,
 							},
 						});
 
@@ -154,34 +124,21 @@ export const authOptions: NextAuthOptions = {
 							token.currentRank = targetUser.currentRank;
 							token.activeTheme = targetUser.activeTheme;
 							token.hasSeenIntro = targetUser.hasSeenIntro;
-							token.hasSeenWaitlistModal = targetUser.hasSeenWaitlistModal;
 							token.isImpersonating = true;
-							token.realAdminId = adminUser.id;
 						}
+					} else {
+						token.isImpersonating = false;
 					}
-					
-					// Always keep admin's permissions
-					const permissions = await getRolePermissions(adminUser.role);
-					token.permissions = permissions;
-					token.isAdmin = await isRoleAdmin(adminUser.role);
-				} else if (adminUser) {
-					// RESTORE IDENTITY if not impersonating anymore
-					token.id = adminUser.id;
-					token.login = adminUser.login;
-					token.role = adminUser.role;
-					token.status = adminUser.status;
-					token.currentRank = adminUser.currentRank;
-					token.activeTheme = adminUser.activeTheme;
-					token.hasSeenIntro = adminUser.hasSeenIntro;
-					token.hasSeenWaitlistModal = adminUser.hasSeenWaitlistModal;
-					token.isImpersonating = false;
-					token.realAdminId = adminUser.id;
 
-					const permissions = await getRolePermissions(adminUser.role);
-					token.permissions = permissions;
-					token.isAdmin = await isRoleAdmin(adminUser.role);
+					// Permissions (memoized by role if possible, but here we just fetch)
+					token.permissions = await getRolePermissions(dbUser.role);
+					token.isAdmin = await isRoleAdmin(dbUser.role);
 				}
 			}
+
+			// 2. For every other request, the token remains as is. 
+			// We only re-fetch if the user explicitly triggers an update or signs in.
+			// This drastically reduces DB load.
 
 			return token;
 		},

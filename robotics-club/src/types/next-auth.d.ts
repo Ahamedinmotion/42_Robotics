@@ -11,6 +11,8 @@ declare module "next-auth" {
 			status: Status;
 			currentRank: Rank;
 			activeTheme: Theme;
+			hasSeenIntro: boolean;
+			hasSeenWaitlistModal: boolean;
 			permissions: string[];
 			isAdmin: boolean;
 			isImpersonating?: boolean;
@@ -25,6 +27,8 @@ declare module "next-auth" {
 		status: Status;
 		currentRank: Rank;
 		activeTheme: Theme;
+		hasSeenIntro: boolean;
+		hasSeenWaitlistModal: boolean;
 		permissions: string[];
 		isAdmin: boolean;
 		isImpersonating?: boolean;
@@ -40,6 +44,8 @@ declare module "next-auth/jwt" {
 		status: Status;
 		currentRank: Rank;
 		activeTheme: Theme;
+		hasSeenIntro: boolean;
+		hasSeenWaitlistModal: boolean;
 		permissions: string[];
 		isAdmin: boolean;
 		isImpersonating?: boolean;
