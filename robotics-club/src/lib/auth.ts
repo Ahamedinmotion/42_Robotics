@@ -78,8 +78,29 @@ export const authOptions: NextAuthOptions = {
 			}
 		},
 		async jwt({ token, user, trigger, session }) {
-			// 'user' is only available on sign in, but we want to check for impersonation updates
-			// We fetch the current state of the logged-in admin user to see if they are impersonating someone.
+			// 1. Initial login: sync user from DB into token
+			if (user) {
+				const dbUser = await (prisma.user as any).findUnique({
+					where: { id: (user as any).id },
+					select: {
+						id: true, login: true, role: true, status: true,
+						currentRank: true, activeTheme: true, adminPermissions: true,
+					},
+				});
+				if (dbUser) {
+					token.id = dbUser.id;
+					token.login = dbUser.login;
+					token.role = dbUser.role;
+					token.status = dbUser.status;
+					token.currentRank = dbUser.currentRank;
+					token.activeTheme = dbUser.activeTheme;
+					token.adminPermissions = dbUser.adminPermissions;
+					token.isImpersonating = false;
+					token.realAdminId = dbUser.id;
+				}
+			}
+
+			// 2. Continuous session check: handle impersonation state
 			if (token.id) {
 				const adminUser = await (prisma.user as any).findUnique({
 					where: { id: (token as any).realAdminId || token.id },
@@ -117,28 +138,6 @@ export const authOptions: NextAuthOptions = {
 						token.realAdminId = adminUser.id;
 						token.adminPermissions = adminUser.adminPermissions; // Keep perms for the switcher UI
 						return token;
-					}
-				}
-
-				// If no impersonation, fallback to normal user/token sync
-				if (user) {
-					const dbUser = await (prisma.user as any).findUnique({
-						where: { id: (user as any).id },
-						select: {
-							id: true, login: true, role: true, status: true,
-							currentRank: true, activeTheme: true, adminPermissions: true,
-						},
-					});
-					if (dbUser) {
-						token.id = dbUser.id;
-						token.login = dbUser.login;
-						token.role = dbUser.role;
-						token.status = dbUser.status;
-						token.currentRank = dbUser.currentRank;
-						token.activeTheme = dbUser.activeTheme;
-						token.adminPermissions = dbUser.adminPermissions;
-						token.isImpersonating = false;
-						token.realAdminId = dbUser.id;
 					}
 				}
 			}
