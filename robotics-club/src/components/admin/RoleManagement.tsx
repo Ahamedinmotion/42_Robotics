@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useSound } from "@/components/providers/SoundProvider";
+import { useSession } from "next-auth/react";
 
 // ── Master Permission Keys ─────────────────────
 const ALL_PERMISSIONS = [
@@ -45,6 +46,7 @@ export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 	const router = useRouter();
 	const { toast } = useToast();
 	const { playSFX } = useSound();
+	const { update } = useSession();
 
 	const [roles, setRoles] = useState<DynamicRoleItem[]>([]);
 	const [users, setUsers] = useState<UserItem[]>([]);
@@ -146,6 +148,7 @@ export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 			});
 			if (res.ok) {
 				toast("Impersonation started. Redirecting...");
+				await update();
 				window.location.href = "/home";
 			} else {
 				const j = await res.json();

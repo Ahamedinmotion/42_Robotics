@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { useSession } from "next-auth/react";
 
 export function ImpersonationBanner({ isImpersonating, login }: { isImpersonating: boolean; login: string }) {
 	const router = useRouter();
 	const { toast } = useToast();
+	const { update } = useSession();
 	const [returning, setReturning] = useState(false);
 
 	if (!isImpersonating) return null;
@@ -19,6 +21,7 @@ export function ImpersonationBanner({ isImpersonating, login }: { isImpersonatin
 			});
 			if (res.ok) {
 				toast("Restoring your original session...");
+				await update();
 				window.location.reload();
 			} else {
 				toast("Failed to end impersonation", "error");

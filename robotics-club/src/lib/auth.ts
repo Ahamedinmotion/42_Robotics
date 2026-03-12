@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
 						image: p.image?.versions?.medium || p.image?.link || null,
 						login: p.login,
 						birthday: p.birthday ? new Date(p.birthday) : null,
-					},
+					} as any,
 					create: {
 						fortyTwoId: account.providerAccountId,
 						login: p.login,
@@ -60,7 +60,7 @@ export const authOptions: NextAuthOptions = {
 						birthday: p.birthday ? new Date(p.birthday) : null,
 						status: "WAITLIST",
 						role: "STUDENT",
-					}
+					} as any
 				});
 
 				console.log("Manual User Upsert Success:", dbUser.id);
@@ -78,8 +78,8 @@ export const authOptions: NextAuthOptions = {
 		async jwt({ token, user, trigger, session }) {
 			// 1. Initial sign-in or explicit update
 			if (user || trigger === "update") {
-				const userId = user?.id || token.id;
-				const dbUser = await prisma.user.findUnique({
+				const userId = user?.id || (token as any).realAdminId || token.id;
+				const dbUser = (await prisma.user.findUnique({
 					where: { id: userId as string },
 					select: {
 						id: true,
@@ -91,8 +91,8 @@ export const authOptions: NextAuthOptions = {
 						hasSeenIntro: true,
 						hasSeenWaitlistModal: true,
 						impersonatorId: true,
-					},
-				});
+					} as any,
+				})) as any;
 
 				if (dbUser) {
 					token.id = dbUser.id;
@@ -113,7 +113,7 @@ export const authOptions: NextAuthOptions = {
 								id: true, login: true, role: true, status: true,
 								currentRank: true, activeTheme: true,
 								hasSeenIntro: true, hasSeenWaitlistModal: true,
-							},
+							} as any,
 						});
 
 						if (targetUser) {
