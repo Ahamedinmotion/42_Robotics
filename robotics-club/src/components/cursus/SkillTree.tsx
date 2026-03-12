@@ -169,12 +169,25 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 		playSFX("button");
 	};
 
+	// ── Background Particles ──────
+	const particles = useRef(
+		Array.from({ length: 40 }).map((_, i) => ({
+			id: i,
+			x: Math.random() * 2000 - 1000,
+			y: Math.random() * 2000 - 1000,
+			size: Math.random() * 2 + 1,
+			opacity: Math.random() * 0.4 + 0.1,
+			duration: Math.random() * 20 + 20,
+			delay: Math.random() * -20,
+		}))
+	).current;
+
 	return (
 		<div
 			ref={containerRef}
-			className="relative w-full overflow-hidden border border-border-color bg-panel/20 rounded-3xl"
+			className="relative w-full overflow-hidden border border-border-color bg-panel/30 rounded-[2rem] shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]"
 			style={{
-				height: "calc(100vh - 280px)",
+				height: "calc(100vh - 200px)",
 				cursor: isDragging ? "grabbing" : "grab",
 			}}
 			onMouseDown={handleMouseDown}
@@ -187,15 +200,17 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 		>
 			<style>{`
 				@keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-				@keyframes node-pulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px var(--glow-col)); } 50% { opacity: 0.8; filter: drop-shadow(0 0 12px var(--glow-col)); } }
+				@keyframes node-pulse { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px var(--glow-col)); } 50% { opacity: 0.7; filter: drop-shadow(0 0 16px var(--glow-col)); } }
 				@keyframes ring-drift { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -22; } }
+				@keyframes bg-drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-20px, 10px); } }
 				.node-active-ring { animation: orbit-spin 3s linear infinite; transform-origin: center; transform-box: fill-box; }
 				.node-completed { animation: node-pulse 3s ease-in-out infinite; }
-				.node-available { transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-				.node-available:hover { transform: scale(1.4); transform-origin: center; transform-box: fill-box; }
+				.node-available { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+				.node-available:hover { transform: scale(1.5); transform-origin: center; transform-box: fill-box; }
 				.ring-orbit { animation: ring-drift 6s linear infinite; }
 				.s-ring-hidden { opacity: 0.05; transition: opacity 1.5s ease; }
 				.s-ring-revealed { opacity: 1; transition: opacity 1.5s ease; }
+				.particle { animation: bg-drift var(--dur) ease-in-out infinite; animation-delay: var(--del); }
 			`}</style>
 
 			{/* Controls */}
@@ -246,6 +261,26 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 							</radialGradient>
 						))}
 					</defs>
+
+					{/* Background Space Dust */}
+					<g className="pointer-events-none opacity-40">
+						{particles.map((p) => (
+							<circle
+								key={`p-${p.id}`}
+								cx={p.x}
+								cy={p.y}
+								r={p.size}
+								fill="white"
+								fillOpacity={p.opacity}
+								className="particle"
+								style={{
+									// @ts-ignore
+									"--dur": `${p.duration}s`,
+									"--del": `${p.delay}s`,
+								}}
+							/>
+						))}
+					</g>
 
 					{/* Background connections */}
 					{connections.map((c, i) => (
