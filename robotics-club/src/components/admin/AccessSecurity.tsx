@@ -27,6 +27,7 @@ interface AccessSecurityProps {
 	membersWithAccess: Array<{ id: string; login: string; name: string; image: string | null }>;
 	labAccessCount: number;
 	userRole: string;
+	permissions?: string[];
 }
 
 // ── Helpers ──────────────────────────────────────────
@@ -37,14 +38,14 @@ function formatDateTime(d: string) {
 
 // ── Component ────────────────────────────────────────
 
-export function AccessSecurity({ logs, flaggedCount, membersWithAccess, labAccessCount, userRole }: AccessSecurityProps) {
+export function AccessSecurity({ logs, flaggedCount, membersWithAccess, labAccessCount, userRole, permissions }: AccessSecurityProps) {
 	const router = useRouter();
 	const { toast } = useToast();
 	const [loading, setLoading] = useState<string | null>(null);
 
-	const canAccess = ["SECRETARY", "VP", "PRESIDENT"].includes(userRole);
+	const canAccess = (permissions || []).includes("CAN_MANAGE_LAB_ACCESS");
 	if (!canAccess) {
-		return <p className="py-12 text-center text-sm text-text-muted">Access restricted to Secretary and above.</p>;
+		return <p className="py-12 text-center text-sm text-text-muted">Access restricted — insufficient permissions.</p>;
 	}
 
 	const clearFlag = async (id: string) => {

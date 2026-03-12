@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function StudentNav({ role }: { role?: string }) {
+export function StudentNav({ role, isAdmin }: { role?: string; isAdmin?: boolean }) {
 	const pathname = usePathname();
 
 	const navLinks = [
@@ -15,7 +15,7 @@ export function StudentNav({ role }: { role?: string }) {
 		{ href: "/settings", label: "Settings" },
 	];
 
-	if (role === "PRESIDENT" || role === "VP" || role === "SECRETARY") {
+	if (isAdmin) {
 		navLinks.push({ href: "/admin", label: "Admin Space" });
 	}
 

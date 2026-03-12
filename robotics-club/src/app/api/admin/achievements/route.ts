@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { requirePermission } from "@/lib/admin-auth";
 
 // GET /api/admin/achievements — list all
 export async function GET() {
-	const session = await getServerSession(authOptions);
-	if (!session?.user?.id || session.user.role === Role.STUDENT) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
+	const auth = await requirePermission("CAN_EDIT_CONTENT");
+	if (auth instanceof Response) return auth;
 
 	const achievements = await prisma.achievement.findMany({
 		orderBy: { title: "asc" },
@@ -20,11 +18,8 @@ export async function GET() {
 
 // POST /api/admin/achievements — create
 export async function POST(req: Request) {
-	const session = await getServerSession(authOptions);
-	const allowedRoles = [Role.PRESIDENT, Role.VP, Role.SECRETARY];
-	if (!session?.user?.id || !allowedRoles.includes(session.user.role as any)) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
+	const auth = await requirePermission("CAN_EDIT_CONTENT");
+	if (auth instanceof Response) return auth;
 
 	try {
 		const body = await req.json();

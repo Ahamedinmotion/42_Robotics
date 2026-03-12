@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { TeamStatus, Rank } from "@prisma/client";
 import { FilterBar } from "@/components/showcase/FilterBar";
 import { ShowcaseCard } from "@/components/showcase/ShowcaseCard";
+import { ShowcaseConfetti } from "@/components/showcase/ShowcaseConfetti";
 
 // ── Metadata ─────────────────────────────────────────
 
@@ -26,9 +27,17 @@ export default async function ShowcasePage({
 }) {
 	const rankFilter = searchParams.rank as Rank | undefined;
 	const skillFilter = searchParams.skill;
+	const inProgressFilter = (searchParams as any).inProgress === "true";
 
 	// Build Prisma where clause
-	const teamWhere: any = { status: TeamStatus.COMPLETED };
+	const teamWhere: any = {};
+	
+	if (inProgressFilter) {
+		teamWhere.status = { in: [TeamStatus.ACTIVE, TeamStatus.EVALUATING] };
+	} else {
+		teamWhere.status = TeamStatus.COMPLETED;
+	}
+
 	if (rankFilter && Object.values(Rank).includes(rankFilter)) {
 		teamWhere.rank = rankFilter;
 	}
@@ -36,7 +45,7 @@ export default async function ShowcasePage({
 		teamWhere.project = { skillTags: { has: skillFilter } };
 	}
 
-	// ── Fetch completed teams ─────────────────────
+	// ── Fetch teams (filtered) ───────────────────
 	const teams = await prisma.team.findMany({
 		where: teamWhere,
 		orderBy: { updatedAt: "desc" },
@@ -81,6 +90,7 @@ export default async function ShowcasePage({
 
 	return (
 		<>
+			<ShowcaseConfetti />
 			{/* Minimal public header */}
 			<header className="flex h-14 items-center justify-between border-b border-border-color bg-background px-4">
 				<div className="flex items-center gap-3">

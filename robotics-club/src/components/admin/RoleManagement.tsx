@@ -6,242 +6,333 @@ import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { useSound } from "@/components/providers/SoundProvider";
 
-interface AdminPermissions {
-	canManageMembers: boolean;
-	canManageContent: boolean;
-	canManageAccess: boolean;
-	canViewAnalytics: boolean;
-	customTitle: string | null;
+// ── Master Permission Keys ─────────────────────
+const ALL_PERMISSIONS = [
+	"CAN_SEND_ANNOUNCEMENTS", "CAN_MANAGE_MEMBERS", "CAN_MANAGE_WAITLIST",
+	"CAN_EXTEND_DEADLINES", "CAN_APPROVE_FABRICATION", "CAN_APPROVE_MATERIALS",
+	"CAN_APPROVE_PROPOSALS", "CAN_RESOLVE_CONFLICTS", "CAN_MANAGE_DAMAGE",
+	"CAN_MANAGE_PROJECTS", "CAN_MANAGE_LAB_ACCESS", "CAN_VIEW_ANALYTICS",
+	"CAN_EDIT_CONTENT", "CAN_MANAGE_ROLES", "CAN_MANAGE_CLUB_SETTINGS",
+	"CAN_MANAGE_ANNOUNCEMENTS",
+];
+
+function permLabel(key: string) {
+	return key.replace(/^CAN_/, "").replace(/_/g, " ");
 }
 
-interface UserWithPerms {
+// ── Types ──────────────────────────────────────
+interface DynamicRoleItem {
+	name: string;
+	displayName: string;
+	isSystem: boolean;
+	isAdmin: boolean;
+	permissions: string[];
+	_count: { users: number };
+}
+
+interface UserItem {
 	id: string;
 	login: string;
 	name: string;
 	image: string | null;
 	role: string;
-	adminPermissions: AdminPermissions | null;
 }
 
-interface RoleManagementProps {
-	initialUsers?: UserWithPerms[];
-}
-
-export function RoleManagement({ initialUsers = [] }: RoleManagementProps) {
+// ── Component ──────────────────────────────────
+export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 	const router = useRouter();
 	const { toast } = useToast();
-	const [users, setUsers] = useState<UserWithPerms[]>(initialUsers);
-	const [loading, setLoading] = useState(initialUsers.length === 0);
-	const [submitting, setSubmitting] = useState<string | null>(null);
+	const { playSFX } = useSound();
 
-	const availableRoles = [
-		"STUDENT",
-		"SECRETARY",
-		"PROJECT_MANAGER",
-		"SOCIAL_MEDIA_MANAGER",
-		"VP",
-		"PRESIDENT"
-	];
+	const [roles, setRoles] = useState<DynamicRoleItem[]>([]);
+	const [users, setUsers] = useState<UserItem[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [submitting, setSubmitting] = useState(false);
 
-	useEffect(() => {
-		fetchUsers();
-	}, []);
+	// New role form
+	const [showCreate, setShowCreate] = useState(false);
+	const [newName, setNewName] = useState("");
+	const [newDisplay, setNewDisplay] = useState("");
+	const [newPerms, setNewPerms] = useState<string[]>([]);
+	const [newIsAdmin, setNewIsAdmin] = useState(true);
 
-	async function fetchUsers() {
-		try {
-			const res = await fetch("/api/admin/roles");
-			if (res.ok) {
-				const raw = await res.json();
-				setUsers(Array.isArray(raw) ? raw : raw.data || []);
-			}
-		} finally {
-			setLoading(false);
+	// Editing
+	const [editingRole, setEditingRole] = useState<string | null>(null);
+	const [editPerms, setEditPerms] = useState<string[]>([]);
+
+	useEffect(() => { fetchAll(); }, []);
+
+	async function fetchAll() {
+		setLoading(true);
+		const [rolesRes, usersRes] = await Promise.all([
+			fetch("/api/admin/dynamic-roles"),
+			fetch("/api/admin/roles"),
+		]);
+		if (rolesRes.ok) {
+			const j = await rolesRes.json();
+			setRoles(j.data || []);
 		}
+		if (usersRes.ok) {
+			const j = await usersRes.json();
+			setUsers(j.data || []);
+		}
+		setLoading(false);
 	}
 
-	const updatePerms = async (userId: string, updates: Partial<AdminPermissions>) => {
-		const user = users.find(u => u.id === userId);
-		if (!user) return;
-
-		const currentPerms = user.adminPermissions || {
-			canManageMembers: false,
-			canManageContent: false,
-			canManageAccess: false,
-			canViewAnalytics: false,
-			customTitle: null
-		};
-
-		const newPerms = { ...currentPerms, ...updates };
-
-		setSubmitting(userId);
-		try {
-			const res = await fetch("/api/admin/roles", {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ targetUserId: userId, permissions: newPerms }),
-			});
-			if (res.ok) {
-				toast("Permissions updated");
-				fetchUsers();
-			} else {
-				const data = await res.json();
-				toast(data.error || "Failed", "error");
-			}
-		} catch {
-			toast("Network error", "error");
-		} finally {
-			setSubmitting(userId);
+	const createRole = async () => {
+		if (!newName || !newDisplay) return;
+		setSubmitting(true);
+		const res = await fetch("/api/admin/dynamic-roles", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: newName.toUpperCase().replace(/\s+/g, "_"), displayName: newDisplay, isAdmin: newIsAdmin, permissions: newPerms }),
+		});
+		if (res.ok) {
+			toast("Role created");
+			setShowCreate(false);
+			setNewName(""); setNewDisplay(""); setNewPerms([]); setNewIsAdmin(true);
+			fetchAll();
+		} else {
+			const j = await res.json();
+			toast(j.error || "Failed", "error");
 		}
+		setSubmitting(false);
 	};
 
-	const handleRoleChange = async (userId: string, newRole: string) => {
-		setSubmitting(userId);
-		try {
-			const res = await fetch("/api/admin/roles", {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ targetUserId: userId, newRole }),
-			});
-			if (res.ok) {
-				toast("Role updated");
-				fetchUsers();
-			}
-		} finally {
-			setSubmitting(null);
-		}
+	const updateRolePerms = async (roleName: string, perms: string[]) => {
+		setSubmitting(true);
+		const res = await fetch(`/api/admin/dynamic-roles/${roleName}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ permissions: perms }),
+		});
+		if (res.ok) { toast("Permissions updated"); fetchAll(); }
+		else { toast("Failed to update", "error"); }
+		setSubmitting(false);
 	};
 
-	const handleImpersonate = async (targetUserId: string) => {
+	const deleteRole = async (roleName: string) => {
+		if (!confirm(`Delete role "${roleName}"? Users will be reassigned to STUDENT.`)) return;
+		setSubmitting(true);
+		const res = await fetch(`/api/admin/dynamic-roles/${roleName}`, { method: "DELETE" });
+		if (res.ok) { toast("Role deleted"); fetchAll(); }
+		else { toast("Failed to delete", "error"); }
+		setSubmitting(false);
+	};
+
+	const changeUserRole = async (userId: string, newRole: string) => {
+		setSubmitting(true);
+		const res = await fetch("/api/admin/roles", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ targetUserId: userId, newRole }),
+		});
+		if (res.ok) { toast("Role assigned"); fetchAll(); router.refresh(); }
+		else { const j = await res.json(); toast(j.error || "Failed", "error"); }
+		setSubmitting(false);
+	};
+	
+	const impersonateUser = async (userId: string) => {
+		if (userId === currentUserId) return;
+		setSubmitting(true);
+		playSFX("button");
 		try {
 			const res = await fetch("/api/admin/impersonate", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ targetUserId }),
+				body: JSON.stringify({ targetUserId: userId }),
 			});
 			if (res.ok) {
-				toast("Impersonation active. Refreshing...");
+				toast("Impersonation started. Redirecting...");
 				window.location.href = "/home";
 			} else {
-				const data = await res.json();
-				toast(data.error || "Failed to impersonate", "error");
+				const j = await res.json();
+				toast(j.error || "Failed to impersonate", "error");
 			}
 		} catch {
 			toast("Network error", "error");
 		}
+		setSubmitting(false);
 	};
 
-	if (loading) return <div className="py-12 text-center text-text-muted">Verifying credentials...</div>;
+	if (loading) return <div className="py-12 text-center text-text-muted">Loading roles...</div>;
+
+	const inputCls = "w-full rounded-md border border-border-color bg-background p-2 text-sm text-text-primary placeholder:text-text-muted";
 
 	return (
-		<Card glowing className="space-y-6">
-			<div>
-				<h2 className="text-lg font-bold text-accent-urgency text-forge-purple">Presidential Directive: Granular Authority</h2>
-				<p className="text-sm text-text-muted">
-					Establish new administrative positions by moderating specific abilities and custom titles.
-				</p>
+		<div className="space-y-8">
+			{/* ── Role Definitions ─────────────────── */}
+			<div className="flex items-center justify-between">
+				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Role Definitions</h3>
+				<Button variant="primary" size="sm" onClick={() => setShowCreate(!showCreate)}>
+					{showCreate ? "Cancel" : "+ New Role"}
+				</Button>
 			</div>
 
-			<div className="space-y-4">
-				{users.map((u) => (
-					<div key={u.id} className="rounded-lg border border-border-color bg-panel2/30 p-4 space-y-4">
+			{showCreate && (
+				<Card className="space-y-3">
+					<div className="grid grid-cols-2 gap-3">
+						<div>
+							<label className="mb-1 block text-xs font-medium text-text-muted">Internal Name</label>
+							<input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. LAB_MODERATOR" className={inputCls} />
+						</div>
+						<div>
+							<label className="mb-1 block text-xs font-medium text-text-muted">Display Name</label>
+							<input value={newDisplay} onChange={(e) => setNewDisplay(e.target.value)} placeholder="e.g. Lab Moderator" className={inputCls} />
+						</div>
+					</div>
+					<label className="flex items-center gap-2 text-xs text-text-muted">
+						<input type="checkbox" checked={newIsAdmin} onChange={(e) => setNewIsAdmin(e.target.checked)} className="accent-accent" />
+						Has admin dashboard access
+					</label>
+					<div>
+						<label className="mb-2 block text-xs font-medium text-text-muted">Permissions</label>
+						<div className="grid grid-cols-2 gap-1 md:grid-cols-3">
+							{ALL_PERMISSIONS.map((p) => (
+								<label key={p} className="flex items-center gap-1.5 cursor-pointer text-[11px] text-text-muted hover:text-text-primary">
+									<input
+										type="checkbox"
+										checked={newPerms.includes(p)}
+										onChange={(e) => setNewPerms(e.target.checked ? [...newPerms, p] : newPerms.filter((x) => x !== p))}
+										className="accent-accent"
+									/>
+									{permLabel(p)}
+								</label>
+							))}
+						</div>
+					</div>
+					<Button variant="primary" size="sm" disabled={submitting || !newName || !newDisplay} onClick={createRole}>Create Role</Button>
+				</Card>
+			)}
+
+			{/* ── Existing Roles ─────────────────── */}
+			<div className="space-y-3">
+				{roles.map((r) => (
+					<Card key={r.name} className="space-y-3">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-3">
-								{u.image ? (
-									<Image src={u.image} alt={u.login} width={40} height={40} className="h-10 w-10 rounded-full border border-border-color object-cover" />
-								) : (
-									<div className="flex h-10 w-10 items-center justify-center rounded-full border border-border-color bg-panel font-bold text-text-muted">
-										{u.login.charAt(0).toUpperCase()}
-									</div>
-								)}
-								<div>
-									<p className="text-sm font-semibold text-text-primary">@{u.login}</p>
-									<p className="text-xs text-text-muted">{u.name}</p>
-								</div>
+								<span className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ${r.isSystem ? "bg-accent-urgency/20 text-accent-urgency" : "bg-accent/20 text-accent"}`}>
+									{r.displayName}
+								</span>
+								<span className="text-[10px] text-text-muted">{r.name}</span>
+								{r.isSystem && <span className="text-[9px] text-text-muted font-semibold uppercase tracking-wider bg-panel2 px-1.5 py-0.5 rounded">SYSTEM</span>}
+								<span className="text-[10px] text-text-muted">{r._count.users} user{r._count.users !== 1 ? "s" : ""}</span>
 							</div>
-							<div className="flex items-center gap-3">
-								<select
-									value={u.role}
-									onChange={(e) => handleRoleChange(u.id, e.target.value)}
-									disabled={u.role === "PRESIDENT"}
-									className={`rounded-md border p-1 text-xs font-semibold uppercase ${
-										u.role === "PRESIDENT" ? "border-accent-urgency text-accent-urgency bg-panel" :
-										u.role === "STUDENT" ? "border-border-color text-text-muted bg-background" :
-										"border-accent text-accent bg-panel"
-									}`}
-								>
-									{availableRoles.map(r => (
-										<option key={r} value={r}>{r.replace(/_/g, " ")}</option>
-									))}
-								</select>
-
-								{u.id !== initialUsers.find(iu => iu.role === "PRESIDENT")?.id && (
-									<Button 
-										variant="secondary" 
-										size="sm" 
-										className="h-8 text-[10px] font-bold uppercase tracking-wider text-forge-purple border-forge-purple hover:bg-forge-purple/10"
-										onClick={() => handleImpersonate(u.id)}
-									>
-										Impersonate
-									</Button>
+							<div className="flex gap-2">
+								{!r.isSystem && editingRole !== r.name && (
+									<>
+										<Button variant="ghost" size="sm" onClick={() => { setEditingRole(r.name); setEditPerms([...r.permissions]); }}>Edit</Button>
+										<Button variant="ghost" size="sm" className="text-accent-urgency" onClick={() => deleteRole(r.name)} disabled={submitting}>Delete</Button>
+									</>
+								)}
+								{editingRole === r.name && (
+									<>
+										<Button variant="primary" size="sm" disabled={submitting} onClick={() => { updateRolePerms(r.name, editPerms); setEditingRole(null); }}>Save</Button>
+										<Button variant="ghost" size="sm" onClick={() => setEditingRole(null)}>Cancel</Button>
+									</>
 								)}
 							</div>
 						</div>
 
-						{u.role !== "STUDENT" && u.role !== "PRESIDENT" && (
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-border-color/50 pt-4">
-								<div className="space-y-2">
-									<label className="text-[10px] font-bold uppercase text-text-muted">Custom Position Title</label>
-									<input
-										type="text"
-										placeholder="e.g. Lab Overseer"
-										value={u.adminPermissions?.customTitle || ""}
-										onChange={(e) => updatePerms(u.id, { customTitle: e.target.value })}
-										className="w-full rounded-md border border-border-color bg-background p-2 text-xs"
-									/>
-								</div>
-								
-								<div className="col-span-1 md:col-span-2 flex flex-wrap gap-4 items-center">
-									<PermToggle
-										label="Members"
-										active={u.adminPermissions?.canManageMembers || false}
-										onChange={(val) => updatePerms(u.id, { canManageMembers: val })}
-									/>
-									<PermToggle
-										label="Content"
-										active={u.adminPermissions?.canManageContent || false}
-										onChange={(val) => updatePerms(u.id, { canManageContent: val })}
-									/>
-									<PermToggle
-										label="Access"
-										active={u.adminPermissions?.canManageAccess || false}
-										onChange={(val) => updatePerms(u.id, { canManageAccess: val })}
-									/>
-									<PermToggle
-										label="Analytics"
-										active={u.adminPermissions?.canViewAnalytics || false}
-										onChange={(val) => updatePerms(u.id, { canViewAnalytics: val })}
-									/>
-								</div>
+						{/* Show permissions (read-only for system, editable when editing) */}
+						{editingRole === r.name ? (
+							<div className="grid grid-cols-2 gap-1 md:grid-cols-3 border-t border-border-color/50 pt-3">
+								{ALL_PERMISSIONS.map((p) => (
+									<label key={p} className="flex items-center gap-1.5 cursor-pointer text-[11px] text-text-muted hover:text-text-primary">
+										<input
+											type="checkbox"
+											checked={editPerms.includes(p)}
+											onChange={(e) => setEditPerms(e.target.checked ? [...editPerms, p] : editPerms.filter((x) => x !== p))}
+											className="accent-accent"
+										/>
+										{permLabel(p)}
+									</label>
+								))}
+							</div>
+						) : (
+							<div className="flex flex-wrap gap-1">
+								{r.name === "PRESIDENT" ? (
+									<span className="text-[10px] rounded bg-accent/10 px-1.5 py-0.5 text-accent font-semibold">ALL PERMISSIONS</span>
+								) : r.permissions.length === 0 ? (
+									<span className="text-[10px] text-text-muted italic">No permissions</span>
+								) : (
+									r.permissions.map((p) => (
+										<span key={p} className="text-[10px] rounded bg-panel2 px-1.5 py-0.5 text-text-muted">{permLabel(p)}</span>
+									))
+								)}
 							</div>
 						)}
-					</div>
+					</Card>
 				))}
 			</div>
-		</Card>
-	);
-}
 
-function PermToggle({ label, active, onChange }: { label: string; active: boolean; onChange: (v: boolean) => void }) {
-	return (
-		<label className="flex items-center gap-2 cursor-pointer group">
-			<div 
-				onClick={() => onChange(!active)}
-				className={`w-8 h-4 rounded-full relative transition-colors ${active ? "bg-accent" : "bg-gray-700"}`}
-			>
-				<div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${active ? "translate-x-4" : ""}`} />
-			</div>
-			<span className="text-xs text-text-muted group-hover:text-text-primary transition-colors">{label}</span>
-		</label>
+			{/* ── User Role Assignment ────────────── */}
+			<Card className="space-y-3">
+				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Assign Roles to Members</h3>
+				<table className="w-full text-sm">
+					<thead>
+						<tr className="border-b border-border-color text-left text-xs text-text-muted">
+							<th className="py-2">Member</th>
+							<th>Current Role</th>
+							<th>Change</th>
+							<th className="text-right">Action</th>
+						</tr>
+					</thead>
+					<tbody>
+						{users.map((u) => (
+							<tr key={u.id} className="border-b border-border-color">
+								<td className="py-2">
+									<div className="flex items-center gap-2">
+										{u.image ? (
+											<Image src={u.image} alt="" width={24} height={24} className="h-6 w-6 rounded-full object-cover" />
+										) : (
+											<div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">
+												{u.login[0].toUpperCase()}
+											</div>
+										)}
+										<div>
+											<p className="font-medium text-text-primary">{u.name}</p>
+											<p className="text-[10px] text-text-muted">@{u.login}</p>
+										</div>
+									</div>
+								</td>
+								<td>
+									<span className={`text-xs font-semibold uppercase ${u.role === "PRESIDENT" ? "text-accent-urgency" : u.role === "STUDENT" ? "text-text-muted" : "text-accent"}`}>
+										{u.role.replace(/_/g, " ")}
+									</span>
+								</td>
+								<td>
+									<select
+										value={u.role}
+										disabled={u.role === "PRESIDENT" || submitting}
+										onChange={(e) => changeUserRole(u.id, e.target.value)}
+										className="rounded-md border border-border-color bg-background p-1 text-xs text-text-primary disabled:opacity-50"
+									>
+										{roles.map((r) => (
+											<option key={r.name} value={r.name}>{r.displayName}</option>
+										))}
+									</select>
+								</td>
+								<td className="text-right">
+									{u.id !== currentUserId && (
+										<Button 
+											variant="ghost" 
+											size="sm" 
+											className="text-[10px] uppercase tracking-wider text-accent hover:bg-accent/10"
+											disabled={submitting}
+											onClick={() => impersonateUser(u.id)}
+										>
+											🕵️ Impersonate
+										</Button>
+									)}
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</Card>
+		</div>
 	);
 }

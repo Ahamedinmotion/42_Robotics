@@ -1,9 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import prisma from "@/lib/prisma";
+import { getRolePermissions, isRoleAdmin } from "@/lib/permissions";
 
 export const authOptions: NextAuthOptions = {
-	// We remove the adapter and handle user creation manually in the signIn callback.
-	// This gives us complete control over the 'login' field and avoids adapter-related schema errors.
 	providers: [
 		{
 			id: "42-school",
@@ -41,7 +40,6 @@ export const authOptions: NextAuthOptions = {
 			try {
 				const p = profile as any;
 
-				// Manually upsert the user to ensure 'login' and 'fortyTwoId' are set.
 				const dbUser = await prisma.user.upsert({
 					where: {
 						fortyTwoId: account.providerAccountId
@@ -51,6 +49,7 @@ export const authOptions: NextAuthOptions = {
 						email: p.email,
 						image: p.image?.versions?.medium || p.image?.link || null,
 						login: p.login,
+						birthday: p.birthday ? new Date(p.birthday) : null,
 					},
 					create: {
 						fortyTwoId: account.providerAccountId,
@@ -58,6 +57,7 @@ export const authOptions: NextAuthOptions = {
 						name: p.usual_full_name || p.displayname || p.login,
 						email: p.email,
 						image: p.image?.versions?.medium || p.image?.link || null,
+						birthday: p.birthday ? new Date(p.birthday) : null,
 						status: "WAITLIST",
 						role: "STUDENT",
 					}
@@ -67,8 +67,6 @@ export const authOptions: NextAuthOptions = {
 
 				if (dbUser.status === "BLACKHOLED") return "/blackholed";
 
-				// Explicitly link the database ID to the NextAuth user object
-				// so the JWT callback can use it.
 				(user as any).id = dbUser.id;
 
 				return true;
@@ -80,7 +78,7 @@ export const authOptions: NextAuthOptions = {
 		async jwt({ token, user, trigger, session }) {
 			// 1. Initial sign-in: set the token's ID and other basic fields from the user object.
 			if (user) {
-				const dbUser = await (prisma.user as any).findUnique({
+				const dbUser = await prisma.user.findUnique({
 					where: { id: (user as any).id },
 					select: {
 						id: true,
@@ -89,7 +87,8 @@ export const authOptions: NextAuthOptions = {
 						status: true,
 						currentRank: true,
 						activeTheme: true,
-						adminPermissions: true,
+						hasSeenIntro: true,
+						hasSeenWaitlistModal: true,
 					},
 				});
 				if (dbUser) {
@@ -99,49 +98,88 @@ export const authOptions: NextAuthOptions = {
 					token.status = dbUser.status;
 					token.currentRank = dbUser.currentRank;
 					token.activeTheme = dbUser.activeTheme;
-					token.adminPermissions = dbUser.adminPermissions;
+					token.hasSeenIntro = dbUser.hasSeenIntro;
+					token.hasSeenWaitlistModal = dbUser.hasSeenWaitlistModal;
 					token.isImpersonating = false;
 					token.realAdminId = dbUser.id;
+
+					// Fetch permissions from the role
+					const permissions = await getRolePermissions(dbUser.role);
+					token.permissions = permissions;
+					token.isAdmin = await isRoleAdmin(dbUser.role);
 				}
 			}
 
-			// 2. Fetch/update current state for existing sessions (e.g. for impersonation or session-sync updates).
+			// 2. Fetch/update current state for existing sessions
 			if (token.id) {
-				const adminUser = await (prisma.user as any).findUnique({
-					where: { id: (token as any).realAdminId || token.id },
+				const realAdminId = (token as any).realAdminId || (token as any).id;
+				
+				const adminUser = await prisma.user.findUnique({
+					where: { id: realAdminId as string },
 					select: {
 						id: true,
 						login: true,
 						role: true,
 						impersonatorId: true,
-						adminPermissions: true,
+						status: true,
+						currentRank: true,
+						activeTheme: true,
+						hasSeenIntro: true,
+						hasSeenWaitlistModal: true,
 					},
 				});
 
 				if (adminUser && adminUser.role === "PRESIDENT" && adminUser.impersonatorId) {
-					const targetUser = await (prisma.user as any).findUnique({
-						where: { id: adminUser.impersonatorId },
-						select: {
-							id: true,
-							login: true,
-							role: true,
-							status: true,
-							currentRank: true,
-							activeTheme: true,
-						},
-					});
+					// Only fetch target user if it's different from the current token ID
+					if (token.id !== adminUser.impersonatorId) {
+						const targetUser = await prisma.user.findUnique({
+							where: { id: adminUser.impersonatorId },
+							select: {
+								id: true,
+								login: true,
+								role: true,
+								status: true,
+								currentRank: true,
+								activeTheme: true,
+								hasSeenIntro: true,
+								hasSeenWaitlistModal: true,
+							},
+						});
 
-					if (targetUser) {
-						token.id = targetUser.id;
-						token.login = targetUser.login;
-						token.role = targetUser.role;
-						token.status = targetUser.status;
-						token.currentRank = targetUser.currentRank;
-						token.activeTheme = targetUser.activeTheme;
-						token.isImpersonating = true;
-						token.realAdminId = adminUser.id;
-						token.adminPermissions = adminUser.adminPermissions; // Keep perms for the switcher UI
+						if (targetUser) {
+							token.id = targetUser.id;
+							token.login = targetUser.login;
+							token.role = targetUser.role;
+							token.status = targetUser.status;
+							token.currentRank = targetUser.currentRank;
+							token.activeTheme = targetUser.activeTheme;
+							token.hasSeenIntro = targetUser.hasSeenIntro;
+							token.hasSeenWaitlistModal = targetUser.hasSeenWaitlistModal;
+							token.isImpersonating = true;
+							token.realAdminId = adminUser.id;
+						}
 					}
+					
+					// Always keep admin's permissions
+					const permissions = await getRolePermissions(adminUser.role);
+					token.permissions = permissions;
+					token.isAdmin = await isRoleAdmin(adminUser.role);
+				} else if (adminUser) {
+					// RESTORE IDENTITY if not impersonating anymore
+					token.id = adminUser.id;
+					token.login = adminUser.login;
+					token.role = adminUser.role;
+					token.status = adminUser.status;
+					token.currentRank = adminUser.currentRank;
+					token.activeTheme = adminUser.activeTheme;
+					token.hasSeenIntro = adminUser.hasSeenIntro;
+					token.hasSeenWaitlistModal = adminUser.hasSeenWaitlistModal;
+					token.isImpersonating = false;
+					token.realAdminId = adminUser.id;
+
+					const permissions = await getRolePermissions(adminUser.role);
+					token.permissions = permissions;
+					token.isAdmin = await isRoleAdmin(adminUser.role);
 				}
 			}
 
@@ -155,7 +193,10 @@ export const authOptions: NextAuthOptions = {
 				(session.user as any).status = token.status as any;
 				(session.user as any).currentRank = token.currentRank as any;
 				(session.user as any).activeTheme = token.activeTheme as any;
-				(session.user as any).adminPermissions = token.adminPermissions as any;
+				(session.user as any).hasSeenIntro = token.hasSeenIntro as boolean;
+				(session.user as any).hasSeenWaitlistModal = token.hasSeenWaitlistModal as boolean;
+				(session.user as any).permissions = token.permissions as string[];
+				(session.user as any).isAdmin = token.isAdmin as boolean;
 				(session.user as any).isImpersonating = !!token.isImpersonating;
 				(session.user as any).realAdminId = token.realAdminId as string;
 			}

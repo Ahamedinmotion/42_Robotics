@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -8,6 +8,7 @@ import { StudentNav } from "@/components/layout/StudentNav";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { TerminalProvider } from "@/components/ui/TerminalProvider";
 import { ImpersonationBanner } from "@/components/layout/ImpersonationBanner";
+import { ClientLogo } from "@/components/layout/ClientLogo";
 
 interface StudentLayoutProps {
 	children: React.ReactNode;
@@ -16,6 +17,7 @@ interface StudentLayoutProps {
 		image: string | null;
 		activeTheme: "FORGE" | "FIELD";
 		role?: string;
+		isAdmin?: boolean;
 		isImpersonating?: boolean;
 	};
 }
@@ -29,12 +31,13 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 			{/* Top navigation bar */}
 			<header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-color bg-background/90 px-4 backdrop-blur-sm">
 				{/* Left: Logo */}
-				<Link href="/home" className="text-xl font-bold text-accent">
-					RC
-				</Link>
-
+				<div className="flex items-center">
+					<ClientLogo />
+				</div>
 				{/* Center: Nav links (client component for active state) */}
-				<StudentNav role={user.role} />
+				<Suspense fallback={<div className="w-20" />}>
+					<StudentNav role={user.role} isAdmin={user.isAdmin} />
+				</Suspense>
 
 				{/* Right: Bell + Avatar + Login */}
 				<div className="flex items-center gap-4">
@@ -65,7 +68,7 @@ export function StudentLayout({ children, user }: StudentLayoutProps) {
 
 			{/* Theme toggle */}
 			<ThemeToggle />
-			<KeyboardShortcuts hasAdminAccess={user.role !== "STUDENT"} />
+			<KeyboardShortcuts hasAdminAccess={!!user.isAdmin} />
 			<TerminalProvider />
 		</>
 	);

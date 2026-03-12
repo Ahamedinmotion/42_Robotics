@@ -1,9 +1,11 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
+import { getClubSettings } from "@/lib/club-settings";
+import { hasPermission } from "@/lib/permissions";
 
 export async function POST(req: Request) {
-	const auth = await requireAdmin(["PROJECT_MANAGER", "VP", "PRESIDENT"]);
+	const auth = await requirePermission("CAN_MANAGE_PROJECTS");
 	if (auth instanceof Response) return auth;
 
 	try {
@@ -16,11 +18,12 @@ export async function POST(req: Request) {
 
 		if (!title || !rank) return err("title and rank are required", 400);
 
-		const auth2 = auth as { user: { role: string; id: string } };
-		const role = auth2.user.role;
+		const auth2 = auth as { user: any; permissions: string[] };
+		const settings = await getClubSettings();
 
-		// PROJECT_MANAGER can only save as DRAFT
-		const finalStatus = (role === "VP" || role === "PRESIDENT") && status === "ACTIVE" ? "ACTIVE" : "DRAFT";
+		// Users with CAN_MANAGE_PROJECTS can publish directly
+		const canPublish = hasPermission(auth2.permissions, "CAN_MANAGE_PROJECTS");
+		const finalStatus = canPublish && status === "ACTIVE" ? "ACTIVE" : "DRAFT";
 
 		const project = await prisma.project.create({
 			data: {
@@ -28,9 +31,9 @@ export async function POST(req: Request) {
 				description: description || "",
 				rank: rank as "E" | "D" | "C" | "B" | "A" | "S",
 				status: finalStatus as "ACTIVE" | "DRAFT",
-				teamSizeMin: Number(teamSizeMin) || 2,
-				teamSizeMax: Number(teamSizeMax) || 4,
-				blackholeDays: Number(blackholeDays) || 28,
+				teamSizeMin: Number(teamSizeMin) || settings.minTeamSize,
+				teamSizeMax: Number(teamSizeMax) || settings.maxTeamSize,
+				blackholeDays: Number(blackholeDays) || settings.defaultBlackholeDays,
 				skillTags: typeof skillTags === "string" ? skillTags.split(",").map((s: string) => s.trim()).filter(Boolean) : skillTags || [],
 				isUnique: isUnique ?? false,
 				subjectSheetUrl: subjectSheetUrl || null,

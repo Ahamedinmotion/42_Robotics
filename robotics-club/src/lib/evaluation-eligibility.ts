@@ -1,4 +1,4 @@
-import { Rank, Role } from "@prisma/client";
+import { Rank } from "@prisma/client";
 
 // Rank hierarchy map for generic comparisons (higher number = higher rank)
 export const rankValues: Record<Rank, number> = {
@@ -23,7 +23,7 @@ export const maxEvaluationTarget: Record<Rank, Rank> = {
 type EvaluatorUser = {
 	id: string;
 	currentRank: Rank;
-	role: Role;
+	role: string;
 };
 
 type ProjectInfo = {
@@ -57,7 +57,7 @@ export function isEligibleEvaluator(
 
 	// 3. Special rules for A or S rank projects (Staff eval required if Student)
 	if (project.rank === Rank.A || project.rank === Rank.S) {
-		const isStaff = evaluator.role !== Role.STUDENT;
+		const isStaff = evaluator.role !== "STUDENT";
 		const isHighRank = evaluatorRankVal >= rankValues.A;
 		if (!isHighRank && !isStaff) {
 			return false;

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
 
 // GET — list all mood board notes
 export async function GET() {
 	const session = await getServerSession(authOptions);
 	if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	if (session.user.role === "STUDENT") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+	const permissions = (session.user as any).permissions as string[] || [];
+	if (permissions.length === 0) return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
 	const notes = await prisma.moodBoardNote.findMany({
 		orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
@@ -21,7 +23,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
 	const session = await getServerSession(authOptions);
 	if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	if (session.user.role === "STUDENT") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+	const permissions = (session.user as any).permissions as string[] || [];
+	if (permissions.length === 0) return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
 	const body = await req.json();
 	const { content, color } = body;
@@ -50,8 +53,9 @@ export async function DELETE(req: NextRequest) {
 	const note = await prisma.moodBoardNote.findUnique({ where: { id } });
 	if (!note) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-	// Only the author or president can delete
-	if (note.authorId !== session.user.id && session.user.role !== "PRESIDENT") {
+	// Only the author or someone with CAN_MANAGE_ROLES can delete
+	const permissions = (session.user as any).permissions as string[] || [];
+	if (note.authorId !== session.user.id && !hasPermission(permissions, "CAN_MANAGE_ROLES")) {
 		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 	}
 
@@ -63,7 +67,8 @@ export async function DELETE(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
 	const session = await getServerSession(authOptions);
 	if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	if (session.user.role === "STUDENT") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+	const permissions = (session.user as any).permissions as string[] || [];
+	if (permissions.length === 0) return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
 	const { id, pinned } = await req.json();
 	if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

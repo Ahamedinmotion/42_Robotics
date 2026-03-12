@@ -1,22 +1,21 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
+import { hasPermission } from "@/lib/permissions";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-	const auth = await requireAdmin(["PROJECT_MANAGER", "VP", "PRESIDENT"]);
+	const auth = await requirePermission("CAN_MANAGE_PROJECTS");
 	if (auth instanceof Response) return auth;
 
 	try {
 		const body = await req.json();
-		const auth2 = auth as { user: any };
-		const role = auth2.user.role;
-		const isVpOrPres = role === "VP" || role === "PRESIDENT";
+		const { permissions } = auth;
 
-		// Status changes restricted to VP/PRESIDENT
+		// Status changes restricted to users with CAN_MANAGE_PROJECTS
 		if (body.status) {
 			const st = body.status;
-			if ((st === "ACTIVE" || st === "RETIRED") && !isVpOrPres) {
-				return err("Only VP or PRESIDENT can publish, retire, or reactivate projects", 403);
+			if ((st === "ACTIVE" || st === "RETIRED") && !hasPermission(permissions, "CAN_MANAGE_PROJECTS")) {
+				return err("Insufficient permissions to publish, retire, or reactivate projects", 403);
 			}
 		}
 

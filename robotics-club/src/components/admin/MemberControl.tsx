@@ -36,6 +36,7 @@ interface MemberControlProps {
 	blackholed: MemberUser[];
 	alumni: (MemberUser & { alumniOptedIn: boolean })[];
 	activeCount: number;
+	maxActiveMembers: number;
 }
 
 // ── Helpers ──────────────────────────────────────────
@@ -157,12 +158,12 @@ function ActionMenu({
 
 // ── Component ────────────────────────────────────────
 
-export function MemberControl({ activeMembers, waitlist, blackholed, alumni, activeCount }: MemberControlProps) {
+export function MemberControl({ activeMembers, waitlist, blackholed, alumni, activeCount, maxActiveMembers }: MemberControlProps) {
 	const router = useRouter();
 	const { toast } = useToast();
 	const [loading, setLoading] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
-	const cap = 30;
+	const cap = maxActiveMembers;
 
 	const callApi = async (url: string, body: any, successMsg: string, method = "PATCH") => {
 		setLoading(url);

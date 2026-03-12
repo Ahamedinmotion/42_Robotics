@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSound } from "@/components/providers/SoundProvider";
 
-export function AdminNav({ userRole }: { userRole?: string }) {
+export function AdminNav({ userRole, permissions }: { userRole?: string; permissions?: string[] }) {
 	const { playSFX } = useSound();
 	const searchParams = useSearchParams();
 	const active = searchParams.get("section") || "members";
@@ -19,9 +19,16 @@ export function AdminNav({ userRole }: { userRole?: string }) {
 		{ key: "achievements", label: "Achievements" },
 	];
 
-	if (userRole === "PRESIDENT") {
+	const perms = permissions || [];
+	if (perms.includes("CAN_SEND_ANNOUNCEMENTS") || perms.includes("CAN_MANAGE_ANNOUNCEMENTS")) {
+		sections.push({ key: "announce", label: "Announce" });
+	}
+	if (perms.includes("CAN_MANAGE_ROLES")) {
 		sections.push({ key: "roles", label: "Roles" });
 		sections.push({ key: "audit", label: "Audit" });
+	}
+	if (perms.includes("CAN_MANAGE_CLUB_SETTINGS")) {
+		sections.push({ key: "settings", label: "Settings" });
 	}
 
 	return (

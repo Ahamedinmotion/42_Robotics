@@ -1,24 +1,74 @@
-import { PrismaClient, Role, Status, Rank, Theme, ProjectStatus, TeamStatus } from '@prisma/client';
+import { PrismaClient, Status, Rank, Theme, ProjectStatus, TeamStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
 	console.log('Start seeding...');
 
+	// --- 0. Dynamic Roles ---
+	const rolesToSeed = [
+		{
+			name: "STUDENT", displayName: "Student", isSystem: true, isAdmin: false,
+			permissions: [] as string[],
+		},
+		{
+			name: "SECRETARY", displayName: "Secretary", isSystem: true, isAdmin: true,
+			permissions: ["CAN_MANAGE_MEMBERS", "CAN_MANAGE_WAITLIST", "CAN_MANAGE_LAB_ACCESS", "CAN_MANAGE_DAMAGE", "CAN_RESOLVE_CONFLICTS"],
+		},
+		{
+			name: "PROJECT_MANAGER", displayName: "Project Manager", isSystem: true, isAdmin: true,
+			permissions: ["CAN_MANAGE_PROJECTS", "CAN_APPROVE_PROPOSALS", "CAN_APPROVE_FABRICATION", "CAN_APPROVE_MATERIALS", "CAN_EDIT_CONTENT"],
+		},
+		{
+			name: "SOCIAL_MEDIA_MANAGER", displayName: "Social Media Manager", isSystem: true, isAdmin: true,
+			permissions: ["CAN_SEND_ANNOUNCEMENTS", "CAN_MANAGE_ANNOUNCEMENTS", "CAN_EDIT_CONTENT"],
+		},
+		{
+			name: "VP", displayName: "Vice President", isSystem: true, isAdmin: true,
+			permissions: [
+				"CAN_SEND_ANNOUNCEMENTS", "CAN_MANAGE_MEMBERS", "CAN_MANAGE_WAITLIST",
+				"CAN_EXTEND_DEADLINES", "CAN_APPROVE_FABRICATION", "CAN_APPROVE_MATERIALS",
+				"CAN_APPROVE_PROPOSALS", "CAN_RESOLVE_CONFLICTS", "CAN_MANAGE_DAMAGE",
+				"CAN_MANAGE_PROJECTS", "CAN_MANAGE_LAB_ACCESS", "CAN_VIEW_ANALYTICS",
+				"CAN_EDIT_CONTENT", "CAN_MANAGE_ANNOUNCEMENTS",
+			],
+		},
+		{
+			name: "PRESIDENT", displayName: "President", isSystem: true, isAdmin: true,
+			permissions: [
+				"CAN_SEND_ANNOUNCEMENTS", "CAN_MANAGE_MEMBERS", "CAN_MANAGE_WAITLIST",
+				"CAN_EXTEND_DEADLINES", "CAN_APPROVE_FABRICATION", "CAN_APPROVE_MATERIALS",
+				"CAN_APPROVE_PROPOSALS", "CAN_RESOLVE_CONFLICTS", "CAN_MANAGE_DAMAGE",
+				"CAN_MANAGE_PROJECTS", "CAN_MANAGE_LAB_ACCESS", "CAN_VIEW_ANALYTICS",
+				"CAN_EDIT_CONTENT", "CAN_MANAGE_ROLES", "CAN_MANAGE_CLUB_SETTINGS",
+				"CAN_MANAGE_ANNOUNCEMENTS",
+			],
+		},
+	];
+
+	for (const r of rolesToSeed) {
+		await (prisma as any).dynamicRole.upsert({
+			where: { name: r.name },
+			update: {},
+			create: r,
+		});
+	}
+	console.log(`Seeded ${rolesToSeed.length} dynamic roles.`);
+
 	// --- 1. Users ---
 	const usersToCreate = [
-		{ login: "president_user", name: "Alex Carter", role: Role.PRESIDENT, status: Status.ACTIVE, currentRank: Rank.S, labAccessEnabled: true },
-		{ login: "vp_user", name: "Jordan Mills", role: Role.VP, status: Status.ACTIVE, currentRank: Rank.A, labAccessEnabled: true },
-		{ login: "projmanager_user", name: "Sam Rivera", role: Role.PROJECT_MANAGER, status: Status.ACTIVE, currentRank: Rank.B, labAccessEnabled: true },
-		{ login: "secretary_user", name: "Casey Nguyen", role: Role.SECRETARY, status: Status.ACTIVE, currentRank: Rank.C, labAccessEnabled: false },
-		{ login: "social_user", name: "Morgan Blake", role: Role.SOCIAL_MEDIA_MANAGER, status: Status.ACTIVE, currentRank: Rank.E, labAccessEnabled: false },
-		{ login: "student_a", name: "Riley Chen", role: Role.STUDENT, status: Status.ACTIVE, currentRank: Rank.B, labAccessEnabled: true },
-		{ login: "student_b", name: "Taylor Osman", role: Role.STUDENT, status: Status.ACTIVE, currentRank: Rank.C, labAccessEnabled: true },
-		{ login: "student_c", name: "Avery Singh", role: Role.STUDENT, status: Status.ACTIVE, currentRank: Rank.C, labAccessEnabled: false },
-		{ login: "student_d", name: "Quinn Park", role: Role.STUDENT, status: Status.ACTIVE, currentRank: Rank.D, labAccessEnabled: false },
-		{ login: "student_e", name: "Sage Kowalski", role: Role.STUDENT, status: Status.ACTIVE, currentRank: Rank.E, labAccessEnabled: false },
-		{ login: "waitlist_user", name: "Drew Hoffman", role: Role.STUDENT, status: Status.WAITLIST, currentRank: Rank.E, labAccessEnabled: false },
-		{ login: "blackholed_user", name: "Finley Cross", role: Role.STUDENT, status: Status.BLACKHOLED, currentRank: Rank.D, labAccessEnabled: false },
+		{ login: "president_user", name: "Alex Carter", role: "PRESIDENT", status: Status.ACTIVE, currentRank: Rank.S, labAccessEnabled: true },
+		{ login: "vp_user", name: "Jordan Mills", role: "VP", status: Status.ACTIVE, currentRank: Rank.A, labAccessEnabled: true },
+		{ login: "projmanager_user", name: "Sam Rivera", role: "PROJECT_MANAGER", status: Status.ACTIVE, currentRank: Rank.B, labAccessEnabled: true },
+		{ login: "secretary_user", name: "Casey Nguyen", role: "SECRETARY", status: Status.ACTIVE, currentRank: Rank.C, labAccessEnabled: false },
+		{ login: "social_user", name: "Morgan Blake", role: "SOCIAL_MEDIA_MANAGER", status: Status.ACTIVE, currentRank: Rank.E, labAccessEnabled: false },
+		{ login: "student_a", name: "Riley Chen", role: "STUDENT", status: Status.ACTIVE, currentRank: Rank.B, labAccessEnabled: true },
+		{ login: "student_b", name: "Taylor Osman", role: "STUDENT", status: Status.ACTIVE, currentRank: Rank.C, labAccessEnabled: true },
+		{ login: "student_c", name: "Avery Singh", role: "STUDENT", status: Status.ACTIVE, currentRank: Rank.C, labAccessEnabled: false },
+		{ login: "student_d", name: "Quinn Park", role: "STUDENT", status: Status.ACTIVE, currentRank: Rank.D, labAccessEnabled: false },
+		{ login: "student_e", name: "Sage Kowalski", role: "STUDENT", status: Status.ACTIVE, currentRank: Rank.E, labAccessEnabled: false },
+		{ login: "waitlist_user", name: "Drew Hoffman", role: "STUDENT", status: Status.WAITLIST, currentRank: Rank.E, labAccessEnabled: false },
+		{ login: "blackholed_user", name: "Finley Cross", role: "STUDENT", status: Status.BLACKHOLED, currentRank: Rank.D, labAccessEnabled: false },
 	];
 
 	const createdUsers: Record<string, any> = {};
@@ -261,6 +311,13 @@ async function main() {
 		where: { userId: createdUsers["president_user"].id },
 		update: {},
 		create: { userId: createdUsers["president_user"].id, isActive: true }
+	});
+
+	// --- 10. Club Settings (singleton) ---
+	await prisma.clubSettings.upsert({
+		where: { id: "singleton" },
+		update: {},
+		create: { id: "singleton" },
 	});
 
 	// --- Summary ---

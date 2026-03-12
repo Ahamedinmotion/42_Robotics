@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { isEligibleEvaluator } from "@/lib/evaluation-eligibility";
-import { NotificationType, Role, Status, TeamStatus } from "@prisma/client";
+import { NotificationType, Status, TeamStatus } from "@prisma/client";
+import { getClubSettings } from "@/lib/club-settings";
 
 export async function POST(req: Request) {
 	try {
@@ -78,6 +79,10 @@ export async function POST(req: Request) {
 			rank: team.project.rank,
 		};
 
+		const settings = await getClubSettings();
+		const antiSnipeBaseSeconds = settings.antiSnipeMinutes * 60;
+		const antiSnipeMaxSeconds = antiSnipeBaseSeconds * 3;
+
 		let eligibleCount = 0;
 
 		for (const user of allUsers) {
@@ -90,8 +95,8 @@ export async function POST(req: Request) {
 			const isEligible = isEligibleEvaluator(evaluatorInfo, teamInfo, projectInfo);
 
 			if (isEligible) {
-				// Anti-snipe delay between 300 and 900 seconds (5 to 15 mins)
-				const randomSecondsDelay = Math.floor(Math.random() * (900 - 300 + 1) + 300);
+				// Anti-snipe delay based on configured minutes
+				const randomSecondsDelay = Math.floor(Math.random() * (antiSnipeMaxSeconds - antiSnipeBaseSeconds + 1) + antiSnipeBaseSeconds);
 				const deliverAt = new Date(Date.now() + randomSecondsDelay * 1000);
 
 				await prisma.notification.create({

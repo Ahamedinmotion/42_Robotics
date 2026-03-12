@@ -1,9 +1,10 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
+import { getClubSettings } from "@/lib/club-settings";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-	const auth = await requireAdmin(["PROJECT_MANAGER", "VP", "PRESIDENT"]);
+	const auth = await requirePermission("CAN_APPROVE_PROPOSALS");
 	if (auth instanceof Response) return auth;
 
 	try {
@@ -17,15 +18,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 			const auth2 = auth as { user: any };
 			const rankVal = proposal.proposedRank || "E";
 			const isHighRank = ["B", "A", "S"].includes(rankVal);
+			const settings = await getClubSettings();
 			const newProject = await prisma.project.create({
 				data: {
 					title: proposal.title,
 					description: proposal.description || "",
 					rank: rankVal as any,
 					status: "DRAFT",
-					teamSizeMin: 2,
-					teamSizeMax: 4,
-					blackholeDays: 28,
+					teamSizeMin: settings.minTeamSize,
+					teamSizeMax: settings.maxTeamSize,
+					blackholeDays: settings.defaultBlackholeDays,
 					skillTags: [],
 					isUnique: isHighRank,
 					createdById: auth2.user.id,

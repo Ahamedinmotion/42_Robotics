@@ -69,6 +69,48 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 	const [pan, setPan] = useState({ x: 0, y: 0 });
 	const [isDragging, setIsDragging] = useState(false);
 	const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+	const [isIdle, setIsIdle] = useState(false);
+	const lastActivityRef = useRef(Date.now());
+	const [idleTime, setIdleTime] = useState(0);
+
+	// Idle detection
+	useEffect(() => {
+		const handleActivity = () => {
+			lastActivityRef.current = Date.now();
+			if (isIdle) setIsIdle(false);
+		};
+		window.addEventListener("mousemove", handleActivity);
+		window.addEventListener("mousedown", handleActivity);
+		window.addEventListener("keydown", handleActivity);
+		window.addEventListener("touchstart", handleActivity);
+
+		const interval = setInterval(() => {
+			const now = Date.now();
+			const diff = now - lastActivityRef.current;
+			if (diff > 180000) { // 3 minutes
+				setIsIdle(true);
+				setIdleTime(now);
+			}
+		}, 1000);
+
+		return () => {
+			window.removeEventListener("mousemove", handleActivity);
+			window.removeEventListener("mousedown", handleActivity);
+			window.removeEventListener("keydown", handleActivity);
+			window.removeEventListener("touchstart", handleActivity);
+			clearInterval(interval);
+		};
+	}, [isIdle]);
+
+	const [orbitTime, setOrbitTime] = useState(0);
+	useEffect(() => {
+		if (!isIdle) return;
+		const start = Date.now();
+		const interval = setInterval(() => {
+			setOrbitTime((Date.now() - start) / 1000);
+		}, 16);
+		return () => clearInterval(interval);
+	}, [isIdle]);
 
 	const userRankVal = RANK_VALUES[userRank] ?? 1;
 	const sRankRevealed = userRankVal >= RANK_VALUES.A;
@@ -81,7 +123,14 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 		const radius = RING_RADII[rank] * 1.25; // Scale up for better spacing
 		nodes.forEach((node, nodeIdx) => {
 			const total = nodes.length || 1;
-			const angle = (2 * Math.PI * nodeIdx) / total - Math.PI / 2 + rankIdx * 0.25;
+			let angle = (2 * Math.PI * nodeIdx) / total - Math.PI / 2 + rankIdx * 0.25;
+			
+			if (isIdle) {
+				// Orbit logic: larger rings orbit slower
+				const speed = 0.2 / (rankIdx + 1);
+				angle += orbitTime * speed;
+			}
+
 			const x = CX + radius * Math.cos(angle);
 			const y = CY + radius * Math.sin(angle);
 			nodePositions.set(node.id, { x, y });

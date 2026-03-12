@@ -1,26 +1,34 @@
 import "next-auth";
 import { DefaultSession } from "next-auth";
-import { Role, Status, Rank, Theme } from "@prisma/client";
+import { Status, Rank, Theme } from "@prisma/client";
 
 declare module "next-auth" {
 	interface Session {
 		user: {
 			id: string;
 			login: string;
-			role: Role;
+			role: string;
 			status: Status;
 			currentRank: Rank;
 			activeTheme: Theme;
+			permissions: string[];
+			isAdmin: boolean;
+			isImpersonating?: boolean;
+			realAdminId?: string;
 		} & DefaultSession["user"];
 	}
 
 	interface JWT {
 		id: string;
 		login: string;
-		role: Role;
+		role: string;
 		status: Status;
 		currentRank: Rank;
 		activeTheme: Theme;
+		permissions: string[];
+		isAdmin: boolean;
+		isImpersonating?: boolean;
+		realAdminId?: string;
 	}
 }
 
@@ -28,9 +36,13 @@ declare module "next-auth/jwt" {
 	interface JWT {
 		id: string;
 		login: string;
-		role: Role;
+		role: string;
 		status: Status;
 		currentRank: Rank;
 		activeTheme: Theme;
+		permissions: string[];
+		isAdmin: boolean;
+		isImpersonating?: boolean;
+		realAdminId?: string;
 	}
 }

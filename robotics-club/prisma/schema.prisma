@@ -7,17 +7,671 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =======================
-// Enums
-// =======================
+model User {
+  id                     String                  @id @default(cuid())
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  fortyTwoId             String?                 @unique @map("forty_two_id")
+  login                  String                  @unique @default(cuid())
+  email                  String?                 @unique
+  emailVerified          DateTime?               @map("email_verified")
+  name                   String                  @default("")
+  image                  String?                 @map("image")
+  role                   String                  @default("STUDENT")
+  status                 Status                  @default(WAITLIST)
+  currentRank            Rank                    @default(E) @map("current_rank")
+  labAccessEnabled       Boolean                 @default(false) @map("lab_access_enabled")
+  githubHandle           String?                 @map("github_handle")
+  activeTheme            Theme                   @default(FORGE) @map("active_theme")
+  equippedTitle          String?                 @map("equipped_title")
+  joinedAt               DateTime                @default(now()) @map("joined_at")
+  soundsEnabled          Boolean                 @default(true) @map("sounds_enabled")
+  impersonatorId         String?                 @map("impersonator_id")
+  birthday               DateTime?               @map("birthday")
+  hasSeenIntro           Boolean                 @default(false) @map("has_seen_intro")
+  hasSeenWaitlistModal   Boolean                 @default(false) @map("has_seen_waitlist_modal")
+  accounts               Account[]
+  auditLogsActed         AdminAuditLog[]         @relation("AdminActor")
+  auditLogsTargeted      AdminAuditLog[]         @relation("AdminTarget")
+  adminNotesAuthored     AdminNote[]             @relation("NoteAuthor")
+  adminNotesTargeted     AdminNote[]             @relation("NoteTarget")
+  alumniEvaluatorOptIn   AlumniEvaluator?
+  announcementDismissals AnnouncementDismissal[]
+  announcementsCreated   Announcement[]          @relation("AnnouncementCreator")
+  checkouts              Checkout[]
+  settingsUpdates        ClubSettings[]          @relation("SettingsUpdater")
+  complimentsSent        Compliment[]            @relation("ComplimentSender")
+  complimentsReceived    Compliment[]            @relation("ComplimentReceiver")
+  conflictFlagsRaised    ConflictFlag[]          @relation("ConflictRaiser")
+  conflictFlagsReviewed  ConflictFlag[]          @relation("ConflictReviewer")
+  damageReports          DamageReport[]          @relation("Reporter")
+  damageResolved         DamageReport[]          @relation("DamageResolver")
+  feedbackReceived       EvaluationFeedback[]    @relation("FeedbackReceiver")
+  evaluationsGiven       Evaluation[]            @relation("Evaluator")
+  fabricationReviewed    FabricationRequest[]    @relation("FabricationReviewer")
+  fabricationRequests    FabricationRequest[]    @relation("Requestor")
+  featureRequestVotes    FeatureRequestVote[]
+  featureRequests        FeatureRequest[]        @relation("FeatureRequestCreator")
+  labAccessLogs          LabAccessLog[]
+  materialRequests       MaterialRequest[]       @relation("MaterialRequestor")
+  materialReviewed       MaterialRequest[]       @relation("MaterialReviewer")
+  moodBoardNotes         MoodBoardNote[]
+  notifications          Notification[]
+  projectProposals       ProjectProposal[]       @relation("ProposalCreator")
+  proposalsReviewed      ProjectProposal[]       @relation("ProposalReviewer")
+  projectsCreated        Project[]               @relation("ProjectCreator")
+  teams                  TeamMember[]
+  teamsLed               Team[]                  @relation("TeamLeader")
+  achievements           UserAchievement[]
+  skillProgress          UserSkillProgress[]
+  userTitles             UserTitle[]
+  dynamicRole            DynamicRole             @relation(fields: [role], references: [name])
+  weeklyReports          WeeklyReport[]
+  workshopRsvps          WorkshopRSVP[]
+  workshopsHosted        Workshop[]              @relation("WorkshopHost")
 
-enum Role {
-  STUDENT
-  SECRETARY
-  PROJECT_MANAGER
-  SOCIAL_MEDIA_MANAGER
-  VP
-  PRESIDENT
+  @@map("users")
+}
+
+model AdminNote {
+  id           String   @id @default(cuid())
+  targetUserId String   @map("target_user_id")
+  authorId     String   @map("author_id")
+  body         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  author       User     @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetUser   User     @relation("NoteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetUserId])
+  @@index([authorId])
+  @@map("admin_notes")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Project {
+  id                 String            @id @default(cuid())
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  title              String
+  description        String
+  rank               Rank
+  status             ProjectStatus     @default(DRAFT)
+  teamSizeMin        Int               @map("team_size_min")
+  teamSizeMax        Int               @map("team_size_max")
+  blackholeDays      Int               @map("blackhole_days")
+  skillTags          String[]          @map("skill_tags")
+  isUnique           Boolean           @default(false) @map("is_unique")
+  subjectSheetUrl    String?           @map("subject_sheet_url")
+  evaluationSheetUrl String?           @map("evaluation_sheet_url")
+  createdById        String            @map("created_by_id")
+  hasBeenCompleted   Boolean           @default(false) @map("has_been_completed")
+  evaluations        Evaluation[]
+  proposalsConverted ProjectProposal[] @relation("ConvertedProject")
+  createdBy          User              @relation("ProjectCreator", fields: [createdById], references: [id])
+  teams              Team[]
+
+  @@index([createdById])
+  @@map("projects")
+}
+
+model UserSkillProgress {
+  id                String @id @default(cuid())
+  userId            String @map("user_id")
+  skillTag          String @map("skill_tag")
+  projectsCompleted Int    @default(0) @map("projects_completed")
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillTag])
+  @@index([userId])
+  @@map("user_skill_progress")
+}
+
+model Team {
+  id                  String               @id @default(cuid())
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  projectId           String               @map("project_id")
+  leaderId            String               @map("leader_id")
+  status              TeamStatus           @default(FORMING)
+  activatedAt         DateTime?            @map("activated_at")
+  blackholeDeadline   DateTime?            @map("blackhole_deadline")
+  rank                Rank?
+  checkouts           Checkout[]
+  conflictFlags       ConflictFlag[]
+  damageReports       DamageReport[]
+  feedbackReceived    EvaluationFeedback[] @relation("FeedbackTeamReceiver")
+  evaluationSlots     EvaluationSlot[]
+  evaluations         Evaluation[]
+  fabricationRequests FabricationRequest[]
+  materialRequests    MaterialRequest[]
+  members             TeamMember[]
+  leader              User                 @relation("TeamLeader", fields: [leaderId], references: [id])
+  project             Project              @relation(fields: [projectId], references: [id])
+  weeklyReports       WeeklyReport[]
+
+  @@index([projectId])
+  @@index([leaderId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String   @map("team_id")
+  userId   String   @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+  isLeader Boolean  @default(false) @map("is_leader")
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model EvaluationSlot {
+  id               String               @id @default(cuid())
+  createdAt        DateTime             @default(now()) @map("created_at")
+  teamId           String               @map("team_id")
+  openedAt         DateTime             @default(now()) @map("opened_at")
+  availableWindows Json                 @map("available_windows")
+  status           EvaluationSlotStatus @default(OPEN)
+  team             Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  evaluations      Evaluation[]
+
+  @@index([teamId])
+  @@map("evaluation_slots")
+}
+
+model Evaluation {
+  id                       String               @id @default(cuid())
+  createdAt                DateTime             @default(now()) @map("created_at")
+  updatedAt                DateTime             @updatedAt @map("updated_at")
+  slotId                   String               @map("slot_id")
+  evaluatorId              String               @map("evaluator_id")
+  teamId                   String               @map("team_id")
+  projectId                String               @map("project_id")
+  status                   EvaluationStatus     @default(PENDING)
+  tier1Score               Float?               @map("tier1_score")
+  tier2Score               Float?               @map("tier2_score")
+  tier3Score               Float?               @map("tier3_score")
+  overallResult            EvaluationResult?    @map("overall_result")
+  isStaffEval              Boolean              @default(false) @map("is_staff_eval")
+  notificationSentAt       DateTime?            @map("notification_sent_at")
+  notificationDelaySeconds Int?                 @map("notification_delay_seconds")
+  claimedAt                DateTime?            @map("claimed_at")
+  completedAt              DateTime?            @map("completed_at")
+  feedback                 EvaluationFeedback[]
+  evaluator                User                 @relation("Evaluator", fields: [evaluatorId], references: [id])
+  project                  Project              @relation(fields: [projectId], references: [id])
+  slot                     EvaluationSlot       @relation(fields: [slotId], references: [id])
+  team                     Team                 @relation(fields: [teamId], references: [id])
+
+  @@index([slotId])
+  @@index([evaluatorId])
+  @@index([teamId])
+  @@index([projectId])
+  @@map("evaluations")
+}
+
+model EvaluationFeedback {
+  id            String       @id @default(cuid())
+  createdAt     DateTime     @default(now()) @map("created_at")
+  evaluationId  String       @map("evaluation_id")
+  fromRole      FeedbackRole @map("from_role")
+  toEvaluatorId String?      @map("to_evaluator_id")
+  toTeamId      String?      @map("to_team_id")
+  rating        Int
+  comment       String?
+  isAnonymous   Boolean      @default(true) @map("is_anonymous")
+  evaluation    Evaluation   @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  toEvaluator   User?        @relation("FeedbackReceiver", fields: [toEvaluatorId], references: [id])
+  toTeam        Team?        @relation("FeedbackTeamReceiver", fields: [toTeamId], references: [id])
+
+  @@index([evaluationId])
+  @@index([toEvaluatorId])
+  @@index([toTeamId])
+  @@map("evaluation_feedbacks")
+}
+
+model WeeklyReport {
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  teamId            String   @map("team_id")
+  submittedById     String   @map("submitted_by_id")
+  weekNumber        Int      @map("week_number")
+  summary           String
+  contributionNotes Json     @map("contribution_notes")
+  photoUrls         String[] @map("photo_urls")
+  readmeUpdated     Boolean  @default(false) @map("readme_updated")
+  blockersNotes     String?  @map("blockers_notes")
+  pdfUrl            String?  @map("pdf_url")
+  submittedBy       User     @relation(fields: [submittedById], references: [id])
+  team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, weekNumber])
+  @@index([teamId])
+  @@index([submittedById])
+  @@map("weekly_reports")
+}
+
+model Checkout {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  userId           String         @map("user_id")
+  teamId           String?        @map("team_id")
+  itemName         String         @map("item_name")
+  quantity         Int            @default(1)
+  checkedOutAt     DateTime       @default(now()) @map("checked_out_at")
+  expectedReturnAt DateTime       @map("expected_return_at")
+  returnedAt       DateTime?      @map("returned_at")
+  status           CheckoutStatus @default(OUT)
+  team             Team?          @relation(fields: [teamId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([teamId])
+  @@map("checkouts")
+}
+
+model FabricationRequest {
+  id                     String      @id @default(cuid())
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+  userId                 String      @map("user_id")
+  teamId                 String?     @map("team_id")
+  machineType            MachineType @map("machine_type")
+  modelFileUrl           String      @map("model_file_url")
+  estimatedMinutes       Int         @map("estimated_minutes")
+  estimatedMaterialGrams Float       @map("estimated_material_grams")
+  purpose                String
+  status                 ReqStatus   @default(PENDING)
+  scheduledAt            DateTime?   @map("scheduled_at")
+  moderatorNote          String?     @map("moderator_note")
+  reviewedById           String?     @map("reviewed_by_id")
+  reviewedBy             User?       @relation("FabricationReviewer", fields: [reviewedById], references: [id])
+  team                   Team?       @relation(fields: [teamId], references: [id])
+  user                   User        @relation("Requestor", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([reviewedById])
+  @@map("fabrication_requests")
+}
+
+model DamageReport {
+  id                 String       @id @default(cuid())
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+  reportedById       String       @map("reported_by_id")
+  teamId             String?      @map("team_id")
+  itemName           String       @map("item_name")
+  estimatedValue     Float        @map("estimated_value")
+  description        String
+  status             DamageStatus @default(REPORTED)
+  requiresModeration Boolean      @default(false) @map("requires_moderation")
+  moderatorNote      String?      @map("moderator_note")
+  resolvedById       String?      @map("resolved_by_id")
+  reportedBy         User         @relation("Reporter", fields: [reportedById], references: [id])
+  resolvedBy         User?        @relation("DamageResolver", fields: [resolvedById], references: [id])
+  team               Team?        @relation(fields: [teamId], references: [id])
+
+  @@index([reportedById])
+  @@index([teamId])
+  @@index([resolvedById])
+  @@map("damage_reports")
+}
+
+model MaterialRequest {
+  id            String            @id @default(cuid())
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  teamId        String            @map("team_id")
+  requestedById String            @map("requested_by_id")
+  itemName      String            @map("item_name")
+  quantity      Int               @default(1)
+  estimatedCost Float             @map("estimated_cost")
+  justification String
+  status        MaterialReqStatus @default(PENDING)
+  moderatorNote String?           @map("moderator_note")
+  reviewedById  String?           @map("reviewed_by_id")
+  requestedBy   User              @relation("MaterialRequestor", fields: [requestedById], references: [id])
+  reviewedBy    User?             @relation("MaterialReviewer", fields: [reviewedById], references: [id])
+  team          Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([requestedById])
+  @@index([reviewedById])
+  @@map("material_requests")
+}
+
+model ProjectProposal {
+  id                   String         @id @default(cuid())
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  proposedById         String         @map("proposed_by_id")
+  title                String
+  description          String
+  proposedRank         Rank           @map("proposed_rank")
+  requiredMaterials    String         @map("required_materials")
+  estimatedCost        Float          @map("estimated_cost")
+  learningObjectives   String         @map("learning_objectives")
+  buildPlan            String         @map("build_plan")
+  differentiationNotes String?        @map("differentiation_notes")
+  status               ProposalStatus @default(PENDING)
+  moderatorNote        String?        @map("moderator_note")
+  reviewedById         String?        @map("reviewed_by_id")
+  convertedProjectId   String?        @map("converted_project_id")
+  convertedProject     Project?       @relation("ConvertedProject", fields: [convertedProjectId], references: [id])
+  proposedBy           User           @relation("ProposalCreator", fields: [proposedById], references: [id])
+  reviewedBy           User?          @relation("ProposalReviewer", fields: [reviewedById], references: [id])
+
+  @@index([proposedById])
+  @@index([reviewedById])
+  @@index([convertedProjectId])
+  @@map("project_proposals")
+}
+
+model Achievement {
+  id              String            @id @default(cuid())
+  key             String            @unique
+  title           String
+  description     String
+  icon            String
+  unlockedTitleId String?           @unique @map("unlocked_title_id")
+  unlockedTitle   Title?            @relation("AchievementTitle", fields: [unlockedTitleId], references: [id])
+  users           UserAchievement[]
+
+  @@map("achievements")
+}
+
+model Title {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  achievement Achievement? @relation("AchievementTitle")
+  users       UserTitle[]
+
+  @@map("titles")
+}
+
+model UserTitle {
+  id         String   @id @default(cuid())
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+  userId     String   @map("user_id")
+  titleId    String   @map("title_id")
+  title      Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, titleId])
+  @@index([userId])
+  @@index([titleId])
+  @@map("user_titles")
+}
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  actorId   String   @map("actor_id")
+  targetId  String?  @map("target_id")
+  action    String
+  details   String?
+  actor     User     @relation("AdminActor", fields: [actorId], references: [id])
+  target    User?    @relation("AdminTarget", fields: [targetId], references: [id])
+
+  @@index([actorId])
+  @@index([targetId])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+  userId        String      @map("user_id")
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+  @@map("user_achievements")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  createdAt DateTime         @default(now()) @map("created_at")
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String
+  isPush    Boolean          @default(false) @map("is_push")
+  readAt    DateTime?        @map("read_at")
+  actionUrl String?          @map("action_url")
+  deliverAt DateTime         @default(now()) @map("deliver_at")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model ConflictFlag {
+  id            String         @id @default(cuid())
+  createdAt     DateTime       @default(now()) @map("created_at")
+  raisedById    String         @map("raised_by_id")
+  teamId        String         @map("team_id")
+  description   String
+  status        ConflictStatus @default(OPEN)
+  moderatorNote String?        @map("moderator_note")
+  reviewedById  String?        @map("reviewed_by_id")
+  raisedBy      User           @relation("ConflictRaiser", fields: [raisedById], references: [id])
+  reviewedBy    User?          @relation("ConflictReviewer", fields: [reviewedById], references: [id])
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([raisedById])
+  @@index([teamId])
+  @@index([reviewedById])
+  @@map("conflict_flags")
+}
+
+model Workshop {
+  id           String         @id @default(cuid())
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  title        String
+  description  String
+  hostId       String         @map("host_id")
+  scheduledAt  DateTime       @map("scheduled_at")
+  location     String
+  rsvpDeadline DateTime?      @map("rsvp_deadline")
+  rsvps        WorkshopRSVP[]
+  host         User           @relation("WorkshopHost", fields: [hostId], references: [id])
+
+  @@index([hostId])
+  @@map("workshops")
+}
+
+model WorkshopRSVP {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now()) @map("created_at")
+  workshopId String     @map("workshop_id")
+  userId     String     @map("user_id")
+  status     RsvpStatus @default(GOING)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workshop   Workshop   @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@unique([workshopId, userId])
+  @@index([workshopId])
+  @@index([userId])
+  @@map("workshop_rsvps")
+}
+
+model LabAccessLog {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now()) @map("created_at")
+  userId    String     @map("user_id")
+  method    AuthMethod
+  success   Boolean
+  flagged   Boolean    @default(false)
+  note      String?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("lab_access_logs")
+}
+
+model AlumniEvaluator {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  optedInAt DateTime @default(now()) @map("opted_in_at")
+  isActive  Boolean  @default(true) @map("is_active")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("alumni_evaluators")
+}
+
+model Compliment {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now()) @map("created_at")
+  fromUserId   String   @map("from_user_id")
+  toUserId     String   @map("to_user_id")
+  evaluationId String?  @map("evaluation_id")
+  message      String
+  fromUser     User     @relation("ComplimentSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser       User     @relation("ComplimentReceiver", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId, evaluationId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@map("compliments")
+}
+
+model MoodBoardNote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  authorId  String   @map("author_id")
+  content   String
+  color     String   @default("#FFD700")
+  pinned    Boolean  @default(false)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@map("mood_board_notes")
+}
+
+model FeatureRequest {
+  id          String               @id @default(cuid())
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  userId      String               @map("user_id")
+  title       String
+  description String
+  status      FeatureRequestStatus @default(OPEN)
+  votes       FeatureRequestVote[]
+  user        User                 @relation("FeatureRequestCreator", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("feature_requests")
+}
+
+model FeatureRequestVote {
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now()) @map("created_at")
+  userId    String         @map("user_id")
+  requestId String         @map("request_id")
+  request   FeatureRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, requestId])
+  @@index([userId])
+  @@index([requestId])
+  @@map("feature_request_votes")
+}
+
+model DynamicRole {
+  name        String   @id
+  displayName String   @map("display_name")
+  isSystem    Boolean  @default(false) @map("is_system")
+  isAdmin     Boolean  @default(false) @map("is_admin")
+  permissions String[] @default([])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("dynamic_roles")
+}
+
+model ClubSettings {
+  id                   String   @id @default("singleton")
+  clubName             String   @default("Robotics Club") @map("club_name")
+  clubTagline          String   @default("A ranked engineering curriculum for the makers, builders, and breakers at 42.") @map("club_tagline")
+  maxActiveMembers     Int      @default(30) @map("max_active_members")
+  labOpenTime          String   @default("09:00") @map("lab_open_time")
+  labCloseTime         String   @default("21:00") @map("lab_close_time")
+  defaultBlackholeDays Int      @default(60) @map("default_blackhole_days")
+  minTeamSize          Int      @default(2) @map("min_team_size")
+  maxTeamSize          Int      @default(5) @map("max_team_size")
+  evalCooldownHours    Int      @default(24) @map("eval_cooldown_hours")
+  antiSnipeMinutes     Int      @default(5) @map("anti_snipe_minutes")
+  allowAlumniEvals     Boolean  @default(true) @map("allow_alumni_evals")
+  maintenanceMode      Boolean  @default(false) @map("maintenance_mode")
+  maintenanceMessage   String   @default("The platform is currently under maintenance. Please check back later.") @map("maintenance_message")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  updatedById          String?  @map("updated_by_id")
+  updatedBy            User?    @relation("SettingsUpdater", fields: [updatedById], references: [id])
+
+  @@map("club_settings")
+}
+
+model Announcement {
+  id          String                  @id @default(cuid())
+  createdAt   DateTime                @default(now()) @map("created_at")
+  title       String
+  body        String
+  expiresAt   DateTime                @map("expires_at")
+  createdById String                  @map("created_by_id")
+  dismissals  AnnouncementDismissal[]
+  createdBy   User                    @relation("AnnouncementCreator", fields: [createdById], references: [id])
+
+  @@index([expiresAt])
+  @@index([createdById])
+  @@map("announcements")
+}
+
+model AnnouncementDismissal {
+  id             String       @id @default(cuid())
+  announcementId String       @map("announcement_id")
+  userId         String       @map("user_id")
+  dismissedAt    DateTime     @default(now()) @map("dismissed_at")
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
+  @@map("announcement_dismissals")
 }
 
 enum Status {
@@ -154,657 +808,3 @@ enum FeatureRequestStatus {
   DONE
   DISMISSED
 }
-
-// =======================
-// Models
-// =======================
-
-model User {
-  id                   String            @id @default(cuid())
-  createdAt            DateTime          @default(now()) @map("created_at")
-  updatedAt            DateTime          @updatedAt @map("updated_at")
-  fortyTwoId           String?           @unique @map("forty_two_id")
-  login                String            @unique @default(cuid())
-  email                String?           @unique
-  emailVerified        DateTime?         @map("email_verified")
-  name                 String            @default("")
-  image                String?           @map("image")
-  role                 Role              @default(STUDENT)
-  status               Status            @default(WAITLIST)
-  currentRank          Rank              @default(E) @map("current_rank")
-  labAccessEnabled     Boolean           @default(false) @map("lab_access_enabled")
-  githubHandle         String?           @map("github_handle")
-  activeTheme          Theme             @default(FORGE) @map("active_theme")
-  equippedTitle        String?           @map("equipped_title")
-  joinedAt             DateTime          @default(now()) @map("joined_at")
-  soundsEnabled        Boolean           @default(true) @map("sounds_enabled")
-  impersonatorId       String?           @map("impersonator_id") // ID of admin impersonating this user or vice versa? Actually simpler to store on the session. But let's add it for tracking.
-
-  // Relations
-  teams                TeamMember[]
-  evaluationsGiven     Evaluation[]      @relation("Evaluator")
-  notifications        Notification[]
-  achievements         UserAchievement[]
-  checkouts            Checkout[]
-  fabricationRequests  FabricationRequest[] @relation("Requestor")
-  fabricationReviewed  FabricationRequest[] @relation("FabricationReviewer")
-  damageReports        DamageReport[]    @relation("Reporter")
-  damageResolved       DamageReport[]    @relation("DamageResolver")
-  weeklyReports        WeeklyReport[]
-  conflictFlagsRaised  ConflictFlag[]    @relation("ConflictRaiser")
-  conflictFlagsReviewed ConflictFlag[]   @relation("ConflictReviewer")
-  alumniEvaluatorOptIn AlumniEvaluator?
-  projectsCreated      Project[]         @relation("ProjectCreator")
-  teamsLed             Team[]            @relation("TeamLeader")
-  materialRequests     MaterialRequest[] @relation("MaterialRequestor")
-  materialReviewed     MaterialRequest[] @relation("MaterialReviewer")
-  projectProposals     ProjectProposal[] @relation("ProposalCreator")
-  proposalsReviewed    ProjectProposal[] @relation("ProposalReviewer")
-  workshopsHosted      Workshop[]        @relation("WorkshopHost")
-  workshopRsvps        WorkshopRSVP[]
-  labAccessLogs        LabAccessLog[]
-  feedbackReceived     EvaluationFeedback[] @relation("FeedbackReceiver")
-  skillProgress        UserSkillProgress[]
-  accounts             Account[]
-  complimentsSent      Compliment[]       @relation("ComplimentSender")
-  complimentsReceived  Compliment[]       @relation("ComplimentReceiver")
-  moodBoardNotes       MoodBoardNote[]
-  featureRequests      FeatureRequest[]   @relation("FeatureRequestCreator")
-  featureRequestVotes  FeatureRequestVote[]
-  adminPermissions     AdminPermission?
-  userTitles           UserTitle[]
-  auditLogsActed       AdminAuditLog[]   @relation("AdminActor")
-  auditLogsTargeted    AdminAuditLog[]   @relation("AdminTarget")
-
-  @@map("users")
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String  @map("user_id")
-  type              String
-  provider          String
-  providerAccountId String  @map("provider_account_id")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Project {
-  id                 String            @id @default(cuid())
-  createdAt          DateTime          @default(now()) @map("created_at")
-  updatedAt          DateTime          @updatedAt @map("updated_at")
-  title              String
-  description        String            @db.Text
-  rank               Rank
-  status             ProjectStatus     @default(DRAFT)
-  teamSizeMin        Int               @map("team_size_min")
-  teamSizeMax        Int               @map("team_size_max")
-  blackholeDays      Int               @map("blackhole_days")
-  skillTags          String[]          @map("skill_tags")
-  isUnique           Boolean           @default(false) @map("is_unique")
-  subjectSheetUrl    String?           @map("subject_sheet_url")
-  evaluationSheetUrl String?           @map("evaluation_sheet_url")
-
-  // Relations
-  createdById        String            @map("created_by_id")
-  createdBy          User              @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  teams              Team[]
-  evaluations        Evaluation[]
-  proposalsConverted ProjectProposal[] @relation("ConvertedProject")
-
-  @@map("projects")
-  @@index([createdById])
-}
-
-model UserSkillProgress {
-  id                String   @id @default(cuid())
-  userId            String   @map("user_id")
-  skillTag          String   @map("skill_tag")
-  projectsCompleted Int      @default(0) @map("projects_completed")
-
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, skillTag])
-  @@map("user_skill_progress")
-  @@index([userId])
-}
-
-model Team {
-  id                 String             @id @default(cuid())
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
-  projectId          String             @map("project_id")
-  leaderId           String             @map("leader_id")
-  status             TeamStatus         @default(FORMING)
-  activatedAt        DateTime?          @map("activated_at")
-  blackholeDeadline  DateTime?          @map("blackhole_deadline")
-  rank               Rank?              // Snapshot at activation
-
-  // Relations
-  project            Project            @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  leader             User               @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: Restrict)
-  members            TeamMember[]
-  weeklyReports      WeeklyReport[]
-  evaluationSlots    EvaluationSlot[]
-  evaluations        Evaluation[]
-  materialRequests   MaterialRequest[]
-  damageReports      DamageReport[]
-  fabricationRequests FabricationRequest[]
-  checkouts          Checkout[]
-  conflictFlags      ConflictFlag[]
-  feedbackReceived   EvaluationFeedback[] @relation("FeedbackTeamReceiver")
-
-  @@map("teams")
-  @@index([projectId])
-  @@index([leaderId])
-}
-
-model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String   @map("team_id")
-  userId    String   @map("user_id")
-  joinedAt  DateTime @default(now()) @map("joined_at")
-  isLeader  Boolean  @default(false) @map("is_leader")
-
-  // Relations
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, userId])
-  @@map("team_members")
-  @@index([teamId])
-  @@index([userId])
-}
-
-model EvaluationSlot {
-  id               String               @id @default(cuid())
-  createdAt        DateTime             @default(now()) @map("created_at")
-  teamId           String               @map("team_id")
-  openedAt         DateTime             @default(now()) @map("opened_at")
-  availableWindows Json                 @map("available_windows") // Array of time ranges
-  status           EvaluationSlotStatus @default(OPEN)
-
-  // Relations
-  team             Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  evaluations      Evaluation[]
-
-  @@map("evaluation_slots")
-  @@index([teamId])
-}
-
-model Evaluation {
-  id                       String           @id @default(cuid())
-  createdAt                DateTime         @default(now()) @map("created_at")
-  updatedAt                DateTime         @updatedAt @map("updated_at")
-  slotId                   String           @map("slot_id")
-  evaluatorId              String           @map("evaluator_id")
-  teamId                   String           @map("team_id")
-  projectId                String           @map("project_id")
-  status                   EvaluationStatus @default(PENDING)
-  tier1Score               Float?           @map("tier1_score")
-  tier2Score               Float?           @map("tier2_score")
-  tier3Score               Float?           @map("tier3_score")
-  overallResult            EvaluationResult? @map("overall_result")
-  isStaffEval              Boolean          @default(false) @map("is_staff_eval")
-  notificationSentAt       DateTime?        @map("notification_sent_at")
-  notificationDelaySeconds Int?             @map("notification_delay_seconds")
-  claimedAt                DateTime?        @map("claimed_at")
-  completedAt              DateTime?        @map("completed_at")
-
-  // Relations
-  slot                     EvaluationSlot   @relation(fields: [slotId], references: [id], onDelete: Restrict)
-  evaluator                User             @relation("Evaluator", fields: [evaluatorId], references: [id], onDelete: Restrict)
-  team                     Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  project                  Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  feedback                 EvaluationFeedback[]
-
-  @@map("evaluations")
-  @@index([slotId])
-  @@index([evaluatorId])
-  @@index([teamId])
-  @@index([projectId])
-}
-
-model EvaluationFeedback {
-  id            String       @id @default(cuid())
-  createdAt     DateTime     @default(now()) @map("created_at")
-  evaluationId  String       @map("evaluation_id")
-  fromRole      FeedbackRole @map("from_role")
-  toEvaluatorId String?      @map("to_evaluator_id")
-  toTeamId      String?      @map("to_team_id")
-  rating        Int          // 1-5
-  comment       String?      @db.Text
-  isAnonymous   Boolean      @default(true) @map("is_anonymous")
-
-  // Relations
-  evaluation    Evaluation   @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
-  toEvaluator   User?        @relation("FeedbackReceiver", fields: [toEvaluatorId], references: [id], onDelete: SetNull)
-  toTeam        Team?        @relation("FeedbackTeamReceiver", fields: [toTeamId], references: [id], onDelete: SetNull)
-
-  @@map("evaluation_feedbacks")
-  @@index([evaluationId])
-  @@index([toEvaluatorId])
-  @@index([toTeamId])
-}
-
-model WeeklyReport {
-  id                String   @id @default(cuid())
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-  teamId            String   @map("team_id")
-  submittedById     String   @map("submitted_by_id")
-  weekNumber        Int      @map("week_number")
-  summary           String   @db.Text
-  contributionNotes Json     @map("contribution_notes") // Map of userId to contribution string
-  photoUrls         String[] @map("photo_urls")
-  readmeUpdated     Boolean  @default(false) @map("readme_updated")
-  blockersNotes     String?  @db.Text @map("blockers_notes")
-  pdfUrl            String?  @map("pdf_url")
-
-  // Relations
-  team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  submittedBy       User     @relation(fields: [submittedById], references: [id], onDelete: Restrict)
-
-  @@unique([teamId, weekNumber]) // Ensure only one report per team per week
-  @@map("weekly_reports")
-  @@index([teamId])
-  @@index([submittedById])
-}
-
-model Checkout {
-  id               String         @id @default(cuid())
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
-  userId           String         @map("user_id")
-  teamId           String?        @map("team_id")
-  itemName         String         @map("item_name")
-  quantity         Int            @default(1)
-  checkedOutAt     DateTime       @default(now()) @map("checked_out_at")
-  expectedReturnAt DateTime       @map("expected_return_at")
-  returnedAt       DateTime?      @map("returned_at")
-  status           CheckoutStatus @default(OUT)
-
-  // Relations
-  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
-  team             Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
-
-  @@map("checkouts")
-  @@index([userId])
-  @@index([teamId])
-}
-
-model FabricationRequest {
-  id                     String      @id @default(cuid())
-  createdAt              DateTime    @default(now()) @map("created_at")
-  updatedAt              DateTime    @updatedAt @map("updated_at")
-  userId                 String      @map("user_id")
-  teamId                 String?     @map("team_id")
-  machineType            MachineType @map("machine_type")
-  modelFileUrl           String      @map("model_file_url")
-  estimatedMinutes       Int         @map("estimated_minutes")
-  estimatedMaterialGrams Float       @map("estimated_material_grams")
-  purpose                String      @db.Text
-  status                 ReqStatus   @default(PENDING)
-  scheduledAt            DateTime?   @map("scheduled_at")
-  moderatorNote          String?     @db.Text @map("moderator_note")
-  reviewedById           String?     @map("reviewed_by_id")
-
-  // Relations
-  user                   User        @relation("Requestor", fields: [userId], references: [id], onDelete: Restrict)
-  team                   Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  reviewedBy             User?       @relation("FabricationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@map("fabrication_requests")
-  @@index([userId])
-  @@index([teamId])
-  @@index([reviewedById])
-}
-
-model DamageReport {
-  id                 String       @id @default(cuid())
-  createdAt          DateTime     @default(now()) @map("created_at")
-  updatedAt          DateTime     @updatedAt @map("updated_at")
-  reportedById       String       @map("reported_by_id")
-  teamId             String?      @map("team_id")
-  itemName           String       @map("item_name")
-  estimatedValue     Float        @map("estimated_value")
-  description        String       @db.Text
-  status             DamageStatus @default(REPORTED)
-  requiresModeration Boolean      @default(false) @map("requires_moderation")
-  moderatorNote      String?      @db.Text @map("moderator_note")
-  resolvedById       String?      @map("resolved_by_id")
-
-  // Relations
-  reportedBy         User         @relation("Reporter", fields: [reportedById], references: [id], onDelete: Restrict)
-  team               Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  resolvedBy         User?        @relation("DamageResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
-
-  @@map("damage_reports")
-  @@index([reportedById])
-  @@index([teamId])
-  @@index([resolvedById])
-}
-
-model MaterialRequest {
-  id             String            @id @default(cuid())
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
-  teamId         String            @map("team_id")
-  requestedById  String            @map("requested_by_id")
-  itemName       String            @map("item_name")
-  quantity       Int               @default(1)
-  estimatedCost  Float             @map("estimated_cost")
-  justification  String            @db.Text
-  status         MaterialReqStatus @default(PENDING)
-  moderatorNote  String?           @db.Text @map("moderator_note")
-  reviewedById   String?           @map("reviewed_by_id")
-
-  // Relations
-  team           Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  requestedBy    User              @relation("MaterialRequestor", fields: [requestedById], references: [id], onDelete: Restrict)
-  reviewedBy     User?             @relation("MaterialReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@map("material_requests")
-  @@index([teamId])
-  @@index([requestedById])
-  @@index([reviewedById])
-}
-
-model ProjectProposal {
-  id                   String         @id @default(cuid())
-  createdAt            DateTime       @default(now()) @map("created_at")
-  updatedAt            DateTime       @updatedAt @map("updated_at")
-  proposedById         String         @map("proposed_by_id")
-  title                String
-  description          String         @db.Text
-  proposedRank         Rank           @map("proposed_rank")
-  requiredMaterials    String         @db.Text @map("required_materials")
-  estimatedCost        Float          @map("estimated_cost")
-  learningObjectives   String         @db.Text @map("learning_objectives")
-  buildPlan            String         @db.Text @map("build_plan")
-  differentiationNotes String?        @db.Text @map("differentiation_notes")
-  status               ProposalStatus @default(PENDING)
-  moderatorNote        String?        @db.Text @map("moderator_note")
-  reviewedById         String?        @map("reviewed_by_id")
-  convertedProjectId   String?        @map("converted_project_id")
-
-  // Relations
-  proposedBy           User           @relation("ProposalCreator", fields: [proposedById], references: [id], onDelete: Restrict)
-  reviewedBy           User?          @relation("ProposalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  convertedProject     Project?       @relation("ConvertedProject", fields: [convertedProjectId], references: [id], onDelete: SetNull)
-
-  @@map("project_proposals")
-  @@index([proposedById])
-  @@index([reviewedById])
-  @@index([convertedProjectId])
-}
-
-model Achievement {
-  id          String            @id @default(cuid())
-  key         String            @unique // e.g., "FIRST_EVAL_GIVEN"
-  title       String
-  description String            @db.Text
-  icon        String
-  
-  // Optional link to a title that is unlocked with this achievement
-  unlockedTitleId String?      @unique @map("unlocked_title_id")
-  unlockedTitle   Title?       @relation("AchievementTitle", fields: [unlockedTitleId], references: [id])
-
-  // Relations
-  users       UserAchievement[]
-
-  @@map("achievements")
-}
-
-model Title {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  
-  // Back-relation to achievement
-  achievement Achievement? @relation("AchievementTitle")
-
-  users       UserTitle[]
-  
-  @@map("titles")
-}
-
-model UserTitle {
-  id         String   @id @default(cuid())
-  unlockedAt DateTime @default(now()) @map("unlocked_at")
-  userId     String   @map("user_id")
-  titleId    String   @map("title_id")
-
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title      Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, titleId])
-  @@map("user_titles")
-  @@index([userId])
-  @@index([titleId])
-}
-
-model AdminAuditLog {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now()) @map("created_at")
-  actorId     String   @map("actor_id")
-  targetId    String?  @map("target_id")
-  action      String   // e.g. "UPDATE_ROLE", "DELETE_PROJECT", "IMPERSONATE"
-  details     String?  @db.Text // JSON string or text details
-  
-  actor       User     @relation("AdminActor", fields: [actorId], references: [id])
-  target      User?    @relation("AdminTarget", fields: [targetId], references: [id])
-  
-  @@map("admin_audit_logs")
-  @@index([actorId])
-  @@index([targetId])
-  @@index([createdAt])
-}
-
-model UserAchievement {
-  id            String      @id @default(cuid())
-  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
-  userId        String      @map("user_id")
-  achievementId String      @map("achievement_id")
-
-  // Relations
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, achievementId])
-  @@map("user_achievements")
-  @@index([userId])
-  @@index([achievementId])
-}
-
-model Notification {
-  id         String           @id @default(cuid())
-  createdAt  DateTime         @default(now()) @map("created_at")
-  userId     String           @map("user_id")
-  type       NotificationType
-  title      String
-  body       String           @db.Text
-  isPush     Boolean          @default(false) @map("is_push")
-  readAt     DateTime?        @map("read_at")
-  actionUrl  String?          @map("action_url")
-  deliverAt  DateTime         @default(now()) @map("deliver_at") // For delayed delivery mechanism
-
-  // Relations
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-  @@index([userId])
-}
-
-model ConflictFlag {
-  id            String         @id @default(cuid())
-  createdAt     DateTime       @default(now()) @map("created_at")
-  raisedById    String         @map("raised_by_id")
-  teamId        String         @map("team_id")
-  description   String         @db.Text
-  status        ConflictStatus @default(OPEN)
-  moderatorNote String?        @db.Text @map("moderator_note")
-  reviewedById  String?        @map("reviewed_by_id")
-
-  // Relations
-  raisedBy      User           @relation("ConflictRaiser", fields: [raisedById], references: [id], onDelete: Restrict)
-  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  reviewedBy    User?          @relation("ConflictReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@map("conflict_flags")
-  @@index([raisedById])
-  @@index([teamId])
-  @@index([reviewedById])
-}
-
-model Workshop {
-  id           String         @id @default(cuid())
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  title        String
-  description  String         @db.Text
-  hostId       String         @map("host_id")
-  scheduledAt  DateTime       @map("scheduled_at")
-  location     String
-  rsvpDeadline DateTime?      @map("rsvp_deadline")
-
-  // Relations
-  host         User           @relation("WorkshopHost", fields: [hostId], references: [id], onDelete: Restrict)
-  rsvps        WorkshopRSVP[]
-
-  @@map("workshops")
-  @@index([hostId])
-}
-
-model WorkshopRSVP {
-  id         String     @id @default(cuid())
-  createdAt  DateTime   @default(now()) @map("created_at")
-  workshopId String     @map("workshop_id")
-  userId     String     @map("user_id")
-  status     RsvpStatus @default(GOING)
-
-  // Relations
-  workshop   Workshop   @relation(fields: [workshopId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([workshopId, userId])
-  @@map("workshop_rsvps")
-  @@index([workshopId])
-  @@index([userId])
-}
-
-model LabAccessLog {
-  id        String     @id @default(cuid())
-  createdAt DateTime   @default(now()) @map("created_at")
-  userId    String     @map("user_id")
-  method    AuthMethod
-  success   Boolean
-  flagged   Boolean    @default(false)
-  note      String?    @db.Text
-
-  // Relations
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("lab_access_logs")
-  @@index([userId])
-}
-
-model AlumniEvaluator {
-  id         String   @id @default(cuid())
-  userId     String   @unique @map("user_id")
-  optedInAt  DateTime @default(now()) @map("opted_in_at")
-  isActive   Boolean  @default(true) @map("is_active")
-
-  // Relations
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("alumni_evaluators")
-  @@index([userId])
-}
-
-model Compliment {
-  id            String      @id @default(cuid())
-  createdAt     DateTime    @default(now()) @map("created_at")
-  fromUserId    String      @map("from_user_id")
-  toUserId      String      @map("to_user_id")
-  evaluationId  String?     @map("evaluation_id")
-  message       String      @db.Text
-
-  fromUser      User        @relation("ComplimentSender", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser        User        @relation("ComplimentReceiver", fields: [toUserId], references: [id], onDelete: Cascade)
-
-  @@unique([fromUserId, toUserId, evaluationId])
-  @@map("compliments")
-  @@index([fromUserId])
-  @@index([toUserId])
-}
-
-model MoodBoardNote {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now()) @map("created_at")
-  authorId  String   @map("author_id")
-  content   String   @db.Text
-  color     String   @default("#FFD700")
-  pinned    Boolean  @default(false)
-
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@map("mood_board_notes")
-  @@index([authorId])
-}
-
-model FeatureRequest {
-  id          String               @id @default(cuid())
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
-  userId      String               @map("user_id")
-  title       String
-  description String               @db.Text
-  status      FeatureRequestStatus @default(OPEN)
-
-  user        User                 @relation("FeatureRequestCreator", fields: [userId], references: [id], onDelete: Cascade)
-  votes       FeatureRequestVote[]
-
-  @@map("feature_requests")
-  @@index([userId])
-}
-
-model FeatureRequestVote {
-  id        String         @id @default(cuid())
-  createdAt DateTime       @default(now()) @map("created_at")
-  userId    String         @map("user_id")
-  requestId String         @map("request_id")
-
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  request   FeatureRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, requestId])
-  @@map("feature_request_votes")
-  @@index([userId])
-  @@index([requestId])
-}
-
-model AdminPermission {
-  id               String   @id @default(cuid())
-  userId           String   @unique @map("user_id")
-  canManageMembers Boolean  @default(false) @map("can_manage_members")
-  canManageContent Boolean  @default(false) @map("can_manage_content")
-  canManageAccess  Boolean  @default(false) @map("can_manage_access")
-  canViewAnalytics Boolean  @default(false) @map("can_view_analytics")
-  customTitle      String?  @map("custom_title")
-
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("admin_permissions")
-}
-

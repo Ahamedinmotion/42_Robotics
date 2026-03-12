@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -48,8 +48,25 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 	const isVpOrPres = userRole === "VP" || userRole === "PRESIDENT";
 	const canManage = ["PROJECT_MANAGER", "VP", "PRESIDENT"].includes(userRole);
 
-	// New project form state
-	const [form, setForm] = useState({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "4", blackholeDays: "28", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" });
+	// New project form state — defaults loaded from settings
+	const [form, setForm] = useState({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "5", blackholeDays: "60", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" });
+
+	// Load club settings for dynamic defaults
+	useEffect(() => {
+		fetch("/api/admin/settings")
+			.then((r) => r.json())
+			.then((json) => {
+				if (json.success) {
+					setForm((f) => ({
+						...f,
+						teamSizeMin: String(json.data.minTeamSize),
+						teamSizeMax: String(json.data.maxTeamSize),
+						blackholeDays: String(json.data.defaultBlackholeDays),
+					}));
+				}
+			})
+			.catch(() => {});
+	}, []);
 
 	if (!canManage) {
 		return <p className="py-12 text-center text-sm text-text-muted">Access restricted to Project Managers and above.</p>;
@@ -71,7 +88,7 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 			blackholeDays: Number(form.blackholeDays),
 		}, "Project created");
 		setShowAdd(false);
-		setForm({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "4", blackholeDays: "28", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" });
+		setForm((f) => ({ ...f, title: "", description: "", rank: "E", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" }));
 	};
 
 	const toggleStatus = (id: string, current: string) => {

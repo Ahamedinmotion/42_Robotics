@@ -5,12 +5,15 @@ import { authOptions } from "@/lib/auth";
 import { isAdminRole } from "@/lib/admin-auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ToastProvider } from "@/components/ui/Toast";
+import { Suspense } from "react";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
 	const session = await getServerSession(authOptions);
 
 	if (!session?.user) redirect("/login");
-	if (!isAdminRole(session.user.role)) redirect("/home");
+	if (!(session.user as any).isAdmin && !isAdminRole(session.user.role)) redirect("/home");
+
+	const permissions = ((session.user as any).permissions as string[]) || [];
 
 	return (
 		<ToastProvider>
@@ -19,7 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 					RC Admin
 				</Link>
 
-				<AdminNav userRole={session.user.role} />
+				<Suspense fallback={<div className="flex gap-4 opacity-0">Loading...</div>}>
+					<AdminNav userRole={session.user.role} permissions={permissions} />
+				</Suspense>
 
 				<div className="flex items-center gap-4">
 					<span className="text-sm text-text-muted">{session.user.login}</span>

@@ -12,11 +12,13 @@ import { AchievementsGrid } from "@/components/profile/AchievementsGrid";
 import { AlumniToggle } from "@/components/profile/AlumniToggle";
 import { ComplimentWall } from "@/components/profile/ComplimentWall";
 import { TitleSelector } from "@/components/profile/TitleSelector";
+import { AdminNotesSection } from "@/components/profile/AdminNotesSection";
 
 export default async function ProfilePage() {
 	const session = await getServerSession(authOptions);
 	if (!session?.user?.id) redirect("/login");
 	const userId = session.user.id;
+	const isAdmin = !!(session.user as any).isAdmin;
 
 	// ── Fetch user ────────────────────────────────
 	const user = await prisma.user.findUnique({
@@ -74,6 +76,75 @@ export default async function ProfilePage() {
 		where: { evaluatorId: userId, status: EvaluationStatus.COMPLETED },
 	});
 
+	// ── milestone projects (flashback) ────────────
+	const milestones = completedTeams.map(ct => ({
+		title: ct.team.project.title,
+		timestamp: ct.team.updatedAt,
+	})).reverse(); // Oldest first
+
+	// ── Fun Stats ─────────────────────────────────
+	const labLogs = await prisma.labAccessLog.count({
+		where: { userId, success: true },
+	});
+	const totalLabHours = Math.round(labLogs * 1.5); // Heuristic: 1.5h per login
+
+	const reports = await prisma.weeklyReport.findMany({
+		where: { submittedById: userId },
+		select: { summary: true },
+	});
+	
+	let longestReportWords = 0;
+	const wordCounts: Record<string, number> = {};
+	const stopWords = new Set(["the", "a", "an", "is", "in", "of", "to", "and", "that", "it", "for", "on", "with", "as", "was", "are", "be", "this", "have", "or"]);
+
+	reports.forEach(r => {
+		const words = r.summary.split(/\s+/).filter(w => w.length > 0);
+		longestReportWords = Math.max(longestReportWords, words.length);
+		words.forEach(w => {
+			const sanitized = w.toLowerCase().replace(/[^a-z]/g, "");
+			if (sanitized && !stopWords.has(sanitized)) {
+				wordCounts[sanitized] = (wordCounts[sanitized] || 0) + 1;
+			}
+		});
+	});
+
+	const mostUsedWord = Object.entries(wordCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || "None";
+
+	const ungodlyEvals = await prisma.evaluation.count({
+		where: {
+			evaluatorId: userId,
+			status: EvaluationStatus.COMPLETED,
+			createdAt: {
+				// This is tricky with prisma alone for "hour of day", but we can fetch them and filter
+				// or just use a raw query. Let's fetch the timestamps.
+			}
+		}
+	});
+	
+	// Simplified: fetch all eval timestamps and filter
+	const allEvals = await prisma.evaluation.findMany({
+		where: { evaluatorId: userId, status: EvaluationStatus.COMPLETED },
+		select: { createdAt: true }
+	});
+	const ungodlyCount = allEvals.filter(e => {
+		const hour = e.createdAt.getHours();
+		return hour >= 0 && hour <= 5;
+	}).length;
+
+	const funStats = {
+		totalLabHours,
+		longestReportWords,
+		mostUsedWord,
+		ungodlyCount
+	};
+
+	// ── Admin Notes ───────────────────────────────
+	const adminNotes = isAdmin ? await prisma.adminNote.findMany({
+		where: { targetUserId: userId },
+		include: { author: { select: { login: true } } },
+		orderBy: { createdAt: "desc" }
+	}) : [];
+
 	// ── All achievements (for locked/unlocked grid) ─
 	const allAchievements = await prisma.achievement.findMany({
 		orderBy: { title: "asc" },
@@ -91,11 +162,16 @@ export default async function ProfilePage() {
 					...u,
 					id: u.id,
 					skillProgress: u.skillProgress,
-				}}
+					isOwn: true,
+				} as any}
 				title={title}
 				completedProjects={completedTeams.length}
 				evalsGiven={evalsGivenCount}
+				milestones={milestones}
+				funStats={funStats}
 			/>
+
+			{isAdmin && <AdminNotesSection userId={userId} />}
 
 			<div className="flex justify-end pt-2">
 				<TitleSelector

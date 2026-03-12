@@ -21,6 +21,7 @@ function slugify(str: string) {
 
 interface ShowcaseTeam {
 	id: string;
+	status: string;
 	updatedAt: Date | string;
 	rank: string;
 	project: {
@@ -42,6 +43,7 @@ interface ShowcaseCardProps {
 // ── Component ────────────────────────────────────────
 
 export function ShowcaseCard({ team }: ShowcaseCardProps) {
+	const isInProgress = team.status !== "COMPLETED";
 	const tags = (team.project.skillTags as string[]) || [];
 	const visibleTags = tags.slice(0, 3);
 	const extra = tags.length - 3;
@@ -50,10 +52,18 @@ export function ShowcaseCard({ team }: ShowcaseCardProps) {
 	const ghHandle = team.leader?.githubHandle;
 
 	return (
-		<div className="group overflow-hidden rounded-xl border border-border-color bg-panel transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg">
+		<div 
+			data-showcase-card
+			className="group overflow-hidden rounded-xl border border-border-color bg-panel transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg"
+		>
 			{/* Image placeholder area */}
 			<div className="relative flex aspect-video items-center justify-center bg-panel2">
 				<Badge rank={team.rank as any} size="lg" />
+				{isInProgress && (
+					<div className="absolute left-2 top-2 rounded bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent backdrop-blur-sm">
+						In Progress
+					</div>
+				)}
 				<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8">
 					<p className="truncate text-sm font-bold text-white">{team.project.title}</p>
 				</div>

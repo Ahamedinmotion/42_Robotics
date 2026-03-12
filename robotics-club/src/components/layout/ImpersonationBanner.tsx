@@ -19,7 +19,7 @@ export function ImpersonationBanner({ isImpersonating, login }: { isImpersonatin
 			});
 			if (res.ok) {
 				toast("Restoring your original session...");
-				router.refresh();
+				window.location.reload();
 			} else {
 				toast("Failed to end impersonation", "error");
 				setReturning(false);

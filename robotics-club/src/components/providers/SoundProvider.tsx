@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface SoundContextType {
-	playSFX: (type: "unlock" | "claim" | "achievement" | "button") => void;
+	playSFX: (type: "unlock" | "claim" | "achievement" | "button" | "konami") => void;
 	soundsEnabled: boolean;
 	setSoundsEnabled: (enabled: boolean) => void;
 }
@@ -33,7 +33,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
 		return audioCtx;
 	};
 
-	const playSFX = (type: "unlock" | "claim" | "achievement" | "button") => {
+	const playSFX = (type: "unlock" | "claim" | "achievement" | "button" | "konami") => {
 		if (!soundsEnabled) return;
 
 		const ctx = initAudio();
@@ -91,6 +91,22 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
 				gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
 				osc.start(now);
 				osc.stop(now + 0.5);
+				break;
+			case "konami":
+				// Classic 8-bit power up / sequence
+				[261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+					const o = ctx.createOscillator();
+					const g = ctx.createGain();
+					o.connect(g);
+					g.connect(ctx.destination);
+					o.type = "square"; // Retro blocky sound
+					o.frequency.setValueAtTime(freq, now + i * 0.08);
+					g.gain.setValueAtTime(0, now + i * 0.08);
+					g.gain.linearRampToValueAtTime(0.05, now + i * 0.08 + 0.02);
+					g.gain.linearRampToValueAtTime(0, now + i * 0.08 + 0.1);
+					o.start(now + i * 0.08);
+					o.stop(now + i * 0.08 + 0.1);
+				});
 				break;
 		}
 	};

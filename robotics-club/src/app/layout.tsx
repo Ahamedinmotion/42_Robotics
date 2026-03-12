@@ -8,16 +8,29 @@ export const metadata: Metadata = {
 };
 
 import { Providers } from "@/components/providers/Providers";
+import { EasterEggManager } from "@/components/layout/EasterEggManager";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getClubSettings } from "@/lib/club-settings";
+import { FirstLoginIntro } from "@/components/onboarding/FirstLoginIntro";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
+  const settings = await getClubSettings();
+  const showIntro = session?.user && !(session.user as any).hasSeenIntro;
+
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-text-primary antialiased">
-        <Providers>{children}</Providers>
+        <Providers session={session}>
+          {children}
+          {showIntro && <FirstLoginIntro tagline={settings.clubTagline} />}
+          <EasterEggManager />
+        </Providers>
       </body>
     </html>
   );

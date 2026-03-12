@@ -2,17 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { requirePermission } from "@/lib/admin-auth";
 
 export async function PATCH(
 	req: Request,
 	{ params }: { params: { id: string } }
 ) {
-	const session = await getServerSession(authOptions);
-	const allowedRoles = [Role.PRESIDENT, Role.VP, Role.SECRETARY];
-	if (!session?.user?.id || !allowedRoles.includes(session.user.role as any)) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
+	const auth = await requirePermission("CAN_EDIT_CONTENT");
+	if (auth instanceof Response) return auth;
 
 	try {
 		const body = await req.json();
@@ -33,11 +30,8 @@ export async function DELETE(
 	req: Request,
 	{ params }: { params: { id: string } }
 ) {
-	const session = await getServerSession(authOptions);
-	const allowedRoles = [Role.PRESIDENT, Role.VP, Role.SECRETARY];
-	if (!session?.user?.id || !allowedRoles.includes(session.user.role as any)) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
+	const auth = await requirePermission("CAN_EDIT_CONTENT");
+	if (auth instanceof Response) return auth;
 
 	try {
 		await prisma.achievement.delete({

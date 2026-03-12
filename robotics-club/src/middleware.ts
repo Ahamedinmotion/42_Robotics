@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-	function middleware(req) {
+	async function middleware(req) {
 		const { token } = req.nextauth;
 		const path = req.nextUrl.pathname;
 
@@ -10,7 +10,27 @@ export default withAuth(
 			return NextResponse.redirect(new URL("/login", req.url));
 		}
 
-		const isWaitlistOrBlackholedOrLoginRoute = ["/waitlist", "/blackholed", "/login"].includes(path);
+		// ── Maintenance mode check ──────────────────────
+		const bypassPaths = ["/maintenance", "/login", "/api"];
+		const isBypass = bypassPaths.some((p) => path.startsWith(p));
+
+		if (!isBypass) {
+			try {
+				const settingsRes = await fetch(new URL("/api/admin/settings", req.url));
+				const settingsJson = await settingsRes.json();
+				if (settingsJson?.success && settingsJson.data?.maintenanceMode) {
+					// Use isAdmin from token instead of hardcoded role names
+					if (!token.isAdmin) {
+						return NextResponse.redirect(new URL("/maintenance", req.url));
+					}
+				}
+			} catch {
+				// If settings fetch fails, allow through
+			}
+		}
+
+		// ── Status-based redirects ──────────────────────
+		const isWaitlistOrBlackholedOrLoginRoute = ["/waitlist", "/blackholed", "/login", "/maintenance"].includes(path);
 
 		if (token.status === "WAITLIST" && !isWaitlistOrBlackholedOrLoginRoute) {
 			return NextResponse.redirect(new URL("/waitlist", req.url));
@@ -20,15 +40,10 @@ export default withAuth(
 			return NextResponse.redirect(new URL("/blackholed", req.url));
 		}
 
+		// ── Admin route protection ─────────────────────
 		if (path.startsWith("/admin")) {
-			const adminRoles = [
-				"SECRETARY",
-				"PROJECT_MANAGER",
-				"SOCIAL_MEDIA_MANAGER",
-				"VP",
-				"PRESIDENT",
-			];
-			if (!adminRoles.includes(token.role as string)) {
+			// Use isAdmin flag from JWT instead of hardcoded role names
+			if (!token.isAdmin) {
 				return NextResponse.redirect(new URL("/home", req.url));
 			}
 		}
@@ -46,5 +61,5 @@ export default withAuth(
 );
 
 export const config = {
-	matcher: ["/home/:path*", "/cursus/:path*", "/profile/:path*", "/admin/:path*"],
+	matcher: ["/home/:path*", "/cursus/:path*", "/profile/:path*", "/admin/:path*", "/maintenance"],
 };

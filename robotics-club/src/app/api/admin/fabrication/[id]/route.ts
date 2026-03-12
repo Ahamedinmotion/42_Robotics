@@ -1,9 +1,9 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-	const auth = await requireAdmin(["PROJECT_MANAGER", "VP", "PRESIDENT"]);
+	const auth = await requirePermission("CAN_APPROVE_FABRICATION");
 	if (auth instanceof Response) return auth;
 
 	try {

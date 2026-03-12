@@ -11,6 +11,9 @@ import { RoleManagement } from "@/components/admin/RoleManagement";
 import { MoodBoard } from "@/components/admin/MoodBoard";
 import { AchievementEditor } from "@/components/admin/AchievementEditor";
 import { AuditLogView } from "@/components/admin/AuditLogView";
+import { ClubSettingsPanel } from "@/components/admin/ClubSettingsPanel";
+import { AnnouncementManager } from "@/components/admin/AnnouncementManager";
+import { getClubSettings } from "@/lib/club-settings";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -33,10 +36,14 @@ export default async function AdminPage({
 }) {
 	const session = await getServerSession(authOptions);
 	if (!session?.user?.id) redirect("/login");
-	if (session.user.role === "STUDENT") redirect("/home");
+
+	// Check isAdmin from session (set in JWT by auth.ts)
+	const isAdmin = !!(session.user as any).isAdmin;
+	if (!isAdmin) redirect("/home");
 
 	const section = searchParams.section || "members";
 	const userRole = session.user.role;
+	const permissions = ((session.user as any).permissions as string[]) || [];
 
 	// ═══════════════════════════════════════════════
 	// SECTION: Members
@@ -87,6 +94,8 @@ export default async function AdminPage({
 			where: { status: "ALUMNI" }, include: { alumniEvaluatorOptIn: true },
 		});
 
+		const settings = await getClubSettings();
+
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const ser = (u: any) => ({ ...u, joinedAt: u.joinedAt.toISOString(), updatedAt: u.updatedAt.toISOString() });
 
@@ -95,9 +104,9 @@ export default async function AdminPage({
 				activeMembers={activeMembers}
 				waitlist={waitlist.map(ser)}
 				blackholed={blackholed.map(ser)}
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				alumni={alumniRaw.map((u: any) => ({ ...ser(u), alumniOptedIn: u.alumniEvaluatorOptIn?.isActive ?? false }))}
 				activeCount={activeMembers.length}
+				maxActiveMembers={settings.maxActiveMembers}
 			/>
 		);
 	}
@@ -380,6 +389,7 @@ export default async function AdminPage({
 				membersWithAccess={membersWithAccess}
 				labAccessCount={membersWithAccess.length}
 				userRole={userRole}
+				permissions={permissions}
 			/>
 		);
 	}
@@ -399,22 +409,31 @@ export default async function AdminPage({
 	}
 
 	// ═══════════════════════════════════════════════
+	// SECTION: Announce
+	// ═══════════════════════════════════════════════
+	if (section === "announce" && (permissions.includes("CAN_SEND_ANNOUNCEMENTS") || permissions.includes("CAN_MANAGE_ANNOUNCEMENTS"))) {
+		return <AnnouncementManager />;
+	}
+
+	// ═══════════════════════════════════════════════
 	// SECTION: Audit Log
 	// ═══════════════════════════════════════════════
-	if (section === "audit" && userRole === "PRESIDENT") {
+	if (section === "audit" && permissions.includes("CAN_MANAGE_ROLES")) {
 		return <AuditLogView />;
 	}
 
 	// ═══════════════════════════════════════════════
 	// SECTION: Roles
 	// ═══════════════════════════════════════════════
-	if (section === "roles" && userRole === "PRESIDENT") {
-		const allUsers = await prisma.user.findMany({
-			select: { id: true, login: true, name: true, image: true, role: true, adminPermissions: true },
-			orderBy: [{ role: 'asc' }, { name: 'asc' }]
-		});
+	if (section === "roles" && permissions.includes("CAN_MANAGE_ROLES")) {
+		return <RoleManagement currentUserId={session.user.id} />;
+	}
 
-		return <RoleManagement initialUsers={allUsers as any} />;
+	// ═══════════════════════════════════════════════
+	// SECTION: Settings
+	// ═══════════════════════════════════════════════
+	if (section === "settings" && permissions.includes("CAN_MANAGE_CLUB_SETTINGS")) {
+		return <ClubSettingsPanel />;
 	}
 
 	// Fallback

@@ -50,7 +50,7 @@ export async function GET(
 			return err("Team not found", 404);
 		}
 
-		const isAdmin = ["SECRETARY", "PROJECT_MANAGER", "SOCIAL_MEDIA_MANAGER", "VP", "PRESIDENT"].includes(userRole);
+		const isAdmin = !!(session.user as any).isAdmin;
 		const isOnTeam = team.members.some((m) => m.userId === userId);
 
 		if (!isAdmin && !isOnTeam) {
@@ -93,9 +93,24 @@ export async function PATCH(
 			return err("Team not found", 404);
 		}
 
-		const isAdmin = ["SECRETARY", "PROJECT_MANAGER", "SOCIAL_MEDIA_MANAGER", "VP", "PRESIDENT"].includes(userRole);
+		const isAdmin = !!(session.user as any).isAdmin;
 		if (team.leaderId !== userId && !isAdmin) {
 			return err("Forbidden. Only the team leader or admin can update status", 403);
+		}
+
+		let firstEverCompletion = false;
+		if (status === TeamStatus.COMPLETED) {
+			const project = await prisma.project.findUnique({
+				where: { id: team.projectId },
+				select: { hasBeenCompleted: true },
+			});
+			if (project && !project.hasBeenCompleted) {
+				firstEverCompletion = true;
+				await prisma.project.update({
+					where: { id: team.projectId },
+					data: { hasBeenCompleted: true },
+				});
+			}
 		}
 
 		const updatedTeam = await prisma.team.update({
@@ -103,7 +118,7 @@ export async function PATCH(
 			data: { status: status as TeamStatus },
 		});
 
-		return ok(updatedTeam);
+		return ok({ ...updatedTeam, _firstEverCompletion: firstEverCompletion });
 	} catch (error: unknown) {
 		return err((error as Error).message || "Internal Server Error", 500);
 	}

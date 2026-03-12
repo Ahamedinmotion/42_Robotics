@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { getClubSettings } from "@/lib/club-settings";
+import { WaitlistWelcomeModal } from "@/components/onboarding/WaitlistWelcomeModal";
 
 export default async function WaitlistPage() {
 	const session = await getServerSession(authOptions);
@@ -10,7 +12,7 @@ export default async function WaitlistPage() {
 
 	const user = await prisma.user.findUnique({
 		where: { id: session.user.id },
-		select: { status: true, joinedAt: true },
+		select: { status: true, joinedAt: true, hasSeenWaitlistModal: true },
 	});
 	if (!user || user.status !== "WAITLIST") redirect("/home");
 
@@ -19,9 +21,11 @@ export default async function WaitlistPage() {
 	});
 
 	const activeCount = await prisma.user.count({ where: { status: "ACTIVE" } });
+	const settings = await getClubSettings();
 
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-background p-4">
+			{!user.hasSeenWaitlistModal && <WaitlistWelcomeModal position={position} />}
 			<div className="w-full max-w-md space-y-6 rounded-2xl bg-panel p-8 text-center">
 				<p className="text-4xl font-bold text-accent">RC</p>
 
@@ -31,7 +35,7 @@ export default async function WaitlistPage() {
 				<p className="text-sm text-text-muted">in queue</p>
 
 				<p className="text-sm text-text-muted">
-					There are currently <span className="font-semibold text-text-primary">{activeCount} / 30</span> active members.
+					There are currently <span className="font-semibold text-text-primary">{activeCount} / {settings.maxActiveMembers}</span> active members.
 					You&apos;ll be notified when a spot opens up.
 				</p>
 

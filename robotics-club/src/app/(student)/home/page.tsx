@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { BlackholeTimer } from "@/components/ui/BlackholeTimer";
 import { NotificationList } from "@/components/home/NotificationList";
 import { WorkshopRsvpButton } from "@/components/home/WorkshopRsvpButton";
+import { AnnouncementBanners } from "@/components/home/AnnouncementBanners";
+import { BirthdayConfetti } from "@/components/home/BirthdayConfetti";
 import { QuoteBar } from "@/components/profile/QuoteBar";
 
 // ── Helpers ──────────────────────────────────────────
@@ -108,6 +110,8 @@ export default async function HomePage() {
 
 	if (!user) redirect("/login");
 
+	const u = user as any;
+
 	const completedTeamsCount = await prisma.teamMember.count({
 		where: { userId, team: { status: TeamStatus.COMPLETED } },
 	});
@@ -146,12 +150,52 @@ export default async function HomePage() {
 	const lastReport = activeTeam?.weeklyReports[0] ?? null;
 	const openEvalSlot = activeTeam?.evaluationSlots[0] ?? null;
 
+	// ── 4. Widgets Logic ──────────────────────
+	
+	// Today's Mission
+	let mission = "Keep building.";
+	if (!activeTeam) {
+		mission = "You're not on a project. Check the cursus and get started.";
+	} else if (lastReport && (now.getTime() - lastReport.createdAt.getTime()) > 7 * 24 * 60 * 60 * 1000) {
+		const days = Math.floor((now.getTime() - lastReport.createdAt.getTime()) / (24 * 60 * 60 * 1000));
+		mission = `Your last report was ${days} days ago. Submit one today.`;
+	} else {
+		const availableSlots = await prisma.evaluationSlot.count({
+			where: { 
+				status: "OPEN", 
+				team: { project: { rank: user.currentRank } } 
+			}
+		});
+		if (availableSlots > 0) {
+			mission = `${availableSlots} evaluation slots are open for your rank right now.`;
+		}
+	}
+
+	// Did You Know
+	const showcaseTeams = await prisma.team.findMany({
+		where: { status: "COMPLETED" },
+		include: { 
+			project: { select: { title: true, description: true } }, 
+			members: { include: { user: { select: { login: true } } }, take: 1 } 
+		}
+	});
+	let didYouKnow = null;
+	if (showcaseTeams.length > 0) {
+		const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+		const factTeam = showcaseTeams[dayOfYear % showcaseTeams.length];
+		const memberLogin = factTeam.members[0]?.user.login || "a member";
+		const description = factTeam.project.description || "";
+		const desc = description.slice(0, 100).trim() + (description.length > 100 ? "..." : "");
+		didYouKnow = `Did you know @${memberLogin}'s ${factTeam.project.title}: ${desc}`;
+	}
+
 	// ── Render ─────────────────────────────────
 
 	return (
 		<>
 			<QuoteBar />
 			<div className="space-y-6">
+			<AnnouncementBanners />
 			{/* ── Identity Strip ──────────────────────── */}
 			<div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<div className="flex items-center gap-4">
@@ -184,6 +228,13 @@ export default async function HomePage() {
 					<StatCard label="Member Since" value={formatMonthYear(user.joinedAt)} />
 				</div>
 			</div>
+
+			<div className="space-y-1">
+				<p className="text-sm font-semibold text-accent">{mission}</p>
+				{didYouKnow && <p className="text-xs text-text-muted">{didYouKnow}</p>}
+			</div>
+
+			<BirthdayConfetti birthday={u.birthday?.toISOString() ?? null} />
 
 			{/* ── 3-Column Grid ──────────────────────── */}
 			<div className="grid grid-cols-1 gap-6 md:grid-cols-3">

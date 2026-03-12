@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { isEligibleEvaluator } from "@/lib/evaluation-eligibility";
-import { EvaluationStatus, NotificationType, Rank, Role } from "@prisma/client";
+import { EvaluationStatus, NotificationType, Rank } from "@prisma/client";
 
 export async function POST(
 	req: Request,
@@ -102,14 +102,14 @@ export async function POST(
 			let peerEvalCount = 0;
 			let staffEvalCount = 0;
 			for (const existingEval of slot.evaluations) {
-				if (existingEval.evaluator.role === Role.STUDENT) {
+				if (existingEval.evaluator.role === "STUDENT") {
 					peerEvalCount++;
 				} else {
 					staffEvalCount++;
 				}
 			}
 
-			const isCurrentUserStaff = user.role !== Role.STUDENT;
+			const isCurrentUserStaff = user.role !== "STUDENT";
 
 			if (isHighRank) {
 				// A/S rank: max 2 peer + 1 staff = 3 total

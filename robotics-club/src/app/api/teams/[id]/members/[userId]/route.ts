@@ -30,7 +30,7 @@ export async function DELETE(
 			return err("Team must be in FORMING status to remove members", 400);
 		}
 
-		const isAdmin = ["SECRETARY", "PROJECT_MANAGER", "SOCIAL_MEDIA_MANAGER", "VP", "PRESIDENT"].includes(session.user.role);
+		const isAdmin = !!(session.user as any).isAdmin;
 		if (team.leaderId !== session.user.id && !isAdmin) {
 			return err("Forbidden. Only the team leader or admin can remove members", 403);
 		}

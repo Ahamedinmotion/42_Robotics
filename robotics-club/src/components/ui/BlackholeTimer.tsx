@@ -39,11 +39,39 @@ export function BlackholeTimer({ deadline, activatedAt, className = "" }: Blackh
 	const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 	const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
 
+	// ── 42 Hour Firework Logic ─────────────────
+	const [hasFired, setHasFired] = useState(false);
+	useEffect(() => {
+		const totalHours = Math.floor(remainingMs / (1000 * 60 * 60));
+		if (totalHours === 42 && !hasFired) {
+			import("canvas-confetti").then((confetti) => {
+				const duration = 3 * 1000;
+				const animationEnd = Date.now() + duration;
+				const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+				const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+				const interval: any = setInterval(function() {
+					const timeLeft = animationEnd - Date.now();
+					if (timeLeft <= 0) return clearInterval(interval);
+					const particleCount = 50 * (timeLeft / duration);
+					confetti.default({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }, colors: ['#FFD700', '#FFA500'] });
+					confetti.default({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }, colors: ['#FFD700', '#FFA500'] });
+				}, 250);
+			});
+			setHasFired(true);
+		}
+	}, [remainingMs, hasFired]);
+
 	let colour: string;
 	let label: string;
 	let pulse = false;
+	let isFireworkTime = Math.floor(remainingMs / (1000 * 60 * 60)) === 42;
 
-	if (days > 7) {
+	if (isFireworkTime) {
+		colour = "#FFD700"; // Gold
+		label = `42 HOURS REMAINING`;
+		pulse = true;
+	} else if (days > 7) {
 		colour = "#44FF88";
 		label = `${days} days remaining`;
 	} else if (days >= 3) {
