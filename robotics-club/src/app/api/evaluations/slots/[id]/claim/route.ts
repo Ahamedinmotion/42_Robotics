@@ -95,6 +95,34 @@ export async function POST(
 				throw new Error("You are not eligible to claim this evaluation");
 			}
 
+			// --- Cooldown Escalation Logic ---
+			const previousEvals = await tx.evaluation.findMany({
+				where: {
+					teamId: slot.teamId,
+					status: { in: ["COMPLETED", "FAILED"] as any },
+				},
+				orderBy: { completedAt: "desc" },
+			});
+
+			const attemptCount = previousEvals.length + 1;
+			const lastEval = previousEvals[0];
+
+			if (attemptCount > 2 && lastEval) {
+				const lastDate = new Date(lastEval.completedAt || lastEval.updatedAt);
+				const now = new Date();
+				const hoursSinceLast = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+				
+				if (attemptCount <= 4 && hoursSinceLast < 24) {
+					throw new Error("Cooldown active: 1 day wait required after 2 attempts");
+				}
+				if (attemptCount <= 6 && hoursSinceLast < 72) {
+					throw new Error("Cooldown active: 3 day wait required after 4 attempts");
+				}
+				if (attemptCount > 6 && !(slot.team as any).nextAttemptApproved) {
+					throw new Error("Maximum attempts exceeded. Requires manual approval from VP or President.");
+				}
+			}
+
 			// --- Staff / peer eval enforcement ---
 			const isHighRank = slot.team.project.rank === Rank.A || slot.team.project.rank === Rank.S;
 

@@ -35,7 +35,7 @@ export function ClaimSlotModal({ window, onClose, onClaimed }: ClaimSlotModalPro
 
 		try {
 			const slotEnd = new Date(selectedStart.getTime() + 2 * 60 * 60 * 1000);
-			const res = await fetch(`/api/evaluations/slots/${window.id}/claim`, {
+			const res = await fetch(`/api/evaluations/windows/${window.id}/claim`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({

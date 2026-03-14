@@ -14,6 +14,8 @@ import { ClubSettingsPanel } from "@/components/admin/ClubSettingsPanel";
 import { AnnouncementManager } from "@/components/admin/AnnouncementManager";
 import { RoleManagement } from "@/components/admin/RoleManagement";
 
+import { AdminOversight } from "@/components/admin/evaluations/AdminOversight";
+
 export default async function AdminPage({
 	searchParams,
 }: {
@@ -49,6 +51,11 @@ export default async function AdminPage({
 			{section === "content" && (
 				<Suspense fallback={<AdminSectionSkeleton />}>
 					<AdminContentSection userRole={userRole} />
+				</Suspense>
+			)}
+			{section === "oversight" && (
+				<Suspense fallback={<AdminSectionSkeleton />}>
+					<AdminOversight userRole={userRole} permissions={permissions} />
 				</Suspense>
 			)}
 			{section === "access" && (

@@ -14,6 +14,7 @@ export function AdminNav({ userRole, permissions }: { userRole?: string; permiss
 		{ key: "queue", label: "Queue" },
 		{ key: "analytics", label: "Analytics" },
 		{ key: "content", label: "Content" },
+		{ key: "oversight", label: "Oversight" },
 		{ key: "access", label: "Access" },
 		{ key: "board", label: "Board" },
 		{ key: "achievements", label: "Achievements" },

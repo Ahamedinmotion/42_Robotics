@@ -18,6 +18,7 @@ export const ALL_PERMISSIONS = [
 	"CAN_MANAGE_ROLES",
 	"CAN_MANAGE_CLUB_SETTINGS",
 	"CAN_MANAGE_ANNOUNCEMENTS",
+	"CAN_OVERRIDE_EVALUATIONS",
 ] as const;
 
 export type PermissionKey = (typeof ALL_PERMISSIONS)[number];
@@ -35,7 +36,7 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
 	// President always has every permission
 	if (user.role === "PRESIDENT") return [...ALL_PERMISSIONS];
 
-	const dynamicRole = await prisma.dynamicRole.findUnique({
+	const dynamicRole = await (prisma as any).dynamicRole.findUnique({
 		where: { name: user.role },
 	});
 
@@ -46,7 +47,7 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
 export async function getRolePermissions(roleName: string): Promise<string[]> {
 	if (roleName === "PRESIDENT") return [...ALL_PERMISSIONS];
 
-	const dynamicRole = await prisma.dynamicRole.findUnique({
+	const dynamicRole = await (prisma as any).dynamicRole.findUnique({
 		where: { name: roleName },
 	});
 
@@ -57,7 +58,7 @@ export async function getRolePermissions(roleName: string): Promise<string[]> {
 export async function isRoleAdmin(roleName: string): Promise<boolean> {
 	if (roleName === "PRESIDENT") return true;
 
-	const dynamicRole = await prisma.dynamicRole.findUnique({
+	const dynamicRole = await (prisma as any).dynamicRole.findUnique({
 		where: { name: roleName },
 	});
 

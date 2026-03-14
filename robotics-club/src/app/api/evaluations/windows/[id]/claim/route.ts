@@ -8,13 +8,13 @@ import { NotificationType, SlotStatus } from "@prisma/client";
 // POST /api/evaluations/slots/[windowId]/claim
 export async function POST(
 	req: Request,
-	{ params }: { params: { windowId: string } }
+	{ params }: { params: { id: string } }
 ) {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session?.user?.id) return err("Unauthorized", 401);
 
-		const windowId = params.windowId;
+		const windowId = params.id;
 		const { slotStart, slotEnd } = await req.json();
 
 		if (!slotStart || !slotEnd) {

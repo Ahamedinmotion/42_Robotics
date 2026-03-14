@@ -126,8 +126,12 @@ export function UpcomingMissions() {
 					slot={prepSlot} 
 					onClose={() => setPrepSlot(null)} 
 					onReady={() => {
-						// This will likely redirect to the eval form in the next phase
 						toast("Prep complete. Opening evaluation form...", "success");
+						import("next/navigation").then(({ useRouter }) => {
+							// Using window.location for simplicity if router isn't available in this context,
+							// but the component already uses 'use client' and we can add useRouter to it.
+							window.location.href = `/evaluations/${prepSlot.id}/evaluate`;
+						});
 					}}
 				/>
 			)}

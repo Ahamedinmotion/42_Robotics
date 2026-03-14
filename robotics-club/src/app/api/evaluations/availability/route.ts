@@ -31,6 +31,34 @@ export async function POST(req: Request) {
 		if (!team) return err("Team not found", 404);
 		if (team.leaderId !== session.user.id) return err("Only leader can set availability", 403);
 
+		// --- Cooldown Escalation Logic ---
+		const previousEvals = await prisma.evaluation.findMany({
+			where: {
+				teamId: team.id,
+				status: { in: ["COMPLETED", "FAILED"] as any },
+			},
+			orderBy: { completedAt: "desc" },
+		});
+
+		const attemptCount = previousEvals.length + 1;
+		const lastEval = previousEvals[0];
+
+		if (attemptCount > 2 && lastEval) {
+			const lastDate = new Date(lastEval.completedAt || lastEval.updatedAt);
+			const now = new Date();
+			const hoursSinceLast = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+			
+			if (attemptCount <= 4 && hoursSinceLast < 24) {
+				return err("Cooldown active: 1 day wait required after 2 attempts", 403);
+			}
+			if (attemptCount <= 6 && hoursSinceLast < 72) {
+				return err("Cooldown active: 3 day wait required after 4 attempts", 403);
+			}
+			if (attemptCount > 6 && !(team as any).nextAttemptApproved) {
+				return err("Maximum attempts exceeded. Requires manual approval from VP or President.", 403);
+			}
+		}
+
 		// 1. Create Windows
 		const createdWindows = [];
 		for (const w of windows) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AvailabilityPicker } from "./AvailabilityPicker";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,11 +14,16 @@ interface CockpitSubmissionProps {
 }
 
 export function CockpitSubmission({ team, isAdmin }: CockpitSubmissionProps) {
+	const router = useRouter();
 	const { toast } = useToast();
 	const { playSFX } = useSound();
 	const [isLoading, setIsLoading] = useState(false);
 	const [windows, setWindows] = useState<any[]>([]);
 	const [upcoming, setUpcoming] = useState<{ receiving: any[] }>({ receiving: [] });
+	const [evaluation, setEvaluation] = useState<any>(null);
+	const [showFeedback, setShowFeedback] = useState(false);
+	const [feedbackRating, setFeedbackRating] = useState(0);
+	const [feedbackComment, setFeedbackComment] = useState("");
 
 	const reportsCount = team.weeklyReports?.length || 0;
 	const hasRepo = !!team.repoUrl;
@@ -47,13 +53,23 @@ export function CockpitSubmission({ team, isAdmin }: CockpitSubmissionProps) {
 		} catch (err) {}
 	};
 
+	const fetchEvaluation = async () => {
+		try {
+			const res = await fetch(`/api/teams/${team.id}/evaluation`);
+			const data = await res.json();
+			if (data.success) setEvaluation(data.data);
+		} catch (err) {}
+	};
+
 	useEffect(() => {
 		if (isEvaluating) {
 			fetchWindows();
 			fetchUpcoming();
+			fetchEvaluation();
 			const interval = setInterval(() => {
 				fetchWindows();
 				fetchUpcoming();
+				fetchEvaluation();
 			}, 30000); // 30s poll
 			return () => clearInterval(interval);
 		}
@@ -217,6 +233,131 @@ export function CockpitSubmission({ team, isAdmin }: CockpitSubmissionProps) {
 										</Card>
 									))}
 								</div>
+							</div>
+						)}
+
+						{/* MISSION DEBRIEF SECTION */}
+						{evaluation && (
+							<div className="space-y-8 pt-8 border-t-2 border-accent/20 animate-in slide-in-from-bottom-4 duration-500">
+								<div className="flex items-center justify-between">
+									<h4 className="text-lg font-black uppercase tracking-widest text-text-primary">Mission Debrief</h4>
+									{evaluation.status === "COMPLETED" && (
+										<div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+											Evaluation Received
+										</div>
+									)}
+								</div>
+
+								<Card className="p-6 bg-accent/5 border-accent/20 space-y-6">
+									<div className="flex items-start gap-4">
+										<div className="p-3 rounded-xl bg-accent/10 border border-accent/20">
+											<svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+										</div>
+										<div className="space-y-1">
+											<p className="text-sm font-black uppercase tracking-widest">Post-Mission Protocol</p>
+											<p className="text-xs text-text-muted">Your mission results have been processed by your peer assessor.</p>
+										</div>
+									</div>
+
+									{!evaluation.hasSubmittedFeedback ? (
+										<div className="space-y-4">
+											<div className="p-4 rounded-xl bg-background border border-border">
+												<p className="text-xs text-text-muted leading-relaxed">
+													To access your mission verdict and detailed breakdown, you must first provide feedback on your session with <span className="text-accent font-bold">{evaluation.evaluator.name || evaluation.evaluator.login}</span>.
+												</p>
+											</div>
+											<Button 
+												variant="primary" 
+												className="w-full font-black uppercase tracking-[0.2em]"
+												onClick={() => setShowFeedback(true)}
+											>
+												Submit Session Feedback
+											</Button>
+											{evaluation.timeToAutoReveal > 0 && (
+												<p className="text-[9px] text-center font-black uppercase tracking-[0.2em] text-text-muted">
+													OR Wait {Math.floor(evaluation.timeToAutoReveal / 3600000)}h {Math.floor((evaluation.timeToAutoReveal % 3600000) / 60000)}m for auto-reveal
+												</p>
+											)}
+										</div>
+									) : (
+										<Button 
+											variant="primary" 
+											className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-background font-black uppercase tracking-[0.3em] border-none"
+											onClick={() => router.push(`/evaluations/${evaluation.id}/result`)}
+										>
+											Decrypt Mission Results 🚀
+										</Button>
+									)}
+								</Card>
+							</div>
+						)}
+
+						{/* FEEDBACK MODAL OVERLAY */}
+						{showFeedback && (
+							<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+								<Card className="w-full max-w-lg p-8 space-y-8 bg-panel border-accent/20 shadow-2xl">
+									<div className="text-center space-y-2">
+										<h2 className="text-xl font-black uppercase tracking-[0.2em] text-text-primary">Session Feedback</h2>
+										<p className="text-[10px] text-text-muted uppercase tracking-widest leading-relaxed">
+											Assessor: <span className="text-accent">{evaluation.evaluator.name || evaluation.evaluator.login}</span>
+										</p>
+									</div>
+
+									<div className="space-y-4">
+										<p className="text-[10px] font-black uppercase tracking-widest text-text-muted text-center">Session Quality</p>
+										<div className="flex justify-center gap-4">
+											{[1, 2, 3, 4, 5].map(star => (
+												<button 
+													key={star} 
+													onClick={() => setFeedbackRating(star)}
+													className={`text-3xl transition-all ${feedbackRating >= star ? 'text-accent scale-110' : 'text-white/10 hover:text-white/20'}`}
+												>
+													★
+												</button>
+											))}
+										</div>
+									</div>
+
+									<div className="space-y-2">
+										<p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Session Log (Optional)</p>
+										<textarea 
+											className="w-full bg-background border border-border rounded-xl p-4 text-xs text-text-primary focus:outline-none focus:border-accent/30 resize-none min-h-[120px]"
+											placeholder="Briefly describe your experience with the assessor..."
+											value={feedbackComment}
+											onChange={e => setFeedbackComment(e.target.value)}
+										/>
+									</div>
+
+									<div className="flex gap-4 pt-4">
+										<Button variant="ghost" className="flex-1 font-black uppercase tracking-[0.2em] text-[10px]" onClick={() => setShowFeedback(false)}>Cancel</Button>
+										<Button 
+											variant="primary" 
+											className="flex-[2] font-black uppercase tracking-[0.2em] text-[10px]"
+											disabled={feedbackRating === 0 || isLoading}
+											onClick={async () => {
+												setIsLoading(true);
+												try {
+													const res = await fetch(`/api/evaluations/${evaluation.id}/feedback`, {
+														method: "POST",
+														body: JSON.stringify({ rating: feedbackRating, comment: feedbackComment, fromRole: "TEAM_MEMBER" }),
+													});
+													if (res.ok) {
+														toast("Feedback transmitted", "success");
+														playSFX("achievement");
+														setShowFeedback(false);
+														fetchEvaluation();
+													}
+												} catch (err) {
+													toast("Failed to transmit", "error");
+												} finally {
+													setIsLoading(false);
+												}
+											}}
+										>
+											{isLoading ? "Transmitting..." : "Submit Feedback"}
+										</Button>
+									</div>
+								</Card>
 							</div>
 						)}
 					</div>
