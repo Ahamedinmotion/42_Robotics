@@ -2,6 +2,7 @@ import { requirePermission } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { hasPermission } from "@/lib/permissions";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
 	const auth = await requirePermission("CAN_MANAGE_PROJECTS");
@@ -37,6 +38,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 		if (body.evaluationSheetUrl !== undefined) data.evaluationSheetUrl = body.evaluationSheetUrl;
 
 		const updated = await prisma.project.update({ where: { id: params.id }, data });
+		
+		revalidatePath("/cursus");
+		revalidatePath("/admin");
+		revalidateTag("projects");
+
 		return ok(updated);
 	} catch (e: unknown) {
 		return err((e as Error).message || "Internal Server Error", 500);

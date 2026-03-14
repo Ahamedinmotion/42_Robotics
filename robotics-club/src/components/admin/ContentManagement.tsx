@@ -51,11 +51,24 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 	const isVpOrPres = userRole === "VP" || userRole === "PRESIDENT";
 	const canManage = ["PROJECT_MANAGER", "VP", "PRESIDENT"].includes(userRole);
 
-	// New project form state — defaults loaded from settings
-	const [form, setForm] = useState({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "5", blackholeDays: "60", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" });
+	// New/Edit project form state — defaults loaded from settings
+	const [editingId, setEditingId] = useState<string | null>(null);
+	const [form, setForm] = useState({ 
+		title: "", 
+		description: "", 
+		rank: "E", 
+		teamSizeMin: "2", 
+		teamSizeMax: "5", 
+		blackholeDays: "60", 
+		skillTags: "", 
+		isUnique: false, 
+		subjectSheetUrl: "", 
+		evaluationSheetUrl: "" 
+	});
 
 	// Load club settings for dynamic defaults
 	useEffect(() => {
+		if (editingId) return; // Don't overwrite form if editing
 		fetch("/api/admin/settings")
 			.then((r) => r.json())
 			.then((json) => {
@@ -69,7 +82,7 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 				}
 			})
 			.catch(() => {});
-	}, []);
+	}, [editingId]);
 
 	if (!canManage) {
 		return <p className="py-12 text-center text-sm text-text-muted">Access restricted to Project Managers and above.</p>;
@@ -84,14 +97,40 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 	};
 
 	const submitProject = async () => {
-		await callApi("/api/admin/projects", "POST", {
+		const payload = {
 			...form,
 			teamSizeMin: Number(form.teamSizeMin),
 			teamSizeMax: Number(form.teamSizeMax),
 			blackholeDays: Number(form.blackholeDays),
-		}, "Project created");
+		};
+
+		if (editingId) {
+			await callApi(`/api/admin/projects/${editingId}`, "PATCH", payload, "Project updated");
+			setEditingId(null);
+		} else {
+			await callApi("/api/admin/projects", "POST", payload, "Project created");
+		}
+		
 		setShowAdd(false);
 		setForm((f) => ({ ...f, title: "", description: "", rank: "E", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" }));
+	};
+
+	const handleEdit = (p: ProjectItem) => {
+		setEditingId(p.id);
+		setForm({
+			title: p.title,
+			description: p.description,
+			rank: p.rank,
+			teamSizeMin: String(p.teamSizeMin),
+			teamSizeMax: String(p.teamSizeMax),
+			blackholeDays: String(p.blackholeDays),
+			skillTags: p.skillTags.join(", "),
+			isUnique: p.isUnique,
+			subjectSheetUrl: p.subjectSheetUrl || "",
+			evaluationSheetUrl: p.evaluationSheetUrl || "",
+		});
+		setShowAdd(true);
+		window.scrollTo({ top: 0, behavior: "smooth" });
 	};
 
 	const toggleStatus = (id: string, current: string) => {
@@ -132,11 +171,28 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 				<div className="space-y-6">
 					<div className="flex items-center justify-between">
 						<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Skill Tree Editor</h3>
-						<Button variant="primary" size="sm" onClick={() => setShowAdd(!showAdd)}>{showAdd ? "Cancel" : "Add New Project"}</Button>
+						<Button 
+							variant="primary" 
+							size="sm" 
+							onClick={() => {
+								if (showAdd && editingId) {
+									setEditingId(null);
+									setForm({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "5", blackholeDays: "60", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" });
+								}
+								setShowAdd(!showAdd);
+							}}
+						>
+							{showAdd ? "Cancel" : "Add New Project"}
+						</Button>
 					</div>
 
 			{showAdd && (
 				<Card className="space-y-3">
+					<div className="flex items-center justify-between border-b border-border-color/20 pb-2 mb-2">
+						<h4 className="text-[10px] font-black uppercase tracking-widest text-accent">
+							{editingId ? `Editing: ${form.title}` : "Create New Mission"}
+						</h4>
+					</div>
 					<input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputCls} />
 					<textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={inputCls} />
 					<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -163,7 +219,14 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 					</div>
 					<input placeholder="Subject sheet URL (optional)" value={form.subjectSheetUrl} onChange={(e) => setForm({ ...form, subjectSheetUrl: e.target.value })} className={inputCls} />
 					<input placeholder="Evaluation sheet URL (optional)" value={form.evaluationSheetUrl} onChange={(e) => setForm({ ...form, evaluationSheetUrl: e.target.value })} className={inputCls} />
-					<Button variant="primary" size="sm" disabled={loading || !form.title} onClick={submitProject}>Save as Draft</Button>
+					<div className="flex gap-2">
+						<Button variant="primary" size="sm" className="flex-1" disabled={loading || !form.title} onClick={submitProject}>
+							{editingId ? "Update Project" : "Save as Draft"}
+						</Button>
+						{editingId && (
+							<Button variant="ghost" size="sm" onClick={() => { setEditingId(null); setShowAdd(false); }}>Cancel</Button>
+						)}
+					</div>
 				</Card>
 			)}
 
@@ -179,11 +242,23 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 											<span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusChip[p.status] || ""}`}>{p.status}</span>
 											<span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{p.teamCount} Squads</span>
 										</div>
-										{isVpOrPres && (
-											<Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest" disabled={loading} onClick={() => toggleStatus(p.id, p.status)}>
-												{p.status === "DRAFT" ? "Publish" : p.status === "ACTIVE" ? "Retire" : "Reactivate"}
+										<div className="flex items-center gap-2">
+											<Button 
+												variant="ghost" 
+												size="sm" 
+												className="h-8 w-8 p-0 flex items-center justify-center opacity-40 hover:opacity-100 transition-opacity"
+												onClick={() => handleEdit(p)}
+											>
+												<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.243 3.243a3.003 3.003 0 014.242 4.242L10.828 17.172a4 4 0 01-1.414.828l-3.232.969.97-3.232a4 4 0 01.828-1.414l7.686-7.686z" />
+												</svg>
 											</Button>
-										)}
+											{isVpOrPres && (
+												<Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest" disabled={loading} onClick={() => toggleStatus(p.id, p.status)}>
+													{p.status === "DRAFT" ? "Publish" : p.status === "ACTIVE" ? "Retire" : "Reactivate"}
+												</Button>
+											)}
+										</div>
 									</div>
 								))}
 							</div>

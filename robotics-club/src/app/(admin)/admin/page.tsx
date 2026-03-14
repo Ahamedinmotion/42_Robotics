@@ -76,7 +76,7 @@ export default async function AdminPage({
 				<ClubSettingsPanel />
 			)}
 			
-			{!["members", "queue", "analytics", "content", "access", "board", "achievements", "announce", "audit", "roles", "settings"].includes(section) && (
+			{!["members", "queue", "analytics", "content", "oversight", "access", "board", "achievements", "announce", "audit", "roles", "settings"].includes(section) && (
 				redirect("/admin?section=members")
 			)}
 		</div>

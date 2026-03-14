@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { getClubSettings } from "@/lib/club-settings";
 import { hasPermission } from "@/lib/permissions";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function POST(req: Request) {
 	const auth = await requirePermission("CAN_MANAGE_PROJECTS");
@@ -41,6 +42,11 @@ export async function POST(req: Request) {
 				createdById: auth2.user.id,
 			},
 		});
+
+		revalidatePath("/cursus");
+		revalidatePath("/admin");
+		revalidateTag("projects");
+
 		return ok(project);
 	} catch (e) {
 		return err((e as Error).message || "Internal Server Error", 500);
