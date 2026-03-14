@@ -14,25 +14,17 @@ export async function POST(req: Request) {
 		}
 
 		const body = await req.json();
-		const { projectId } = body;
+		const { projectId, memberIds = [], status = TeamStatus.FORMING } = body;
 
 		if (!projectId) {
 			return err("projectId is required", 400);
 		}
 
+		// Ensure current user is in members list if it's an ACTIVE team
+		const allMemberIds = Array.from(new Set([session.user.id, ...memberIds]));
+
 		const user = await prisma.user.findUnique({
 			where: { id: session.user.id },
-			include: {
-				teams: {
-					where: {
-						team: {
-							status: {
-								in: [TeamStatus.FORMING, TeamStatus.ACTIVE, TeamStatus.EVALUATING],
-							},
-						},
-					},
-				},
-			},
 		});
 
 		if (!user) {
@@ -43,8 +35,21 @@ export async function POST(req: Request) {
 			return err("User must be ACTIVE to create a team", 403);
 		}
 
-		if (user.teams.length > 0) {
-			return err("User is already in an active team", 400);
+		// Check if any member already has an active team
+		const activeMembers = await prisma.teamMember.findMany({
+			where: {
+				userId: { in: allMemberIds },
+				team: {
+					status: {
+						in: [TeamStatus.FORMING, TeamStatus.ACTIVE, TeamStatus.EVALUATING],
+					},
+				},
+			},
+			include: { user: { select: { login: true } } },
+		});
+
+		if (activeMembers.length > 0) {
+			return err(`${activeMembers.map(m => m.user.login).join(", ")} already has an active project`, 400);
 		}
 
 		const project = await prisma.project.findUnique({
@@ -64,6 +69,29 @@ export async function POST(req: Request) {
 			return err("Project not found", 404);
 		}
 
+		if (status === TeamStatus.ACTIVE) {
+			if (allMemberIds.length < project.teamSizeMin || allMemberIds.length > project.teamSizeMax) {
+				return err(`Team size must be between ${project.teamSizeMin} and ${project.teamSizeMax}`, 400);
+			}
+
+			// Validate rank for all members
+			const users = await prisma.user.findMany({
+				where: { id: { in: allMemberIds } },
+				select: { login: true, currentRank: true },
+			});
+
+			const ineligible = users.filter(u => {
+				const ranks = Object.values(Rank);
+				const projectRankIdx = ranks.indexOf(project.rank);
+				const userRankIdx = ranks.indexOf(u.currentRank);
+				return userRankIdx < projectRankIdx;
+			});
+
+			if (ineligible.length > 0) {
+				return err(`${ineligible.map(u => u.login).join(", ")} does not have the required rank (${project.rank})`, 400);
+			}
+		}
+
 		if (project.status !== ProjectStatus.ACTIVE) {
 			return err("Project is not ACTIVE", 400);
 		}
@@ -73,7 +101,7 @@ export async function POST(req: Request) {
 			return err("Project is already claimed by another team", 400);
 		}
 
-		// blackholeDeadline is now + blackholeDays 
+		// blackholeDeadline
 		const blackholeDeadline = new Date();
 		blackholeDeadline.setDate(blackholeDeadline.getDate() + project.blackholeDays);
 
@@ -81,14 +109,15 @@ export async function POST(req: Request) {
 			data: {
 				projectId: project.id,
 				leaderId: user.id,
-				status: TeamStatus.FORMING,
+				status: status,
 				rank: user.currentRank,
-				blackholeDeadline: blackholeDeadline,
+				blackholeDeadline: status === TeamStatus.ACTIVE ? blackholeDeadline : null,
+				activatedAt: status === TeamStatus.ACTIVE ? new Date() : null,
 				members: {
-					create: {
-						userId: user.id,
-						isLeader: true,
-					},
+					create: allMemberIds.map(id => ({
+						userId: id,
+						isLeader: id === session.user.id,
+					})),
 				},
 			},
 			include: {

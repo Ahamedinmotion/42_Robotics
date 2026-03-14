@@ -85,4 +85,23 @@
   .text-glow-secondary {
     text-shadow: 0 0 10px var(--glow-secondary);
   }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--accent);
+    border-radius: 20px;
+    border: 3px solid transparent;
+  }
 }

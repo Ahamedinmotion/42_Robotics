@@ -16,11 +16,14 @@ export async function SkillTreeSection({ userId }: { userId: string }) {
 		prisma.project.findMany({
 			where: { status: "ACTIVE" },
 			include: {
+				_count: {
+					select: {
+						teams: true,
+					},
+				},
 				teams: {
 					where: {
-						status: {
-							in: [TeamStatus.FORMING, TeamStatus.ACTIVE, TeamStatus.EVALUATING],
-						},
+						status: "COMPLETED",
 					},
 					select: { id: true },
 				},
@@ -73,6 +76,10 @@ export async function SkillTreeSection({ userId }: { userId: string }) {
 			userState = "locked";
 		}
 
+		const completionRate = p._count.teams > 0 
+			? Math.round((p.teams.length / p._count.teams) * 100) 
+			: 0;
+
 		const node: ProjectNode = {
 			id: p.id,
 			title: p.title,
@@ -81,8 +88,11 @@ export async function SkillTreeSection({ userId }: { userId: string }) {
 			blackholeDays: p.blackholeDays,
 			teamSizeMin: p.teamSizeMin,
 			teamSizeMax: p.teamSizeMax,
-			activeTeamCount: p.teams.length,
+			activeTeamCount: p._count.teams,
 			isUnique: p.isUnique,
+			description: p.description,
+			completionRate,
+			hasBeenCompleted: (p as any).hasBeenCompleted,
 			userState,
 		};
 

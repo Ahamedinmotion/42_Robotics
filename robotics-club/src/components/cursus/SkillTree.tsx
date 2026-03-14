@@ -18,6 +18,9 @@ export interface ProjectNode {
 	teamSizeMax: number;
 	activeTeamCount: number;
 	isUnique: boolean;
+	description: string;
+	completionRate: number;
+	hasBeenCompleted: boolean;
 	userState: "locked" | "available" | "active" | "completed";
 }
 
@@ -450,7 +453,7 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 				{/* Tooltip */}
 				{hovered && (
 					<div
-						className="pointer-events-none fixed z-[60] w-64 rounded-2xl border border-border-color bg-panel/90 p-4 shadow-2xl backdrop-blur-md transition-opacity duration-200"
+						className="pointer-events-none fixed z-[60] w-72 rounded-[2rem] border border-white/10 bg-panel/90 p-5 shadow-2xl backdrop-blur-md transition-opacity duration-200"
 						style={{
 							left: `${hoveredPos.x * scale + pan.x + (containerRef.current?.offsetWidth || 0) / 2}px`,
 							top: `${hoveredPos.y * scale + pan.y + (containerRef.current?.offsetHeight || 0) / 2}px`,
@@ -458,21 +461,40 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 						}}
 					>
 						<div className="mb-2 flex items-center justify-between">
-							<span className="text-base font-black text-text-primary tracking-tight">{hovered.title}</span>
+							<span className="text-base font-black text-white tracking-tight leading-tight">{hovered.title}</span>
 							<Badge rank={hovered.rank as any} size="sm" />
 						</div>
+
+						<p className="mb-3 line-clamp-1 text-[11px] text-text-secondary">
+							{hovered.description}
+						</p>
+
 						<div className="mb-3 flex flex-wrap gap-1.5">
 							{hovered.skillTags.map((tag) => (
-								<span key={tag} className="rounded-md bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
+								<span key={tag} className="rounded-md bg-accent/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent border border-accent/20">
 									{tag}
 								</span>
 							))}
 						</div>
-						<div className="flex items-center justify-between text-[11px] text-text-muted">
-							<span>{hovered.teamSizeMin}–{hovered.teamSizeMax} Users</span>
-							<span>{hovered.blackholeDays}d Limit</span>
+
+						<div className="flex items-center justify-between border-t border-white/5 pt-3">
+							<div className="space-y-0.5">
+								<p className="text-[9px] font-bold uppercase tracking-widest text-text-muted opacity-50">Completion</p>
+								<div className="flex items-center gap-2">
+									<p className="text-xs font-black text-white">{hovered.completionRate}%</p>
+									{!hovered.hasBeenCompleted && (
+										<span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[8px] font-black uppercase text-amber-400 border border-amber-400/20">
+											Unsolved
+										</span>
+									)}
+								</div>
+							</div>
+							<div className="text-right">
+								<p className="text-[10px] font-bold text-accent animate-pulse tracking-wide">
+									→ View Project
+								</p>
+							</div>
 						</div>
-						{hovered.isUnique && <div className="mt-2 text-[10px] font-bold text-accent-secondary uppercase tracking-widest text-center border-t border-border-color/30 pt-2">★ Unique Achievement</div>}
 					</div>
 				)}
 			</div>

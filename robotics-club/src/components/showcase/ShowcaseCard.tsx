@@ -34,6 +34,9 @@ interface ShowcaseTeam {
 	}[];
 	leader: { githubHandle: string | null } | null;
 	_count: { evaluations: number };
+	weeklyReports?: {
+		photoUrls: string[];
+	}[];
 }
 
 interface ShowcaseCardProps {
@@ -51,21 +54,46 @@ export function ShowcaseCard({ team }: ShowcaseCardProps) {
 	const moreMembers = team.members.length - 3;
 	const ghHandle = team.leader?.githubHandle;
 
+	// Extract first mission photo
+	const allPhotos = team.weeklyReports?.flatMap(r => r.photoUrls) || [];
+	const heroPhoto = allPhotos[0];
+
+	// Cloudinary transformation
+	const getHeroUrl = (url: string) => {
+		if (!url.includes("cloudinary.com")) return url;
+		return url.replace("/upload/", "/upload/w_640,h_360,c_fill,g_auto/");
+	};
+
 	return (
 		<div 
 			data-showcase-card
 			className="group overflow-hidden rounded-xl border border-border-color bg-panel transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-lg"
 		>
-			{/* Image placeholder area */}
-			<div className="relative flex aspect-video items-center justify-center bg-panel2">
-				<Badge rank={team.rank as any} size="lg" />
+			{/* Image hero area */}
+			<div className="relative flex aspect-video items-center justify-center bg-panel2 overflow-hidden">
+				{heroPhoto ? (
+					<Image 
+						src={getHeroUrl(heroPhoto)} 
+						alt={team.project.title}
+						fill
+						className="object-cover group-hover:scale-105 transition-transform duration-500"
+					/>
+				) : (
+					<div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opaicty-50" />
+				)}
+				
+				<div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+
+				<div className="relative z-10 scale-110">
+					<Badge rank={team.rank as any} size="lg" />
+				</div>
 				{isInProgress && (
-					<div className="absolute left-2 top-2 rounded bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent backdrop-blur-sm">
+					<div className="absolute left-2 top-2 z-10 rounded bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent backdrop-blur-sm">
 						In Progress
 					</div>
 				)}
-				<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8">
-					<p className="truncate text-sm font-bold text-white">{team.project.title}</p>
+				<div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8">
+					<p className="truncate text-sm font-bold text-white uppercase tracking-tighter">{team.project.title}</p>
 				</div>
 			</div>
 

@@ -69,6 +69,10 @@ model User {
   weeklyReports          WeeklyReport[]
   workshopRsvps          WorkshopRSVP[]
   workshopsHosted        Workshop[]              @relation("WorkshopHost")
+  scratchpadsEdited      TeamScratchpad[]
+  postMortems            ProjectPostMortem[]
+  extensionRequestsReviewed ExtensionRequest[]
+  disputesReviewed       EvaluationDispute[]
 
   @@map("users")
 }
@@ -127,6 +131,7 @@ model Project {
   proposalsConverted ProjectProposal[] @relation("ConvertedProject")
   createdBy          User              @relation("ProjectCreator", fields: [createdById], references: [id])
   teams              Team[]
+  postMortems        ProjectPostMortem[]
 
   @@index([createdById])
   @@map("projects")
@@ -166,6 +171,13 @@ model Team {
   leader              User                 @relation("TeamLeader", fields: [leaderId], references: [id])
   project             Project              @relation(fields: [projectId], references: [id])
   weeklyReports       WeeklyReport[]
+  name                String?
+  repoUrl             String?              @map("repo_url")
+  isExtensionGranted  Boolean              @default(false) @map("is_extension_granted")
+  scratchpad          TeamScratchpad?
+  extensionRequests   ExtensionRequest[]
+  disputes            EvaluationDispute[]
+  postMortems         ProjectPostMortem[]
 
   @@index([projectId])
   @@index([leaderId])
@@ -176,8 +188,9 @@ model TeamMember {
   id       String   @id @default(cuid())
   teamId   String   @map("team_id")
   userId   String   @map("user_id")
-  joinedAt DateTime @default(now()) @map("joined_at")
-  isLeader Boolean  @default(false) @map("is_leader")
+  joinedAt         DateTime @default(now()) @map("joined_at")
+  isLeader         Boolean  @default(false) @map("is_leader")
+  abandonConfirmed Boolean  @default(false) @map("abandon_confirmed")
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -265,6 +278,11 @@ model WeeklyReport {
   readmeUpdated     Boolean  @default(false) @map("readme_updated")
   blockersNotes     String?  @map("blockers_notes")
   pdfUrl            String?  @map("pdf_url")
+  isMilestone       Boolean  @default(false) @map("is_milestone")
+  milestoneTitle    String?  @map("milestone_title")
+  hoursLogged       Float?   @map("hours_logged")
+  mood              String?
+  nextWeekPlan      String?  @map("next_week_plan")
   submittedBy       User     @relation(fields: [submittedById], references: [id])
   team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
@@ -707,6 +725,7 @@ enum TeamStatus {
   EVALUATING
   COMPLETED
   BLACKHOLED
+  ABANDONED
 }
 
 enum EvaluationSlotStatus {
@@ -807,4 +826,67 @@ enum FeatureRequestStatus {
   PLANNED
   DONE
   DISMISSED
+}
+
+model TeamScratchpad {
+  teamId         String   @id @map("team_id")
+  content        String   @default("")
+  lastEditedById String?  @map("last_edited_by_id")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  lastEditedBy   User?    @relation(fields: [lastEditedById], references: [id])
+
+  @@map("team_scratchpads")
+}
+
+model ProjectPostMortem {
+  id           String   @id @default(cuid())
+  teamId       String   @map("team_id")
+  userId       String   @map("user_id")
+  projectId    String   @map("project_id")
+  whatWorked   String   @map("what_worked")
+  whatDidnt    String   @map("what_didnt")
+  wouldDoBetter String   @map("would_do_better")
+  createdAt    DateTime @default(now()) @map("created_at")
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([projectId])
+  @@map("project_post_mortems")
+}
+
+model ExtensionRequest {
+  id            String            @id @default(cuid())
+  teamId        String            @map("team_id")
+  reason        String
+  status        MaterialReqStatus @default(PENDING) // Reusing MaterialReqStatus for simplicity if suitable, or create new
+  moderatorNote String?           @map("moderator_note")
+  reviewedById  String?           @map("reviewed_by_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  team          Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  reviewedBy    User?             @relation(fields: [reviewedById], references: [id])
+
+  @@index([teamId])
+  @@map("extension_requests")
+}
+
+model EvaluationDispute {
+  id            String            @id @default(cuid())
+  teamId        String            @map("team_id")
+  reason        String
+  evidence      String
+  status        MaterialReqStatus @default(PENDING)
+  moderatorNote String?           @map("moderator_note")
+  reviewedById  String?           @map("reviewed_by_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  team          Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  reviewedBy    User?             @relation(fields: [reviewedById], references: [id])
+
+  @@index([teamId])
+  @@map("evaluation_disputes")
 }

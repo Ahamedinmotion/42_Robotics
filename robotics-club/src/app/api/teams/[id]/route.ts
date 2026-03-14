@@ -43,6 +43,15 @@ export async function GET(
 				fabricationRequests: true,
 				damageReports: true,
 				conflictFlags: true,
+				scratchpad: {
+					include: {
+						lastEditedBy: {
+							select: { login: true }
+						}
+					}
+				},
+				extensionRequests: true,
+				disputes: true,
 			},
 		});
 
@@ -54,8 +63,8 @@ export async function GET(
 		const isOnTeam = team.members.some((m) => m.userId === userId);
 
 		if (!isAdmin && !isOnTeam) {
-			const { conflictFlags, ...publicTeam } = team as any;
-			return ok({ ...publicTeam, conflictFlags: [] });
+			const { conflictFlags, scratchpad, extensionRequests, disputes, ...publicTeam } = team as any;
+			return ok({ ...publicTeam, conflictFlags: [], scratchpad: null, extensionRequests: [], disputes: [] });
 		}
 
 		return ok(team);
@@ -76,14 +85,9 @@ export async function PATCH(
 
 		const teamId = params.id;
 		const userId = session.user.id;
-		const userRole = session.user.role;
 
 		const body = await req.json();
-		const { status } = body;
-
-		if (!status || !Object.values(TeamStatus).includes(status)) {
-			return err("Valid team status is required", 400);
-		}
+		const { status, name, repoUrl } = body;
 
 		const team = await prisma.team.findUnique({
 			where: { id: teamId },
@@ -95,27 +99,39 @@ export async function PATCH(
 
 		const isAdmin = !!(session.user as any).isAdmin;
 		if (team.leaderId !== userId && !isAdmin) {
-			return err("Forbidden. Only the team leader or admin can update status", 403);
+			return err("Forbidden. Only the team leader or admin can update team details", 403);
 		}
 
 		let firstEverCompletion = false;
-		if (status === TeamStatus.COMPLETED) {
-			const project = await prisma.project.findUnique({
-				where: { id: team.projectId },
-				select: { hasBeenCompleted: true },
-			});
-			if (project && !project.hasBeenCompleted) {
-				firstEverCompletion = true;
-				await prisma.project.update({
+		const updateData: any = {};
+
+		if (status) {
+			if (!Object.values(TeamStatus).includes(status)) {
+				return err("Valid team status is required", 400);
+			}
+			updateData.status = status as TeamStatus;
+
+			if (status === TeamStatus.COMPLETED) {
+				const project = await prisma.project.findUnique({
 					where: { id: team.projectId },
-					data: { hasBeenCompleted: true },
+					select: { hasBeenCompleted: true },
 				});
+				if (project && !project.hasBeenCompleted) {
+					firstEverCompletion = true;
+					await prisma.project.update({
+						where: { id: team.projectId },
+						data: { hasBeenCompleted: true },
+					});
+				}
 			}
 		}
 
+		if (name !== undefined) updateData.name = name;
+		if (repoUrl !== undefined) updateData.repoUrl = repoUrl;
+
 		const updatedTeam = await prisma.team.update({
 			where: { id: teamId },
-			data: { status: status as TeamStatus },
+			data: updateData,
 		});
 
 		return ok({ ...updatedTeam, _firstEverCompletion: firstEverCompletion });

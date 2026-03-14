@@ -46,7 +46,19 @@ export async function POST(
 
 		const teamId = params.id;
 		const body = await req.json();
-		const { weekNumber, summary, contributionNotes, photoUrls, readmeUpdated, blockersNotes } = body;
+		const { 
+			weekNumber, 
+			summary, 
+			contributionNotes, 
+			photoUrls, 
+			readmeUpdated, 
+			blockersNotes,
+			isMilestone,
+			milestoneTitle,
+			hoursLogged,
+			mood,
+			nextWeekPlan
+		} = body;
 
 		if (!weekNumber || !summary) {
 			return err("weekNumber and summary are required", 400);
@@ -60,8 +72,12 @@ export async function POST(
 			return err("Team not found", 404);
 		}
 
-		if (team.leaderId !== session.user.id) {
-			return err("Forbidden. Only the team leader can submit weekly reports", 403);
+		const isMember = await prisma.teamMember.findUnique({
+			where: { teamId_userId: { teamId, userId: session.user.id } },
+		});
+
+		if (!isMember) {
+			return err("Forbidden. Only team members can submit weekly reports", 403);
 		}
 
 		if (![TeamStatus.ACTIVE, TeamStatus.EVALUATING].includes(team.status as any)) {
@@ -91,6 +107,11 @@ export async function POST(
 				photoUrls: photoUrls || [],
 				readmeUpdated: Boolean(readmeUpdated),
 				blockersNotes,
+				isMilestone: Boolean(isMilestone),
+				milestoneTitle,
+				hoursLogged: hoursLogged ? parseFloat(hoursLogged) : null,
+				mood,
+				nextWeekPlan,
 			},
 		});
 
