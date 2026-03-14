@@ -73,6 +73,7 @@ model User {
   postMortems            ProjectPostMortem[]
   extensionRequestsReviewed ExtensionRequest[]
   disputesReviewed       EvaluationDispute[]
+  claimedSlots         EvaluationSlot[]      @relation("ClaimedSlots")
 
   @@map("users")
 }
@@ -164,6 +165,7 @@ model Team {
   damageReports       DamageReport[]
   feedbackReceived    EvaluationFeedback[] @relation("FeedbackTeamReceiver")
   evaluationSlots     EvaluationSlot[]
+  availabilityWindows AvailabilityWindow[]
   evaluations         Evaluation[]
   fabricationRequests FabricationRequest[]
   materialRequests    MaterialRequest[]
@@ -200,17 +202,39 @@ model TeamMember {
   @@map("team_members")
 }
 
-model EvaluationSlot {
-  id               String               @id @default(cuid())
-  createdAt        DateTime             @default(now()) @map("created_at")
-  teamId           String               @map("team_id")
-  openedAt         DateTime             @default(now()) @map("opened_at")
-  availableWindows Json                 @map("available_windows")
-  status           EvaluationSlotStatus @default(OPEN)
-  team             Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  evaluations      Evaluation[]
+model AvailabilityWindow {
+  id        String           @id @default(cuid())
+  teamId    String           @map("team_id")
+  startTime DateTime         @map("start_time")
+  endTime   DateTime         @map("end_time")
+  isOpen    Boolean          @default(true) @map("is_open")
+  createdAt DateTime         @default(now()) @map("created_at")
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  slots     EvaluationSlot[]
 
   @@index([teamId])
+  @@map("availability_windows")
+}
+
+model EvaluationSlot {
+  id                   String     @id @default(cuid())
+  createdAt            DateTime   @default(now()) @map("created_at")
+  availabilityWindowId String     @map("availability_window_id")
+  teamId               String     @map("team_id")
+  slotStart            DateTime   @map("slot_start")
+  slotEnd              DateTime   @map("slot_end")
+  claimedById          String?    @map("claimed_by_id")
+  claimedAt            DateTime?  @map("claimed_at")
+  status               SlotStatus @default(OPEN)
+  
+  window      AvailabilityWindow @relation(fields: [availabilityWindowId], references: [id], onDelete: Cascade)
+  team        Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  evaluations Evaluation[]
+  claimedBy   User?              @relation("ClaimedSlots", fields: [claimedById], references: [id])
+
+  @@index([availabilityWindowId])
+  @@index([teamId])
+  @@index([claimedById])
   @@map("evaluation_slots")
 }
 
@@ -728,10 +752,11 @@ enum TeamStatus {
   ABANDONED
 }
 
-enum EvaluationSlotStatus {
+enum SlotStatus {
   OPEN
-  FILLED
-  CLOSED
+  CLAIMED
+  COMPLETED
+  NO_SHOW
 }
 
 enum EvaluationStatus {
@@ -794,6 +819,8 @@ enum ProposalStatus {
 
 enum NotificationType {
   EVAL_SLOT_AVAILABLE
+  EVAL_SLOT_CLAIMED
+  EVAL_CANCELLED
   BLACKHOLE_WARNING
   PRINT_APPROVED
   REPORT_DUE

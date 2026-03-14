@@ -11,6 +11,7 @@ import { WorkshopSidebar } from "@/components/home/WorkshopSidebar";
 import { RecentAchievements } from "@/components/home/RecentAchievements";
 import { MissionTicker } from "@/components/home/MissionTicker";
 import { BirthdaySection } from "@/components/home/BirthdaySection";
+import { UpcomingEvaluations } from "@/components/home/UpcomingEvaluations";
 
 export default async function HomePage() {
 	const session = await getServerSession(authOptions);
@@ -27,6 +28,10 @@ export default async function HomePage() {
 				{/* Identity Strip */}
 				<Suspense fallback={<div className="h-12 w-full animate-pulse rounded-lg bg-panel2" />}>
 					<UserOverview userId={userId} />
+				</Suspense>
+
+				<Suspense fallback={null}>
+					<UpcomingEvaluations />
 				</Suspense>
 
 				<Suspense fallback={<div className="h-4 w-1/2 animate-pulse rounded bg-panel2" />}>

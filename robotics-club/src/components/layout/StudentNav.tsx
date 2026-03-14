@@ -10,6 +10,7 @@ export function StudentNav({ role, isAdmin }: { role?: string; isAdmin?: boolean
 		{ href: "/home", label: "Home" },
 		{ href: "/cursus", label: "Cursus" },
 		{ href: "/profile", label: "Profile" },
+		{ href: "/evaluations", label: "Evaluations" },
 		{ href: "/showcase", label: "Showcase" },
 		{ href: "/requests", label: "Requests" },
 		{ href: "/settings", label: "Settings" },
