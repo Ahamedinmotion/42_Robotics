@@ -31,12 +31,28 @@ function timeAgo(dateStr: string) {
 export function NotificationList({ notifications: initial }: { notifications: Notification[] }) {
 	const [notifications, setNotifications] = useState(initial);
 
-	const markAsRead = async (id: string) => {
+	const markAsRead = async (id: string, e?: React.MouseEvent) => {
+		if (e) e.stopPropagation();
 		try {
 			await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
 			setNotifications((prev) =>
 				prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n))
 			);
+		} catch {
+			// Silently fail
+		}
+	};
+
+	const dismissNotification = async (id: string, e: React.MouseEvent) => {
+		e.stopPropagation();
+		try {
+			// Optimistic UI
+			setNotifications((prev) => prev.filter((n) => n.id !== id));
+			
+			await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+			
+			// Dispatch event for EasterEggManager
+			window.dispatchEvent(new CustomEvent("rc-notification-dismissed", { detail: { id } }));
 		} catch {
 			// Silently fail
 		}
@@ -52,9 +68,17 @@ export function NotificationList({ notifications: initial }: { notifications: No
 				<li
 					key={n.id}
 					onClick={() => !n.readAt && markAsRead(n.id)}
-					className={`flex cursor-pointer items-start gap-3 rounded-lg p-2 transition-colors hover:bg-panel2 ${!n.readAt ? "bg-panel2/40" : "opacity-60"
+					className={`group relative flex cursor-pointer items-start gap-3 rounded-lg p-2 transition-colors hover:bg-panel2 ${!n.readAt ? "bg-panel2/40" : "opacity-60"
 						}`}
 				>
+					<button 
+						onClick={(e) => dismissNotification(n.id, e)}
+						className="absolute right-1 top-1 p-1 opacity-0 group-hover:opacity-100 hover:text-accent transition-opacity rounded-full hover:bg-black/10"
+					>
+						<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+							<path d="M18 6L6 18M6 6l12 12" />
+						</svg>
+					</button>
 					<span
 						className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full"
 						style={{

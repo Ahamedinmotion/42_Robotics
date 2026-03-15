@@ -1,4 +1,4 @@
-import { PrismaClient, Status, Rank, Theme, ProjectStatus, TeamStatus } from '@prisma/client';
+import { PrismaClient, Status, Rank, ProjectStatus, TeamStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -86,7 +86,7 @@ async function main() {
 				currentRank: u.currentRank,
 				labAccessEnabled: u.labAccessEnabled,
 				githubHandle: `${u.login}_gh`,
-				activeTheme: Theme.FORGE,
+				activeTheme: "FORGE",
 				joinedAt: new Date(),
 			},
 		});
@@ -103,6 +103,15 @@ async function main() {
 		{ key: "PROJECT_PROPOSAL_ACCEPTED", title: "Curriculum Maker", description: "Had a project proposal accepted into the curriculum", icon: "lightbulb" },
 		{ key: "EVALUATOR_STREAK", title: "Sharp Eye", description: "Completed 5 evaluations with no quality flags", icon: "eye" },
 		{ key: "ALUMNI", title: "S Rank", description: "Completed the full Robotics Club cursus", icon: "crown" },
+		{ key: "PATIENCE", title: "Patience", description: "...", icon: "clock" },
+		{ key: "FOUND_NOTHING", title: "Found Nothing", description: "...", icon: "help-circle" },
+		{ key: "UNREACHABLE", title: "Unreachable", description: "...", icon: "bell-off" },
+		{ key: "STARED_INTO_VOID", title: "Stared Into The Void", description: "...", icon: "eye-off" },
+		{ key: "PATIENT_ZERO", title: "Patient Zero", description: "...", icon: "bug" },
+		{ key: "YOU_WERE_EXPECTED", title: "You Were Expected", description: "...", icon: "ghost" },
+		{ key: "INTERIOR_DECORATOR", title: "Interior Decorator", description: "...", icon: "palette" },
+		{ key: "YOU_WERE_NEVER_SUPPOSED_TO_FIND_THIS", title: "You Were Never Supposed To Find This", description: "...", icon: "lock" },
+		{ key: "RELENTLESS", title: "Relentless", description: "...", icon: "flame" },
 	];
 
 	for (const a of achievementsToCreate) {
@@ -149,6 +158,12 @@ async function main() {
 			title: "Computer Vision Sorting System", rank: Rank.A, status: ProjectStatus.ACTIVE, teamSizeMin: 3, teamSizeMax: 5, blackholeDays: 56,
 			skillTags: ["computer_vision", "embedded_systems", "mechanical_design", "firmware"], isUnique: true,
 			description: "Build a conveyor-based system that uses a camera and computer vision to identify and sort objects by colour and shape. Covers OpenCV, model inference, actuator control, and system integration.",
+			createdById: createdUsers["president_user"].id,
+		},
+		{
+			title: "Humanoid Locomotion Engine", rank: Rank.S, status: ProjectStatus.ACTIVE, teamSizeMin: 3, teamSizeMax: 3, blackholeDays: 90,
+			skillTags: ["control_theory", "firmware", "mechanical_design", "ai"], isUnique: true,
+			description: "The final mission. Develop a bipedal walking algorithm for the club's flagship humanoid platform.",
 			createdById: createdUsers["president_user"].id,
 		},
 	];
@@ -206,6 +221,24 @@ async function main() {
 					{ userId: createdUsers["student_b"].id, isLeader: true },
 					{ userId: createdUsers["student_c"].id, isLeader: false },
 					{ userId: createdUsers["student_a"].id, isLeader: false },
+				]
+			}
+		}
+	});
+
+	const team3 = await prisma.team.upsert({
+		where: { id: "seed-team-3" },
+		update: {},
+		create: {
+			id: "seed-team-3",
+			projectId: createdProjects["Humanoid Locomotion Engine"].id,
+			leaderId: createdUsers["president_user"].id,
+			status: TeamStatus.COMPLETED,
+			activatedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+			rank: Rank.S,
+			members: {
+				create: [
+					{ userId: createdUsers["president_user"].id, isLeader: true },
 				]
 			}
 		}

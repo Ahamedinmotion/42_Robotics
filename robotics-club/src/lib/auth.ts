@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import prisma from "@/lib/prisma";
 import { getRolePermissions, isRoleAdmin } from "@/lib/permissions";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions: NextAuthOptions = {
 	providers: [
@@ -24,6 +25,29 @@ export const authOptions: NextAuthOptions = {
 			},
 			allowDangerousEmailAccountLinking: true,
 		},
+		CredentialsProvider({
+			id: "credentials",
+			name: "Developer Access",
+			credentials: {},
+			async authorize() {
+				// Only allow bypass in development
+				if (process.env.NODE_ENV !== "development") return null;
+
+				const user = await prisma.user.findUnique({
+					where: { login: "sshameer" },
+				});
+
+				if (!user) return null;
+
+				return {
+					id: user.id,
+					login: user.login,
+					name: user.name,
+					email: user.email,
+					image: user.image,
+				};
+			},
+		}),
 	],
 	session: {
 		strategy: "jwt",

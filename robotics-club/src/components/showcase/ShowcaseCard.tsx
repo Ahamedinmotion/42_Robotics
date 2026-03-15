@@ -47,7 +47,20 @@ interface ShowcaseCardProps {
 
 export function ShowcaseCard({ team }: ShowcaseCardProps) {
 	const isInProgress = team.status !== "COMPLETED";
-	const tags = (team.project.skillTags as string[]) || [];
+	const rawTags = (team.project.skillTags as string[]) || [];
+
+	// Quest Stage 2 deterministic logic
+	const now = new Date();
+	const isMonday = now.getDay() === 1;
+	const startOfYear = new Date(now.getFullYear(), 0, 1);
+	const weekNumber = Math.ceil((((now.getTime() - startOfYear.getTime()) / 86400000) + startOfYear.getDay() + 1) / 7);
+	
+	// I need the index of the card in the list, but ShowcaseCard doesn't know its index.
+	// I'll use the first 8 characters of the team ID as a seed instead of index for stability.
+	const teamSeed = parseInt(team.id.substring(0, 8), 16) || 0;
+	const isQuestCard = isMonday && (teamSeed % 10 === (weekNumber % 10)); // Arbitrary stable match
+
+	const tags = isQuestCard ? [...rawTags].sort().reverse() : rawTags;
 	const visibleTags = tags.slice(0, 3);
 	const extra = tags.length - 3;
 	const visibleMembers = team.members.slice(0, 3);
@@ -104,15 +117,37 @@ export function ShowcaseCard({ team }: ShowcaseCardProps) {
 					<p className="line-clamp-2 text-xs text-text-muted">{team.project.description}</p>
 				)}
 
-				{/* Skill tags */}
 				<div className="flex flex-wrap gap-1">
-					{visibleTags.map((t) => (
-						<span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted">
-							{titleCase(t)}
-						</span>
-					))}
+					{visibleTags.map((t, idx) => {
+						const isLastTag = idx === visibleTags.length - 1 && extra === 0;
+						const isQuested = isQuestCard && isLastTag;
+						
+						return (
+							<span 
+								key={t} 
+								className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted cursor-default"
+								data-quest-stage={isQuested ? "2" : undefined}
+								onClick={(e) => {
+									if (isQuested) {
+										sessionStorage.setItem("questStage2Complete", "true");
+										// Silent - no visual feedback
+									}
+								}}
+							>
+								{titleCase(t)}
+							</span>
+						);
+					})}
 					{extra > 0 && (
-						<span className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted">
+						<span 
+							className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-text-muted"
+							data-quest-stage={isQuestCard ? "2" : undefined}
+							onClick={() => {
+								if (isQuestCard) {
+									sessionStorage.setItem("questStage2Complete", "true");
+								}
+							}}
+						>
 							+{extra} more
 						</span>
 					)}

@@ -75,6 +75,19 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 	const [isIdle, setIsIdle] = useState(false);
 	const lastActivityRef = useRef(Date.now());
 	const [idleTime, setIdleTime] = useState(0);
+	const [showGhost, setShowGhost] = useState(false);
+	const [flashMessage, setFlashMessage] = useState<string | null>(null);
+
+	// Quest Stage 3 logic
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const stage2 = sessionStorage.getItem("questStage2Complete");
+			const stage3 = sessionStorage.getItem("questStage3Complete");
+			if (stage2 === "true" && stage3 !== "true") {
+				setShowGhost(true);
+			}
+		}
+	}, []);
 
 	// Idle detection
 	useEffect(() => {
@@ -139,6 +152,18 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 			nodePositions.set(node.id, { x, y });
 		});
 	});
+
+	// Ghost node position
+	const ghostPos = (() => {
+		if (!showGhost) return null;
+		const radius = RING_RADII.S * 1.25 + 40; // Slightly further out
+		const nodes = projects.S || [];
+		const angle = (2 * Math.PI * (nodes.length - 0.5)) / (nodes.length || 1) - Math.PI / 2 + 5 * 0.25;
+		return {
+			x: CX + radius * Math.cos(angle),
+			y: CY + radius * Math.sin(angle),
+		};
+	})();
 
 	// Connection lines between rings
 	const connections: { x1: number; y1: number; x2: number; y2: number }[] = [];
@@ -448,7 +473,37 @@ export function SkillTree({ projects, userRank, activeTeamProjectId }: SkillTree
 						<text x={CX} y={CY - 5} textAnchor="middle" dominantBaseline="middle" fill="var(--accent)" fontSize={18} fontWeight="900">RC</text>
 						<text x={CX} y={CY + 15} textAnchor="middle" dominantBaseline="middle" fill={RANK_COLOURS[userRank] || "#888"} fontSize={12} fontWeight="bold">{userRank}</text>
 					</g>
+
+					{/* Ghost Node Stage 3 */}
+					{showGhost && ghostPos && (
+						<circle
+							cx={ghostPos.x}
+							cy={ghostPos.y}
+							r={6}
+							fill="white"
+							fillOpacity={0.15}
+							className="cursor-default"
+							onContextMenu={(e) => {
+								e.preventDefault();
+								setFlashMessage("42-0-0");
+								sessionStorage.setItem("questStage3Complete", "true");
+								setTimeout(() => {
+									setFlashMessage(null);
+									setShowGhost(false);
+								}, 3000);
+							}}
+						/>
+					)}
 				</svg>
+
+				{/* Flash Message */}
+				{flashMessage && (
+					<div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center animate-in fade-in duration-300">
+						<div className="text-sm font-bold tracking-widest text-text-muted opacity-60">
+							{flashMessage}
+						</div>
+					</div>
+				)}
 
 				{/* Tooltip */}
 				{hovered && (

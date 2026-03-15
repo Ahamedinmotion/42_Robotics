@@ -22,7 +22,9 @@ model User {
   currentRank            Rank                    @default(E) @map("current_rank")
   labAccessEnabled       Boolean                 @default(false) @map("lab_access_enabled")
   githubHandle           String?                 @map("github_handle")
-  activeTheme            Theme                   @default(FORGE) @map("active_theme")
+  activeTheme            String                  @default("FORGE") @map("active_theme")
+  unlockedThemes         String[]                @default(["FORGE", "FIELD"]) @map("unlocked_themes")
+  hasFoundSecrets        Boolean                 @default(false) @map("has_found_secrets")
   equippedTitle          String?                 @map("equipped_title")
   joinedAt               DateTime                @default(now()) @map("joined_at")
   soundsEnabled          Boolean                 @default(true) @map("sounds_enabled")
@@ -30,6 +32,13 @@ model User {
   birthday               DateTime?               @map("birthday")
   hasSeenIntro           Boolean                 @default(false) @map("has_seen_intro")
   hasSeenWaitlistModal   Boolean                 @default(false) @map("has_seen_waitlist_modal")
+  lastSeenUpdateScreen   DateTime?               @map("last_seen_update_screen")
+  visitedVoid            Boolean                 @default(false) @map("visited_void")
+  visitedHall            Boolean                 @default(false) @map("visited_hall")
+  visitedMirror          Boolean                 @default(false) @map("visited_mirror")
+  discoveredCheats       String[]                @default([]) @map("discovered_cheats")
+  receivedPlatformNotif  Boolean                 @default(false) @map("received_platform_notif")
+  survivedSystemUpdate   Boolean                 @default(false) @map("survived_system_update")
   accounts               Account[]
   auditLogsActed         AdminAuditLog[]         @relation("AdminActor")
   auditLogsTargeted      AdminAuditLog[]         @relation("AdminTarget")
@@ -401,8 +410,9 @@ model MaterialRequest {
   id            String            @id @default(cuid())
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
-  teamId        String            @map("team_id")
+  teamId        String?           @map("team_id")
   requestedById String            @map("requested_by_id")
+  category      MaterialCategory  @default(OTHER)
   itemName      String            @map("item_name")
   quantity      Int               @default(1)
   estimatedCost Float             @map("estimated_cost")
@@ -412,7 +422,7 @@ model MaterialRequest {
   reviewedById  String?           @map("reviewed_by_id")
   requestedBy   User              @relation("MaterialRequestor", fields: [requestedById], references: [id])
   reviewedBy    User?             @relation("MaterialReviewer", fields: [reviewedById], references: [id])
-  team          Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team          Team?             @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@index([requestedById])
@@ -471,12 +481,12 @@ model Title {
 }
 
 model UserTitle {
-  id         String   @id @default(cuid())
-  unlockedAt DateTime @default(now()) @map("unlocked_at")
-  userId     String   @map("user_id")
-  titleId    String   @map("title_id")
-  title      Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  unlockedAt      DateTime @default(now()) @map("unlocked_at")
+  userId          String   @map("user_id")
+  titleId         String   @map("title_id")
+  title           Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, titleId])
   @@index([userId])
@@ -637,15 +647,16 @@ model MoodBoardNote {
 }
 
 model FeatureRequest {
-  id          String               @id @default(cuid())
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
-  userId      String               @map("user_id")
+  id          String                @id @default(cuid())
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+  userId      String                @map("user_id")
+  category    FeatureRequestCategory @default(PLATFORM)
   title       String
   description String
-  status      FeatureRequestStatus @default(OPEN)
+  status      FeatureRequestStatus  @default(OPEN)
   votes       FeatureRequestVote[]
-  user        User                 @relation("FeatureRequestCreator", fields: [userId], references: [id], onDelete: Cascade)
+  user        User                  @relation("FeatureRequestCreator", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("feature_requests")
@@ -674,14 +685,15 @@ model DynamicRole {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   users       User[]
-
   @@map("dynamic_roles")
 }
 
 model ClubSettings {
   id                   String   @id @default("singleton")
   clubName             String   @default("Robotics Club") @map("club_name")
-  clubTagline          String   @default("A ranked engineering curriculum for the makers, builders, and breakers at 42.") @map("club_tagline")
+  clubTagline          String   @default("42 Robotics Club Platform") @map("club_tagline")
+  description          String   @default("A platform for the 42 Robotics Club members.")
+  logoUrl              String?  @map("logo_url")
   maxActiveMembers     Int      @default(30) @map("max_active_members")
   labOpenTime          String   @default("09:00") @map("lab_open_time")
   labCloseTime         String   @default("21:00") @map("lab_close_time")
@@ -693,6 +705,7 @@ model ClubSettings {
   allowAlumniEvals     Boolean  @default(true) @map("allow_alumni_evals")
   maintenanceMode      Boolean  @default(false) @map("maintenance_mode")
   maintenanceMessage   String   @default("The platform is currently under maintenance. Please check back later.") @map("maintenance_message")
+  goldenShimmerUntil   DateTime? @map("golden_shimmer_until")
   updatedAt            DateTime @updatedAt @map("updated_at")
   updatedById          String?  @map("updated_by_id")
   updatedBy            User?    @relation("SettingsUpdater", fields: [updatedById], references: [id])
@@ -843,6 +856,7 @@ enum NotificationType {
   MATERIAL_REQUEST_UPDATE
   DAMAGE_REPORT_UPDATE
   GENERAL
+  PLATFORM_OBSERVATION
 }
 
 enum ConflictStatus {
@@ -1026,4 +1040,18 @@ model CalibrationResponse {
   session      CalibrationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("calibration_responses")
+}
+enum MaterialCategory {
+  ELECTRONICS
+  HARDWARE
+  CONSUMABLE
+  OTHER
+}
+
+enum FeatureRequestCategory {
+  PLATFORM
+  PRINTERS
+  CNC
+  EQUIPMENT
+  FACILITY
 }

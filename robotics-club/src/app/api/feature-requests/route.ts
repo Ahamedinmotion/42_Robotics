@@ -27,6 +27,7 @@ export async function GET() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		requests.map((r: any) => ({
 			id: r.id,
+			category: r.category,
 			title: r.title,
 			description: r.description,
 			status: r.status,
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 	if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
 	const body = await req.json();
-	const { title, description } = body;
+	const { title, description, category } = body;
 
 	if (!title || !description) {
 		return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
 	const request = await prisma.featureRequest.create({
 		data: {
 			userId: session.user.id,
+			category: category || "PLATFORM",
 			title: title.slice(0, 200),
 			description: description.slice(0, 2000),
 		},

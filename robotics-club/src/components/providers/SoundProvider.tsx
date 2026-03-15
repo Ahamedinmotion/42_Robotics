@@ -40,72 +40,43 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
 		if (ctx.state === "suspended") ctx.resume();
 
 		const now = ctx.currentTime;
-		const osc = ctx.createOscillator();
-		const gain = ctx.createGain();
 
-		osc.connect(gain);
-		gain.connect(ctx.destination);
+		const createPing = (freq: number, startTime: number, duration: number, volume: number = 0.1) => {
+			const osc = ctx.createOscillator();
+			const gain = ctx.createGain();
+			osc.connect(gain);
+			gain.connect(ctx.destination);
+			osc.type = "sine";
+			osc.frequency.setValueAtTime(freq, startTime);
+			gain.gain.setValueAtTime(0, startTime);
+			gain.gain.linearRampToValueAtTime(volume, startTime + 0.05);
+			gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+			osc.start(startTime);
+			osc.stop(startTime + duration);
+		};
 
 		switch (type) {
 			case "button":
-				osc.type = "sine";
-				osc.frequency.setValueAtTime(800, now);
-				osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-				gain.gain.setValueAtTime(0.1, now);
-				gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-				osc.start(now);
-				osc.stop(now + 0.1);
+				createPing(880, now, 0.2, 0.05);
 				break;
 			case "claim":
-				osc.type = "triangle";
-				osc.frequency.setValueAtTime(440, now);
-				osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
-				gain.gain.setValueAtTime(0.1, now);
-				gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-				osc.start(now);
-				osc.stop(now + 0.2);
+				createPing(440, now, 0.4, 0.08);
+				createPing(880, now + 0.1, 0.3, 0.05);
 				break;
 			case "unlock":
-				// Arpeggio chime
 				[523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-					const o = ctx.createOscillator();
-					const g = ctx.createGain();
-					o.connect(g);
-					g.connect(ctx.destination);
-					o.type = "sine";
-					o.frequency.setValueAtTime(freq, now + i * 0.1);
-					g.gain.setValueAtTime(0, now + i * 0.1);
-					g.gain.linearRampToValueAtTime(0.1, now + i * 0.1 + 0.05);
-					g.gain.linearRampToValueAtTime(0, now + i * 0.1 + 0.3);
-					o.start(now + i * 0.1);
-					o.stop(now + i * 0.1 + 0.3);
+					createPing(freq, now + i * 0.08, 0.5, 0.06);
 				});
 				break;
 			case "achievement":
-				// Radiant chime
-				osc.type = "sine";
-				osc.frequency.setValueAtTime(880, now);
-				osc.frequency.exponentialRampToValueAtTime(1760, now + 0.5);
-				gain.gain.setValueAtTime(0.1, now);
-				gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
-				gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-				osc.start(now);
-				osc.stop(now + 0.5);
+				[880, 1108.73, 1318.51, 1760.00].forEach((freq, i) => {
+					createPing(freq, now + i * 0.1, 0.8, 0.07);
+				});
 				break;
 			case "konami":
-				// Classic 8-bit power up / sequence
+				// More musical/ethereal konami sequence
 				[261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-					const o = ctx.createOscillator();
-					const g = ctx.createGain();
-					o.connect(g);
-					g.connect(ctx.destination);
-					o.type = "square"; // Retro blocky sound
-					o.frequency.setValueAtTime(freq, now + i * 0.08);
-					g.gain.setValueAtTime(0, now + i * 0.08);
-					g.gain.linearRampToValueAtTime(0.05, now + i * 0.08 + 0.02);
-					g.gain.linearRampToValueAtTime(0, now + i * 0.08 + 0.1);
-					o.start(now + i * 0.08);
-					o.stop(now + i * 0.08 + 0.1);
+					createPing(freq, now + i * 0.08, 0.4, 0.05);
 				});
 				break;
 		}

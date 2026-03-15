@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { applyTheme } from "@/lib/theme";
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = "fixed" }: { variant?: "fixed" | "minimal" }) {
 	const [current, setCurrent] = useState<"FORGE" | "FIELD">("FORGE");
 
 	useEffect(() => {
@@ -31,6 +31,22 @@ export function ThemeToggle() {
 			// Silently fail
 		}
 	};
+
+	if (variant === "minimal") {
+		return (
+			<button
+				onClick={toggle}
+				className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-panel2 hover:text-accent"
+				title={`Switch to ${current === "FORGE" ? "FIELD" : "FORGE"}`}
+			>
+				<span
+					className="inline-block h-2 w-2 rounded-full"
+					style={{ backgroundColor: current === "FORGE" ? "#FF6B00" : "#8B9A46" }}
+				/>
+				{current}
+			</button>
+		);
+	}
 
 	return (
 		<button

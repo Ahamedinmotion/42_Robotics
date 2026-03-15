@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSound } from "@/components/providers/SoundProvider";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function AdminNav({ userRole, permissions }: { userRole?: string; permissions?: string[] }) {
 	const { playSFX } = useSound();
@@ -40,13 +41,16 @@ export function AdminNav({ userRole, permissions }: { userRole?: string; permiss
 					href={`/admin?section=${s.key}`}
 					onClick={() => playSFX("button")}
 					className={`text-sm font-medium transition-colors ${active === s.key
-							? "border-b-2 border-accent pb-0.5 text-accent"
-							: "text-text-muted hover:text-text-primary"
+						? "border-b-2 border-accent pb-0.5 text-accent"
+						: "text-text-muted hover:text-text-primary"
 						}`}
 				>
 					{s.label}
 				</Link>
 			))}
+			<div className="ml-auto flex items-center border-l border-border-color pl-5">
+				<ThemeToggle variant="minimal" />
+			</div>
 		</nav>
 	);
 }

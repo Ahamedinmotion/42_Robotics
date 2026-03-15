@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 
 interface FeatureReq {
 	id: string;
+	category: string;
 	title: string;
 	description: string;
 	status: string;
@@ -31,6 +32,7 @@ export function FeatureRequestList({ isAdmin = false }: { isAdmin?: boolean }) {
 	const [showAdd, setShowAdd] = useState(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
+	const [category, setCategory] = useState("PLATFORM");
 	const { toast } = useToast();
 
 	const fetchRequests = async () => {
@@ -54,12 +56,13 @@ export function FeatureRequestList({ isAdmin = false }: { isAdmin?: boolean }) {
 		const res = await fetch("/api/feature-requests", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ title, description }),
+			body: JSON.stringify({ title, description, category }),
 		});
 		if (res.ok) {
 			toast("Request submitted!");
 			setTitle("");
 			setDescription("");
+			setCategory("PLATFORM");
 			setShowAdd(false);
 			fetchRequests();
 		} else {
@@ -113,6 +116,20 @@ export function FeatureRequestList({ isAdmin = false }: { isAdmin?: boolean }) {
 						maxLength={200}
 						className={inputCls}
 					/>
+					<div className="space-y-1">
+						<label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Category</label>
+						<select
+							value={category}
+							onChange={(e) => setCategory(e.target.value)}
+							className={inputCls}
+						>
+							<option value="PLATFORM">Platform</option>
+							<option value="PRINTERS">Printers</option>
+							<option value="CNC">CNC</option>
+							<option value="EQUIPMENT">Equipment</option>
+							<option value="FACILITY">Facility</option>
+						</select>
+					</div>
 					<textarea
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
@@ -148,6 +165,9 @@ export function FeatureRequestList({ isAdmin = false }: { isAdmin?: boolean }) {
 									<h3 className="font-semibold text-text-primary">{r.title}</h3>
 									<span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_CHIP[r.status] || ""}`}>
 										{r.status}
+									</span>
+									<span className="rounded bg-panel2 px-2 py-0.5 text-[9px] font-medium text-text-muted">
+										{r.category || "PLATFORM"}
 									</span>
 								</div>
 								<p className="mb-2 text-sm text-text-muted line-clamp-2">{r.description}</p>

@@ -86,6 +86,20 @@ export default function LoginPage() {
 							<p className="text-center text-xs text-text-muted">
 								Unauthorised access is strictly prohibited. Logging in implies agreement to the robotics-club evaluation manifest.
 							</p>
+
+							{process.env.NODE_ENV === "development" && (
+								<div className="pt-4 border-t border-border-color/30">
+									<button
+										onClick={() => signIn("credentials", { callbackUrl: "/home" })}
+										className="group flex w-full items-center justify-center gap-2 rounded-lg border border-border-color bg-panel/30 py-3 text-xs font-black uppercase tracking-[0.2em] text-text-muted transition-all hover:bg-panel/60 hover:text-accent"
+									>
+										<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+										</svg>
+										Developer Access
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

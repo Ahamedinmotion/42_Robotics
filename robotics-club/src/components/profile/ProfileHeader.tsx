@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { ClientAvatar } from "./ClientAvatar";
 import { ProfileCard } from "./ProfileCard";
+import { THEMES } from "@/lib/themes";
 
 const RANK_COLOURS: Record<string, string> = {
 	E: "#888888", D: "#44AAFF", C: "#44FF88",
@@ -49,6 +50,56 @@ export function ProfileHeader({ user, title, completedProjects, evalsGiven, mile
 	const [showStats, setShowStats] = useState(false);
 	const [flashbackIndex, setFlashbackIndex] = useState(-1);
 	const [clickCount, setClickCount] = useState(0);
+	const [lastClickTime, setLastClickTime] = useState(0);
+	const [patienceMessage, setPatienceMessage] = useState(false);
+	const [showSimoleons, setShowSimoleons] = useState(false);
+
+	const handleRankClick = async () => {
+		const now = Date.now();
+		if (now - lastClickTime > 2000) {
+			setClickCount(1);
+		} else {
+			const newCount = clickCount + 1;
+			setClickCount(newCount);
+			
+			if (newCount === 42) {
+				// PATIENCE ASCENDED
+				import('canvas-confetti').then((confetti) => {
+					confetti.default({
+						particleCount: 150,
+						spread: 70,
+						origin: { y: 0.6 },
+						colors: ['#FFD700', '#FFA500', '#FF4500']
+					});
+				});
+				setPatienceMessage(true);
+				setTimeout(() => setPatienceMessage(false), 3000);
+				
+				// Unlock achievement
+				try {
+					await fetch("/api/user/achievements/unlock", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ key: "PATIENCE" }),
+					});
+				} catch (e) {
+					console.error("Failed to unlock Patience:", e);
+				}
+			}
+		}
+		setLastClickTime(now);
+	};
+
+	useEffect(() => {
+		const handleRosebud = () => {
+			if (showStats) {
+				setShowSimoleons(true);
+				setTimeout(() => setShowSimoleons(false), 3000);
+			}
+		};
+		window.addEventListener("rc-rosebud", handleRosebud);
+		return () => window.removeEventListener("rc-rosebud", handleRosebud);
+	}, [showStats]);
 
 	const handleAvatarClick = () => {
 		if (!user.isOwn) return;
@@ -105,16 +156,44 @@ export function ProfileHeader({ user, title, completedProjects, evalsGiven, mile
 				<div>
 					<div className="flex items-center gap-3">
 						<h1 className="text-2xl font-bold text-text-primary">{user.name}</h1>
-						<div onClick={() => setShowFlashback(true)} className="cursor-pointer transition-transform hover:scale-110 active:scale-95">
+						<div onClick={handleRankClick} className="cursor-pointer transition-transform hover:scale-110 active:scale-95">
 							<Badge rank={user.currentRank as any} size="lg" />
 						</div>
-						{title && (
-							<span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-								{title}
-							</span>
-						)}
 					</div>
-					<p className="text-sm text-text-muted">@{user.login}</p>
+
+					{patienceMessage && (
+						<div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+							<div className="bg-background/80 backdrop-blur-sm border border-accent p-6 rounded-lg shadow-2xl animate-in zoom-in duration-300 text-center">
+								<p className="text-accent font-bold text-lg mb-1">42.</p>
+								<p className="text-sm text-text-muted">You have too much free time.</p>
+								<p className="text-sm text-text-muted">We respect that.</p>
+							</div>
+						</div>
+					)}
+					
+					{title && (
+						<span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+							{title}
+						</span>
+					)}
+					
+					<div className="flex flex-wrap gap-1.5 mt-2">
+						{THEMES.map((t) => {
+							const isUnlocked = user.unlockedThemes?.includes(t.id);
+							return (
+								<div
+									key={t.id}
+									title={isUnlocked ? t.name : "???"}
+									className={`h-2 w-2 rounded-full transition-colors ${
+										isUnlocked 
+											? "bg-accent" 
+											: "bg-gray-800"
+									}`}
+								/>
+							);
+						})}
+					</div>
+					<p className="text-sm text-text-muted mt-1">@{user.login}</p>
 				</div>
 			</div>
 
@@ -165,9 +244,17 @@ export function ProfileHeader({ user, title, completedProjects, evalsGiven, mile
 					>
 						<h3 className="mb-6 text-center text-xl font-bold text-text-primary">Your Stats (the weird ones)</h3>
 						<div className="space-y-6">
-							<div className="flex items-center justify-between border-b border-border-color pb-2">
+							<div className="relative flex items-center justify-between border-b border-border-color pb-2">
 								<span className="text-sm text-text-muted">Total Lab Hours</span>
-								<span className="text-lg font-bold text-accent">{funStats.totalLabHours}h</span>
+								<div className="flex flex-col items-end">
+									<span className="text-lg font-bold text-accent">{funStats.totalLabHours}h</span>
+									{showSimoleons && (
+										<div className="absolute right-0 top-0 flex flex-col items-end animate-out fade-out slide-out-to-top duration-1000">
+											<span className="text-xs font-bold text-green-500">§1000</span>
+											<span className="text-[8px] text-green-400 opacity-50">Rosebud...</span>
+										</div>
+									)}
+								</div>
 							</div>
 							<div className="flex items-center justify-between border-b border-border-color pb-2">
 								<span className="text-sm text-text-muted">Longest Report</span>

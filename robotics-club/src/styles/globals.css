@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&family=Playfair+Display:ital,wght@0,400;0,900;1,400&family=Caveat:wght@400;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
 @layer base {
   :root {
     /* Forge Scheme */
@@ -57,9 +59,212 @@
     background-image: var(--bg-texture);
     background-attachment: fixed;
     color: var(--text-primary);
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--font-primary, system-ui, -apple-system, sans-serif);
     min-height: 100vh;
   }
+}
+
+/* --- SECRET THEMES --- */
+
+body.theme-vaporwave {
+  --background: #1a0533;
+  --panel: #2d0f4e;
+  --panel-2: #3d1a5e;
+  --accent: #ff71ce;
+  --accent-secondary: #01cdfe;
+  --accent-tertiary: #b967ff;
+  --accent-rgb: 255 113 206;
+  --text-primary: #fff;
+  --text-muted: #b388cc;
+  --border: #ff71ce44;
+  --glow-primary: rgba(255, 113, 206, 0.4);
+  --font-primary: 'Orbitron', sans-serif;
+  --bg-texture: linear-gradient(180deg, #1a0533 0%, #3d1a5e 100%);
+}
+
+body.theme-terminal {
+  --background: #000000;
+  --panel: #0a0a0a;
+  --panel-2: #111111;
+  --accent: #00ff41;
+  --accent-secondary: #008f11;
+  --accent-rgb: 0 255 65;
+  --text-primary: #00ff41;
+  --text-muted: #008f11;
+  --border: #00ff4133;
+  --glow-primary: rgba(0, 255, 65, 0.4);
+  --font-primary: 'Share Tech Mono', monospace;
+  --bg-texture: none;
+}
+
+body.theme-blueprint {
+  --background: #003366;
+  --panel: #004080;
+  --panel-2: #0050a0;
+  --accent: #ffffff;
+  --accent-rgb: 255 255 255;
+  --text-primary: #ffffff;
+  --text-muted: #aaccee;
+  --border: rgba(255, 255, 255, 0.2);
+  --glow-primary: rgba(255, 255, 255, 0.3);
+  --font-primary: 'Share Tech Mono', monospace;
+  --bg-texture: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+body.theme-newspaper {
+  --background: #f4f1ea;
+  --panel: #fff;
+  --panel-2: #e8e4d8;
+  --accent: #000;
+  --accent-rgb: 0 0 0;
+  --text-primary: #1a1a1a;
+  --text-muted: #666;
+  --border: #ccc;
+  --font-primary: 'Playfair Display', serif;
+  --bg-texture: none;
+  filter: grayscale(100%);
+}
+
+body.theme-deepsea {
+  --background: #000814;
+  --panel: #001d3d;
+  --panel-2: #003566;
+  --accent: #00f5d4;
+  --accent-secondary: #00b4d8;
+  --accent-rgb: 0 245 212;
+  --text-primary: #caf0f8;
+  --text-muted: #90e0ef;
+  --border: #00f5d433;
+  --glow-primary: rgba(0, 245, 212, 0.5);
+  --bg-texture: radial-gradient(circle at center, #001d3d 0%, #000814 100%);
+}
+
+body.theme-coffeeshop {
+  --background: #2c1e1a;
+  --panel: #3d2b24;
+  --panel-2: #4e3c33;
+  --accent: #d4a373;
+  --accent-secondary: #faedcd;
+  --accent-rgb: 212 163 115;
+  --text-primary: #fefae0;
+  --text-muted: #ccd5ae;
+  --border: #d4a37344;
+  --font-primary: 'Caveat', cursive;
+}
+
+body.theme-redacted {
+  --background: #e0e0e0;
+  --panel: #d0d0d0;
+  --panel-2: #c0c0c0;
+  --accent: #000;
+  --accent-rgb: 0 0 0;
+  --text-primary: #000;
+  --text-muted: #444;
+  --border: #44444466;
+  --font-primary: 'Courier Prime', monospace;
+}
+
+body.theme-redacted p, 
+body.theme-redacted span:not(.no-redact) {
+  position: relative;
+}
+
+body.theme-windows95 {
+  --background: #008080;
+  --panel: #c0c0c0;
+  --panel-2: #dfdfdf;
+  --accent: #000080;
+  --accent-rgb: 0 0 128;
+  --text-primary: #000;
+  --text-muted: #808080;
+  --border: #ffffff;
+  --bg-texture: none;
+}
+
+body.theme-windows95 div, 
+body.theme-windows95 button {
+  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff !important;
+  border-radius: 0 !important;
+}
+
+body.theme-matrix {
+  --background: #000;
+  --panel: rgba(0, 20, 0, 0.8);
+  --panel-2: rgba(0, 40, 0, 0.8);
+  --accent: #00ff41;
+  --accent-rgb: 0 255 65;
+  --text-primary: #00ff41;
+  --text-muted: #008f11;
+  --border: #00ff4166;
+  --font-primary: 'Share Tech Mono', monospace;
+}
+
+body.theme-gold {
+  --background: #050510;
+  --panel: #0a0a1a;
+  --panel-2: #12122a;
+  --accent: #d4af37;
+  --accent-secondary: #f9d71c;
+  --accent-rgb: 212 175 55;
+  --text-primary: #fff;
+  --text-muted: #a67c00;
+  --border: #d4af3766;
+  --glow-primary: rgba(212, 175, 55, 0.5);
+  --bg-texture: radial-gradient(circle at center, #12122a 0%, #050510 100%);
+}
+
+body.theme-crayola {
+  --background: #fff;
+  --panel: #fff;
+  --panel-2: #f0f0f0;
+  --accent: #ff0000;
+  --accent-secondary: #0000ff;
+  --accent-rgb: 255 0 0;
+  --text-primary: #000;
+  --text-muted: #666;
+  --border: #000;
+  --font-primary: 'Caveat', cursive;
+}
+
+body.theme-crayola * {
+  border-width: 3px !important;
+  border-radius: 20px 5px 15px 8px !important;
+}
+
+body.theme-synthwave {
+  --background: #241744;
+  --panel: #2b1a50;
+  --panel-2: #3a2268;
+  --accent: #f92aad;
+  --accent-secondary: #01cdfe;
+  --accent-rgb: 249 42 173;
+  --text-primary: #fff;
+  --text-muted: #fef6fb;
+  --border: #f92aad66;
+  --glow-primary: rgba(249, 42, 173, 0.6);
+  --font-primary: 'Orbitron', sans-serif;
+  --bg-texture: linear-gradient(180deg, #241744 0%, #3a2268 70%);
+}
+
+body.theme-highcontrast {
+  --background: #000;
+  --panel: #000;
+  --panel-2: #111;
+  --accent: #fff;
+  --accent-secondary: #fff;
+  --accent-rgb: 255 255 255;
+  --text-primary: #fff;
+  --text-muted: #ccc;
+  --border: #fff;
+  font-size: 1.1em;
+}
+
+body.theme-godmode {
+  transform: rotate(3deg);
+  transform-origin: center center;
+  transition: transform 0.3s ease;
 }
 
 @layer utilities {

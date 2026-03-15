@@ -67,9 +67,13 @@ export async function MissionTicker({ userId }: { userId: string }) {
 	}
 
 	return (
-		<div className="space-y-1">
-			<p className="text-sm font-semibold text-accent">{mission}</p>
-			{didYouKnow && <p className="text-xs text-text-muted">{didYouKnow}</p>}
+		<div className="rounded-xl border border-border-color/50 bg-panel/30 p-4 shadow-sm backdrop-blur-sm">
+			<p className="text-sm font-bold text-accent">{mission}</p>
+			{didYouKnow && (
+				<p className="mt-2 text-xs leading-relaxed text-text-muted opacity-80">
+					{didYouKnow}
+				</p>
+			)}
 		</div>
 	);
 }
