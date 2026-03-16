@@ -13,19 +13,21 @@ export function ProjectBrief({ project }: ProjectBriefProps) {
 	const { playSFX } = useSound();
 	const [showSubject, setShowSubject] = useState(false);
 
-	// Mocking structured lists for now as they aren't in the schema yet
-	// In a real scenario, these would be parts of the description or separate fields
-	const objectives = [
-		"Master basic sensor integration and data processing.",
-		"Implement a robust PID control loop for stability.",
-		"Optimize power consumption for extended mission duration.",
-	];
-
-	const deliverables = [
-		"Functional prototype demonstrating target behavior.",
-		"Technical documentation (PDF) including circuit diagrams.",
-		"Source code repository with clear build instructions.",
-	];
+	const objectives = project.objectives && project.objectives.length > 0 
+		? project.objectives 
+		: [
+			"Master basic sensor integration and data processing.",
+			"Implement a robust PID control loop for stability.",
+			"Optimize power consumption for extended mission duration.",
+		];
+	
+	const deliverables = project.deliverables && project.deliverables.length > 0
+		? project.deliverables
+		: [
+			"Functional prototype demonstrating target behavior.",
+			"Technical documentation (PDF) including circuit diagrams.",
+			"Source code repository with clear build instructions.",
+		];
 
 	// Calculating stats for duration
 	const completedTeams = (project.teams || []).filter((t: any) => t.status === "COMPLETED" && t.activatedAt && t.updatedAt);
@@ -48,7 +50,7 @@ export function ProjectBrief({ project }: ProjectBriefProps) {
 				<section className="space-y-4">
 					<h3 className="text-sm font-black uppercase tracking-widest text-text-muted">Learning Objectives</h3>
 					<ul className="space-y-3">
-						{objectives.map((obj, i) => (
+						{objectives.map((obj: string, i: number) => (
 							<li key={i} className="flex gap-3 text-sm text-text-secondary">
 								<span className="text-accent">▹</span>
 								{obj}
@@ -60,7 +62,7 @@ export function ProjectBrief({ project }: ProjectBriefProps) {
 				<section className="space-y-4">
 					<h3 className="text-sm font-black uppercase tracking-widest text-text-muted">Deliverables</h3>
 					<ul className="space-y-3">
-						{deliverables.map((del, i) => (
+						{deliverables.map((del: string, i: number) => (
 							<li key={i} className="flex gap-3 text-sm text-text-secondary">
 								<span className="text-emerald-400">✓</span>
 								{del}

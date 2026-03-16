@@ -133,6 +133,11 @@ export function EasterEggManager() {
 			});
 		};
 
+		const handleRetro = () => {
+			setIsRetro(prev => !prev);
+			playSFX("button");
+		};
+
 		window.addEventListener("rc-noclip", handleNoclip);
 		window.addEventListener("rc-xyzzy", handleXyzzy);
 		window.addEventListener("rc-devconsole", handleConsole);
@@ -140,6 +145,7 @@ export function EasterEggManager() {
 		window.addEventListener("rc-idkfa", handleIdkfa);
 		window.addEventListener("rc-quest-complete", handleQuestComplete);
 		window.addEventListener("rc-notification-dismissed", handleDismiss as any);
+		window.addEventListener("rc-retro", handleRetro);
 
 		return () => {
 			window.removeEventListener("rc-noclip", handleNoclip);
@@ -149,6 +155,7 @@ export function EasterEggManager() {
 			window.removeEventListener("rc-idkfa", handleIdkfa);
 			window.removeEventListener("rc-quest-complete", handleQuestComplete);
 			window.removeEventListener("rc-notification-dismissed", handleDismiss as any);
+			window.removeEventListener("rc-retro", handleRetro);
 		};
 	}, [playSFX, platformNotifId]);
 
@@ -300,18 +307,48 @@ export function EasterEggManager() {
 
 			{/* DEVCONSOLE */}
 			{devConsole && (
-				<div className="fixed top-0 right-0 h-screen w-80 bg-black/90 border-l border-green-500/30 z-[9000] font-mono p-4 text-[10px] text-green-500 overflow-hidden shadow-2xl animate-in slide-in-from-right duration-300">
+				<div className="fixed top-0 right-0 h-screen w-80 bg-black/95 border-l-2 border-green-500/50 z-[9999] font-mono p-4 text-[11px] text-green-400 overflow-hidden shadow-2xl animate-in slide-in-from-right duration-300">
 					<div className="flex justify-between items-center border-b border-green-500/30 pb-2 mb-4">
-						<span className="font-bold">RC DEV CONSOLE v1.0</span>
-						<button onClick={() => setDevConsole(false)} className="hover:text-white">[_]</button>
+						<span className="font-bold tracking-tighter">RC_MAINFRAME_ACCESS [v1.0.4]</span>
+						<button onClick={() => setDevConsole(false)} className="hover:text-white px-2">✕</button>
 					</div>
-					<div className="space-y-1 h-[calc(100vh-80px)] overflow-y-auto scrollbar-hide">
+					<div className="space-y-1 h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pr-2">
 						{consoleLogs.map(log => (
-							<div key={log.id} className="opacity-80 hover:opacity-100">
-								<span className="opacity-40">[{new Date().toLocaleTimeString()}]</span> {log.text}
+							<div key={log.id} className="opacity-90 hover:opacity-100 flex gap-2">
+								<span className="opacity-40 shrink-0 font-light">{new Date().toLocaleTimeString([], { hour12: false })}</span>
+								<span className="break-all">{log.text}</span>
 							</div>
 						))}
+						<div className="animate-pulse flex gap-2">
+							<span className="opacity-40 shrink-0">[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+							<span>_</span>
+						</div>
 					</div>
+				</div>
+			)}
+
+			{/* RETRO OVERLAY (Konami) */}
+			{isRetro && (
+				<div className="fixed inset-0 z-[9998] pointer-events-none overflow-hidden bg-black/20">
+					<div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-40" />
+					<div className="absolute inset-0 flex flex-col items-center justify-center">
+						<div className="text-white font-mono text-4xl font-black tracking-[0.2em] mb-8 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse">
+							RC_SYSTEMS_OVERRIDE
+						</div>
+						<div className="text-white/80 font-mono text-xl tracking-[0.5em] animate-flicker uppercase">
+							INSERT_COIN
+						</div>
+					</div>
+					<style dangerouslySetInnerHTML={{ __html: `
+						@keyframes flicker {
+							0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+							20%, 22%, 24%, 55% { opacity: 0; }
+						}
+						.animate-flicker { animation: flicker 3s infinite; }
+						html {
+							filter: sepia(0.2) contrast(1.2) brightness(1.1) saturate(1.2);
+						}
+					` }} />
 				</div>
 			)}
 

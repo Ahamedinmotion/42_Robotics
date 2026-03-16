@@ -49,8 +49,16 @@ export function CockpitHeader({ team, currentUser, isAdmin }: CockpitHeaderProps
 		<div className="bg-panel border-b border-white/5 p-6 shadow-2xl backdrop-blur-3xl">
 			<div className="container mx-auto max-w-6xl">
 				<div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-					{/* Left: Project & Team ID */}
+					{/* Left: Back & Project Info */}
 					<div className="flex items-center gap-6">
+						<a 
+							href="/cursus" 
+							className="group flex h-10 w-10 items-center justify-center rounded-full bg-panel-2 border border-white/5 text-text-muted hover:text-accent hover:border-accent/20 transition-all"
+							title="Back to Cursus"
+						>
+							<span className="text-xl transition-transform group-hover:-translate-x-1">←</span>
+						</a>
+						<div className="h-10 w-px bg-white/5" />
 						<Badge rank={team.project.rank} size="lg" />
 						<div className="space-y-1">
 							<p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Mission Active</p>

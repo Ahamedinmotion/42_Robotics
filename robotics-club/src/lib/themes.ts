@@ -45,8 +45,8 @@ export const THEMES: ThemeDefinition[] = [
 		duration: "toggle",
 		isExclusive: false,
 		bodyClass: "theme-blueprint",
-		triggerType: "click",
-		triggerValue: "lab-hours-5",
+		triggerType: "type",
+		triggerValue: "technologia",
 		fontFamily: "'Share Tech Mono', monospace",
 	},
 	{
@@ -69,8 +69,8 @@ export const THEMES: ThemeDefinition[] = [
 		duration: "toggle",
 		isExclusive: false,
 		bodyClass: "theme-deepsea",
-		triggerType: "click",
-		triggerValue: "avatar-logo-2s",
+		triggerType: "type",
+		triggerValue: "tentacles",
 	},
 	{
 		id: "coffeeshop",
@@ -92,8 +92,8 @@ export const THEMES: ThemeDefinition[] = [
 		duration: 180,
 		isExclusive: false,
 		bodyClass: "theme-redacted",
-		triggerType: "click",
-		triggerValue: "member-avatar-7",
+		triggerType: "type",
+		triggerValue: "epstein",
 		fontFamily: "'Courier Prime', monospace",
 	},
 	{
@@ -138,8 +138,8 @@ export const THEMES: ThemeDefinition[] = [
 		duration: "toggle",
 		isExclusive: false,
 		bodyClass: "theme-crayola",
-		triggerType: "click",
-		triggerValue: "robot404-10",
+		triggerType: "type",
+		triggerValue: "crayons are yummy",
 		fontFamily: "'Caveat', cursive",
 	},
 	{

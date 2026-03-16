@@ -95,29 +95,34 @@ async function main() {
 
 	// --- 2. Achievements ---
 	const achievementsToCreate = [
-		{ key: "FIRST_EVAL_GIVEN", title: "First Impression", description: "Completed your first evaluation as an evaluator", icon: "star" },
-		{ key: "FIRST_PROJECT_COMPLETED", title: "Off the Ground", description: "Completed your first project", icon: "rocket" },
-		{ key: "PERFECT_REPORT_STREAK", title: "Clockwork", description: "Submitted weekly reports on time for an entire project", icon: "clock" },
-		{ key: "DIVERSE_SKILLS", title: "Polymath", description: "Completed projects across 4 or more skill categories", icon: "brain" },
-		{ key: "TEAM_LEADER", title: "Point Person", description: "Served as team leader on a completed project", icon: "flag" },
-		{ key: "PROJECT_PROPOSAL_ACCEPTED", title: "Curriculum Maker", description: "Had a project proposal accepted into the curriculum", icon: "lightbulb" },
-		{ key: "EVALUATOR_STREAK", title: "Sharp Eye", description: "Completed 5 evaluations with no quality flags", icon: "eye" },
-		{ key: "ALUMNI", title: "S Rank", description: "Completed the full Robotics Club cursus", icon: "crown" },
-		{ key: "PATIENCE", title: "Patience", description: "...", icon: "clock" },
-		{ key: "FOUND_NOTHING", title: "Found Nothing", description: "...", icon: "help-circle" },
-		{ key: "UNREACHABLE", title: "Unreachable", description: "...", icon: "bell-off" },
-		{ key: "STARED_INTO_VOID", title: "Stared Into The Void", description: "...", icon: "eye-off" },
-		{ key: "PATIENT_ZERO", title: "Patient Zero", description: "...", icon: "bug" },
-		{ key: "YOU_WERE_EXPECTED", title: "You Were Expected", description: "...", icon: "ghost" },
-		{ key: "INTERIOR_DECORATOR", title: "Interior Decorator", description: "...", icon: "palette" },
-		{ key: "YOU_WERE_NEVER_SUPPOSED_TO_FIND_THIS", title: "You Were Never Supposed To Find This", description: "...", icon: "lock" },
-		{ key: "RELENTLESS", title: "Relentless", description: "...", icon: "flame" },
+		{ key: "FIRST_EVAL_GIVEN", title: "First Impression", description: "Completed your first evaluation as an evaluator", icon: "star", imageUrl: "/achievements/brain.png" },
+		{ key: "FIRST_PROJECT_COMPLETED", title: "Off the Ground", description: "Completed your first project", icon: "rocket", imageUrl: "/achievements/rocket.png" },
+		{ key: "PERFECT_REPORT_STREAK", title: "Clockwork", description: "Submitted weekly reports on time for an entire project", icon: "clock", imageUrl: "/achievements/clock.png" },
+		{ key: "DIVERSE_SKILLS", title: "Polymath", description: "Completed projects across 4 or more skill categories", icon: "brain", imageUrl: "/achievements/brain.png" },
+		{ key: "TEAM_LEADER", title: "Point Person", description: "Served as team leader on a completed project", icon: "flag", imageUrl: "/achievements/rocket.png" },
+		{ key: "PROJECT_PROPOSAL_ACCEPTED", title: "Curriculum Maker", description: "Had a project proposal accepted into the curriculum", icon: "lightbulb", imageUrl: "/achievements/brain.png" },
+		{ key: "EVALUATOR_STREAK", title: "Sharp Eye", description: "Completed 5 evaluations with no quality flags", icon: "eye", imageUrl: "/achievements/brain.png" },
+		{ key: "ALUMNI", title: "S Rank", description: "Completed the full Robotics Club cursus", icon: "crown", imageUrl: "/achievements/rocket.png" },
+		{ key: "PATIENCE", title: "Patience", description: "...", icon: "clock", imageUrl: "/achievements/clock.png" },
+		{ key: "FOUND_NOTHING", title: "Found Nothing", description: "...", icon: "help-circle", imageUrl: "/achievements/brain.png" },
+		{ key: "UNREACHABLE", title: "Unreachable", description: "...", icon: "bell-off", imageUrl: "/achievements/brain.png" },
+		{ key: "STARED_INTO_VOID", title: "Stared Into The Void", description: "...", icon: "eye-off", imageUrl: "/achievements/brain.png" },
+		{ key: "PATIENT_ZERO", title: "Patient Zero", description: "...", icon: "bug", imageUrl: "/achievements/brain.png" },
+		{ key: "YOU_WERE_EXPECTED", title: "You Were Expected", description: "...", icon: "ghost", imageUrl: "/achievements/brain.png" },
+		{ key: "INTERIOR_DECORATOR", title: "Interior Decorator", description: "...", icon: "palette", imageUrl: "/achievements/brain.png" },
+		{ key: "YOU_WERE_NEVER_SUPPOSED_TO_FIND_THIS", title: "You Were Never Supposed To Find This", description: "...", icon: "lock", imageUrl: "/achievements/brain.png" },
+		{ key: "RELENTLESS", title: "Relentless", description: "...", icon: "flame", imageUrl: "/achievements/brain.png" },
 	];
 
 	for (const a of achievementsToCreate) {
 		await prisma.achievement.upsert({
 			where: { key: a.key },
-			update: {},
+			update: {
+				title: a.title,
+				description: a.description,
+				icon: a.icon,
+				imageUrl: a.imageUrl
+			},
 			create: a,
 		});
 	}

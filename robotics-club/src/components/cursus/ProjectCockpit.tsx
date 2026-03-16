@@ -602,6 +602,22 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 					</Card>
 				)}
 			</div>
+			{/* SECTION 7 — Emergency Abort */}
+			<div className="pt-12 border-t border-border/50">
+				<div className="flex flex-col items-center gap-4">
+					<p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-urgency/40">Critical Fault Operations</p>
+					<Button 
+						variant="ghost" 
+						className="text-accent-urgency/60 hover:text-accent-urgency hover:bg-accent-urgency/10 border-accent-urgency/10 text-xs font-black uppercase tracking-[0.2em] px-8"
+						onClick={() => router.push(`/cursus/projects/${team.id}/cockpit?tab=danger`)}
+					>
+						Initiate Emergency Abort Sequence
+					</Button>
+					<p className="text-[9px] font-bold text-text-muted italic max-w-xs text-center">
+						Note: All squad members must confirm the abort sequence for terminal mission failure.
+					</p>
+				</div>
+			</div>
 		</div>
 	);
 }

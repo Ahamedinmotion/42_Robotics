@@ -15,7 +15,10 @@ export async function AdminContentSection({ userRole }: { userRole: string }) {
 		blackholeDays: p.blackholeDays,
 		skillTags: (p.skillTags as string[]) || [],
 		isUnique: p.isUnique,
-		subjectSheetUrl: p.subjectSheetUrl, evaluationSheetUrl: p.evaluationSheetUrl,
+		subjectSheetUrl: p.subjectSheetUrl, 
+		evaluationSheetUrl: p.evaluationSheetUrl,
+		objectives: p.objectives || [],
+		deliverables: p.deliverables || [],
 	});
 
 	return (

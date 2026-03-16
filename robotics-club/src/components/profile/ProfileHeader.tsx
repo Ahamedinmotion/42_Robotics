@@ -177,22 +177,6 @@ export function ProfileHeader({ user, title, completedProjects, evalsGiven, mile
 						</span>
 					)}
 					
-					<div className="flex flex-wrap gap-1.5 mt-2">
-						{THEMES.map((t) => {
-							const isUnlocked = user.unlockedThemes?.includes(t.id);
-							return (
-								<div
-									key={t.id}
-									title={isUnlocked ? t.name : "???"}
-									className={`h-2 w-2 rounded-full transition-colors ${
-										isUnlocked 
-											? "bg-accent" 
-											: "bg-gray-800"
-									}`}
-								/>
-							);
-						})}
-					</div>
 					<p className="text-sm text-text-muted mt-1">@{user.login}</p>
 				</div>
 			</div>

@@ -9,7 +9,7 @@ export class ThemeEngine {
 		if (!theme) return;
 
 		try {
-			const res = await fetch("/api/user/themes", {
+			const res = await fetch("/api/user/theme", {
 				method: "PATCH",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ unlockTheme: themeId }),
@@ -29,7 +29,7 @@ export class ThemeEngine {
 		}
 	}
 
-	static activateTheme(themeId: string, duration?: number | "permanent" | "toggle") {
+	static activateTheme(themeId: string, duration?: number | "permanent" | "toggle", unlockForUserId?: string) {
 		const theme = getThemeById(themeId);
 		const effectiveDuration = duration || (theme?.duration);
 
@@ -52,13 +52,28 @@ export class ThemeEngine {
 		// Handle persistence if toggle
 		if (effectiveDuration === "toggle" || effectiveDuration === "permanent") {
 			localStorage.setItem("rc-theme", themeId);
-			// Also sync to DB
-			fetch("/api/user/themes", {
+			
+			// Prepare payload for single sync to DB
+			const payload: any = { theme: themeId };
+			if (unlockForUserId) {
+				payload.unlockTheme = themeId;
+			}
+
+			// Sync to DB
+			fetch("/api/user/theme", {
 				method: "PATCH",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ activeTheme: themeId }),
+				body: JSON.stringify(payload),
+			}).then(async res => {
+				if (res.ok && unlockForUserId) {
+					const data = await res.json();
+					if (data.newlyUnlocked && theme) {
+						toast(`🎨 Theme Unlocked & Activated: ${theme.name}`, "success");
+					}
+				}
 			});
 		}
+
 
 		// Handle timed themes
 		if (typeof effectiveDuration === "number") {

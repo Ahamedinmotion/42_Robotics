@@ -14,11 +14,13 @@ export function useCheatCodes() {
 				return;
 			}
 
-			const key = e.key.length === 1 ? e.key.toLowerCase() : "";
-			if (!key) return;
+			const key = e.key;
+			if (key.length > 1 && !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return;
 
 			setBuffer((prev) => {
-				const newBuffer = (prev + key).slice(-30);
+				const char = key.length === 1 ? key.toLowerCase() : key;
+				const newBuffer = (prev + char).slice(-100);
+
 				
 				// Detect theme codes
 				const themeId = ThemeEngine.detectCheatCode(newBuffer);
@@ -36,19 +38,22 @@ export function useCheatCodes() {
 					} else if (themeId === "help") {
 						window.dispatchEvent(new CustomEvent("rc-help"));
 					} else {
-						// Regular theme unlock/activate
-						ThemeEngine.unlockTheme((session.user as any).id, themeId);
-						ThemeEngine.activateTheme(themeId);
+						// Unified theme unlock/activate to avoid race conditions
+						ThemeEngine.activateTheme(themeId, undefined, (session.user as any).id);
 					}
 					return ""; // Clear buffer on match
+
 				}
 				
-				// Konami Code
-				if (newBuffer.endsWith("arrowuparrowdownarrowdownarrowleftarrowrightarrowleftarrowrightarrowba")) {
-					ThemeEngine.activateTheme("8bit"); // Assuming 8-bit exists or will be added
-					toast("🎮 Konami Code! Old school mode activated.", "success");
+				// Konami Code (Retro)
+				const konami = "ArrowUpArrowUpArrowDownArrowDownArrowLeftArrowRightArrowLeftArrowRight";
+				if (newBuffer.endsWith(konami) || newBuffer.endsWith(konami.toLowerCase()) || newBuffer.endsWith(konami + "ba")) {
+					window.dispatchEvent(new CustomEvent("rc-retro"));
+					toast("🎮 Konami Code! Retro mode activated.", "success");
 					return "";
 				}
+
+
 
 				return newBuffer;
 			});

@@ -15,6 +15,7 @@ export async function POST(req: Request) {
 			title, description, rank, teamSizeMin, teamSizeMax,
 			blackholeDays, skillTags, isUnique,
 			subjectSheetUrl, evaluationSheetUrl, status,
+			objectives, deliverables,
 		} = body;
 
 		if (!title || !rank) return err("title and rank are required", 400);
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
 				isUnique: isUnique ?? false,
 				subjectSheetUrl: subjectSheetUrl || null,
 				evaluationSheetUrl: evaluationSheetUrl || null,
+				objectives: objectives || [],
+				deliverables: deliverables || [],
 				createdById: auth2.user.id,
 			},
 		});

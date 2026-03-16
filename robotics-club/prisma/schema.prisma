@@ -126,6 +126,8 @@ model Project {
   updatedAt          DateTime          @updatedAt @map("updated_at")
   title              String
   description        String
+  objectives         String[]          @default([])
+  deliverables       String[]          @default([])
   rank               Rank
   status             ProjectStatus     @default(DRAFT)
   teamSizeMin        Int               @map("team_size_min")
@@ -463,6 +465,7 @@ model Achievement {
   title           String
   description     String
   icon            String
+  imageUrl        String?           @map("image_url")
   unlockedTitleId String?           @unique @map("unlocked_title_id")
   unlockedTitle   Title?            @relation("AchievementTitle", fields: [unlockedTitleId], references: [id])
   users           UserAchievement[]

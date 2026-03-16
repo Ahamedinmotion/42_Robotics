@@ -210,52 +210,103 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 		: activeMembers;
 
 	return (
-		<div className="space-y-8">
-			{/* Stats bar */}
-			<div className="flex flex-wrap gap-3">
-				<span className={`rounded-full px-3 py-1 text-xs font-bold ${activeCount >= 25 ? "bg-red-900/40 text-red-400" : "bg-accent/20 text-accent"}`}>{activeCount} / {cap} Active</span>
-				<span className="rounded-full bg-panel2 px-3 py-1 text-xs font-bold text-text-muted">{waitlist.length} Waitlisted</span>
-				<span className="rounded-full bg-panel2 px-3 py-1 text-xs font-bold text-text-muted">{blackholed.length} Blackholed</span>
-				<span className="rounded-full bg-panel2 px-3 py-1 text-xs font-bold text-text-muted">{alumni.length} Alumni</span>
+		<div className="space-y-10 animate-in fade-in duration-700">
+			{/* Mission Personnel Status Bar */}
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+				{[
+					{ label: "Active Personnel", count: `${activeCount}/${cap}`, color: activeCount >= cap * 0.9 ? "text-red-400" : "text-accent", bg: activeCount >= cap * 0.9 ? "bg-red-500/10" : "bg-accent/10" },
+					{ label: "Pending Insertion", count: waitlist.length, color: "text-amber-400", bg: "bg-amber-500/10" },
+					{ label: "Operational Alumni", count: alumni.length, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+					{ label: "Void Containment", count: blackholed.length, color: "text-red-500", bg: "bg-red-950/20" },
+				].map((stat) => (
+					<div key={stat.label} className={`rounded-[2rem] border border-white/5 ${stat.bg} p-6 backdrop-blur-md transition-all hover:scale-105`}>
+						<p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">{stat.label}</p>
+						<p className={`text-3xl font-black ${stat.color} tracking-tighter`}>{stat.count}</p>
+					</div>
+				))}
 			</div>
 
-			{/* Active members */}
-			<Card className="space-y-3">
-				<div className="flex items-center justify-between">
-					<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Active Members</h3>
-					<input
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search members..."
-						className="w-48 rounded-md border border-border-color bg-background px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
-					/>
+			{/* Personnel Directory */}
+			<Card className="relative overflow-hidden border-white/5 bg-panel-2/30 backdrop-blur-2xl rounded-[2.5rem] p-8">
+				<div className="absolute top-0 right-0 h-64 w-64 bg-accent/5 blur-[100px] pointer-events-none" />
+				<div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4 relative">
+					<div className="flex items-center gap-4">
+						<div className="h-12 w-1.5 rounded-full bg-accent" />
+						<h3 className="text-xl font-black uppercase tracking-tighter text-text-primary">Personnel Directory</h3>
+					</div>
+					<div className="relative w-full md:w-72">
+						<input
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							placeholder="LOOKUP_LOGIN..."
+							className="w-full rounded-2xl border border-white/5 bg-black/20 px-6 py-4 text-xs text-text-primary placeholder:text-text-muted/40 outline-none focus:border-accent/40 font-mono transition-all"
+						/>
+					</div>
 				</div>
-				<div className="overflow-x-auto">
-					<table className="w-full text-sm">
-						<thead><tr className="border-b border-border-color text-left text-xs text-text-muted">
-							<th className="py-2">Member</th><th>Rank</th><th>Project</th><th>Blackhole</th><th>Activity</th><th>Done</th><th className="text-right">Actions</th>
-						</tr></thead>
+				<div className="overflow-x-auto relative">
+					<table className="w-full">
+						<thead>
+							<tr className="text-left text-[9px] font-black uppercase tracking-[0.3em] text-text-muted/50">
+								<th className="pb-6 pl-4">Member_ID</th>
+								<th className="pb-6">Clearance</th>
+								<th className="pb-6">Active_Duty</th>
+								<th className="pb-6">Void_Proximity</th>
+								<th className="pb-6">Last_Log</th>
+								<th className="pb-6">Efficiency</th>
+								<th className="pb-6 pr-4 text-right">Ops</th>
+							</tr>
+						</thead>
 						<tbody>
 							{filtered.map((m) => {
 								const bhDays = m.blackholeDeadline ? daysUntil(m.blackholeDeadline) : null;
+								const health = bhDays !== null && bhDays < 3 ? "text-red-500" : m.daysAgo > 7 ? "text-amber-500" : "text-emerald-400";
+								
 								return (
-									<tr key={m.id} className={`border-b border-border-color border-l-2 ${healthColour(m.daysAgo, bhDays)}`}>
-										<td className="py-2">
-											<div className="flex items-center gap-2">
-												{m.image ? (
-													<Image src={m.image} width={24} height={24} className="h-6 w-6 rounded-full object-cover" alt="" />
-												) : (
-													<div className="flex h-6 w-6 items-center justify-center rounded-full bg-panel2 text-[9px] font-bold text-text-muted">{m.login[0].toUpperCase()}</div>
-												)}
-												<div><p className="font-medium text-text-primary">{m.name}</p><p className="text-[10px] text-text-muted">@{m.login}</p></div>
+									<tr key={m.id} className="group border-b border-white/5 transition-colors hover:bg-white/5">
+										<td className="py-5 pl-4">
+											<div className="flex items-center gap-4">
+												<div className="relative h-10 w-10 shrink-0">
+													{m.image ? (
+														<Image src={m.image} width={40} height={40} className="h-full w-full rounded-2xl object-cover border border-white/10" alt="" />
+													) : (
+														<div className="flex h-full w-full items-center justify-center rounded-2xl bg-panel2 text-xs font-black text-text-muted border border-white/10 uppercase">{m.login.slice(0, 2)}</div>
+													)}
+													<div className={`absolute -right-1 -bottom-1 h-3 w-3 rounded-full border-2 border-panel shadow-lg ${health === "text-red-500" ? "bg-red-500 animate-pulse" : health === "text-amber-500" ? "bg-amber-500" : "bg-emerald-500"}`} />
+												</div>
+												<div>
+													<p className="font-black text-text-primary uppercase tracking-tight leading-none">{m.name}</p>
+													<p className="text-[10px] text-text-muted font-bold tracking-widest uppercase mt-1">@{m.login}</p>
+												</div>
 											</div>
 										</td>
-										<td><Badge rank={m.currentRank as any} size="sm" /></td>
-										<td className="text-text-muted">{m.projectTitle || "—"}</td>
-										<td className="text-text-muted">{bhDays !== null ? `${bhDays}d` : "—"}</td>
-										<td className="text-text-muted">{m.daysAgo}d ago</td>
-										<td className="text-text-muted">{m.completedCount}</td>
-										<td className="text-right">
+										<td>
+											<Badge rank={m.currentRank as any} size="sm" className="rounded-lg px-2 py-1 font-black shadow-none border-white/5" />
+										</td>
+										<td>
+											<p className="text-[10px] font-black uppercase text-text-primary tracking-tight max-w-[120px] truncate">
+												{m.projectTitle || "UNASSIGNED"}
+											</p>
+										</td>
+										<td>
+											{bhDays !== null ? (
+												<div className="flex items-center gap-2">
+													<span className={`text-xs font-black tabular-nums ${bhDays < 3 ? "text-red-500" : "text-text-primary opacity-80"}`}>{bhDays}D</span>
+													<div className="h-1.5 w-12 rounded-full bg-white/5 overflow-hidden">
+														<div className={`h-full transition-all ${bhDays < 3 ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" : "bg-accent/40"}`} style={{ width: `${Math.min(100, (bhDays / 30) * 100)}%` }} />
+													</div>
+												</div>
+											) : <span className="text-[9px] font-bold text-text-muted italic opacity-40">STABLE</span>}
+										</td>
+										<td>
+											<span className="text-[10px] font-bold text-text-muted uppercase tabular-nums">{m.daysAgo}D_AGO</span>
+										</td>
+										<td>
+											<div className="flex items-center gap-1.5">
+												<span className="text-xs font-black text-text-primary">{m.completedCount}</span>
+												<div className="h-1 w-1 rounded-full bg-accent/30" />
+											</div>
+										</td>
+										<td className="pr-4 text-right">
 											<ActionMenu
 												member={m}
 												loading={loading !== null}
@@ -275,49 +326,72 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 				</div>
 			</Card>
 
-			{/* Waitlist */}
-			<Card className="space-y-2">
-				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Waitlist</h3>
-				{waitlist.length === 0 ? <p className="text-sm italic text-text-muted">No one waiting</p> : (
-					<table className="w-full text-sm">
-						<thead><tr className="border-b border-border-color text-left text-xs text-text-muted"><th className="py-2">#</th><th>Member</th><th>Joined</th><th>Actions</th></tr></thead>
-						<tbody>
+			{/* Waitlist & Blackholed Grid */}
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+				{/* Waitlist */}
+				<Card className="border-white/5 bg-panel-2/30 backdrop-blur-xl rounded-[2.5rem] p-8">
+					<div className="flex items-center gap-3 mb-6">
+						<div className="h-8 w-1 rounded-full bg-amber-500" />
+						<h3 className="text-sm font-black uppercase tracking-[0.2em] text-amber-500">Waitlist Containment</h3>
+					</div>
+					
+					{waitlist.length === 0 ? <p className="text-xs font-bold text-text-muted/40 uppercase tracking-widest text-center py-8 italic">No subjects in waitlist</p> : (
+						<div className="space-y-3">
 							{waitlist.map((m, i) => (
-								<tr key={m.id} className="border-b border-border-color">
-									<td className="py-2 text-text-muted">{i + 1}</td>
-									<td>
-										<div className="flex items-center gap-2">
-											{m.image ? (
-												<Image src={m.image} width={20} height={20} className="h-5 w-5 rounded-full object-cover" alt="" />
-											) : (
-												<div className="flex h-5 w-5 items-center justify-center rounded-full bg-panel2 text-[8px] font-bold text-text-muted">{m.login[0].toUpperCase()}</div>
-											)}
-											<span className="text-text-primary">{m.name}</span><span className="text-xs text-text-muted">@{m.login}</span>
+								<div key={m.id} className="group flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 transition-all hover:bg-white/10">
+									<div className="flex items-center gap-3">
+										<span className="text-[9px] font-black text-amber-500 opacity-40 tabular-nums">#0{i + 1}</span>
+										<div>
+											<p className="text-xs font-black text-text-primary uppercase tracking-tight leading-none">{m.name}</p>
+											<p className="text-[9px] text-text-muted font-bold tracking-widest uppercase mt-1">@{m.login}</p>
 										</div>
-									</td>
-									<td className="text-xs text-text-muted">{formatDate(m.joinedAt)}</td>
-									<td><Button variant="primary" size="sm" disabled={activeCount >= cap || loading !== null} onClick={() => callApi(`/api/admin/users/${m.id}/status`, { status: "ACTIVE" }, `${m.login} promoted`)}>Promote</Button></td>
-								</tr>
+									</div>
+									<Button 
+										variant="primary" 
+										className="h-9 px-4 rounded-xl bg-amber-500 text-black hover:bg-white hover:text-black font-black uppercase tracking-widest text-[8px] transition-all" 
+										disabled={activeCount >= cap || loading !== null} 
+										onClick={() => callApi(`/api/admin/users/${m.id}/status`, { status: "ACTIVE" }, `${m.login} promoted`)}
+									>
+										ACTIVATE
+									</Button>
+								</div>
 							))}
-						</tbody>
-					</table>
-				)}
-			</Card>
+						</div>
+					)}
+				</Card>
 
-			{/* Blackholed */}
-			<Card className="space-y-2">
-				<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Blackholed</h3>
-				{blackholed.length === 0 ? <p className="text-sm italic text-text-muted">None</p> : (
-					<ul className="space-y-2">
-						{blackholed.map((m) => (
-							<li key={m.id} className="flex items-center justify-between">
-								<div className="flex items-center gap-2"><span className="text-sm text-text-primary">{m.name}</span><span className="text-xs text-text-muted">@{m.login}</span></div>
-								<Button variant="ghost" size="sm" disabled={loading !== null} onClick={() => callApi(`/api/admin/users/${m.id}/status`, { status: "WAITLIST" }, `${m.login} reinstated`)}>Reinstate</Button>
-							</li>
-						))}
-					</ul>
-				)}
-			</Card>
+				{/* Blackholed */}
+				<Card className="border-red-500/10 bg-red-950/10 backdrop-blur-xl rounded-[2.5rem] p-8">
+					<div className="flex items-center gap-3 mb-6">
+						<div className="h-8 w-1 rounded-full bg-red-600 animate-pulse" />
+						<h3 className="text-sm font-black uppercase tracking-[0.2em] text-red-500">Void Residents</h3>
+					</div>
+					
+					{blackholed.length === 0 ? <p className="text-xs font-bold text-text-muted/40 uppercase tracking-widest text-center py-8 italic">Void is empty</p> : (
+						<div className="space-y-3">
+							{blackholed.map((m) => (
+								<div key={m.id} className="group flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10 transition-all hover:bg-red-500/10">
+									<div className="flex items-center gap-3">
+										<div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+										<div>
+											<p className="text-xs font-black text-text-primary uppercase tracking-tight leading-none">{m.name}</p>
+											<p className="text-[9px] text-text-muted font-bold tracking-widest uppercase mt-1">@{m.login}</p>
+										</div>
+									</div>
+									<Button 
+										variant="ghost" 
+										className="h-9 px-4 rounded-xl text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[8px] transition-all" 
+										disabled={loading !== null} 
+										onClick={() => callApi(`/api/admin/users/${m.id}/status`, { status: "WAITLIST" }, `${m.login} reinstated`)}
+									>
+										REINSTATE
+									</Button>
+								</div>
+							))}
+						</div>
+					)}
+				</Card>
+			</div>
 		</div>
 	);
 }

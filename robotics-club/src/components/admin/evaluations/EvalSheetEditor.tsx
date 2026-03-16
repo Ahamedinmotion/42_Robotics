@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { QuestionType } from "@prisma/client";
 
@@ -17,6 +18,7 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 	const [saving, setSaving] = useState(false);
 	const [sheet, setSheet] = useState<any>(null);
 	const [sections, setSections] = useState<any[]>([]);
+	const [showPreview, setShowPreview] = useState(false);
 
 	useEffect(() => {
 		fetch(`/api/admin/eval-sheets/${projectId}`)
@@ -113,13 +115,17 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 					<div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${isWeightValid ? 'border-emerald-500/20 text-emerald-500 bg-emerald-500/5' : 'border-red-500/20 text-red-500 bg-red-500/5'}`}>
 						Total Weight: {totalWeight}%
 					</div>
+					<Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)}>
+						{showPreview ? "Hide Preview" : "Live Preview"}
+					</Button>
 					<Button variant="primary" size="sm" onClick={saveSheet} disabled={saving}>
 						{saving ? "Saving..." : sheet ? `Save Version ${sheet.version + 1}` : "Create Rubric"}
 					</Button>
 				</div>
 			</div>
 
-			<div className="space-y-6">
+			<div className={`grid gap-8 ${showPreview ? 'lg:grid-cols-2' : ''}`}>
+				<div className="space-y-6">
 				{sections.map((section, sIdx) => (
 					<Card key={sIdx} className="overflow-hidden border-border-color/50">
 						<div className="bg-panel p-4 flex items-center justify-between border-b border-border-color/50">
@@ -263,6 +269,57 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 				>
 					+ Deploy New Section
 				</button>
+			</div>
+
+			{showPreview && (
+				<div className="sticky top-24 h-[calc(100vh-12rem)] overflow-y-auto p-8 rounded-[2.5rem] bg-panel-2 border border-accent/20 shadow-2xl animate-in slide-in-from-right-8 duration-500">
+					<div className="mb-8 flex items-center justify-between border-b border-white/5 pb-4">
+						<h3 className="text-sm font-black uppercase tracking-[0.2em] text-accent">Evaluator View</h3>
+						<Badge rank="S" size="sm" />
+					</div>
+					
+					<div className="space-y-12">
+						{sections.map((s, si) => (
+							<div key={si} className="space-y-6">
+								<div className="flex items-center gap-4">
+									<span className="h-px flex-1 bg-white/5" />
+									<h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">{s.title} ({s.weight}%)</h4>
+									<span className="h-px flex-1 bg-white/5" />
+								</div>
+								
+								<div className="space-y-8">
+									{s.questions.map((q: any, qi: number) => (
+										<div key={qi} className="space-y-3">
+											<div className="flex items-start justify-between">
+												<label className="text-sm font-bold text-text-primary">
+													{q.label} {q.required && <span className="text-accent">*</span>}
+												</label>
+												{q.isHardRequirement && <span className="text-[8px] font-black bg-red-500/20 text-red-500 px-2 py-0.5 rounded border border-red-500/30 uppercase tracking-widest">Auto-Fail</span>}
+											</div>
+											{q.description && <p className="text-[10px] text-text-muted leading-relaxed uppercase tracking-wider">{q.description}</p>}
+											
+											<div className="pt-2">
+												{q.type === 'STAR_RATING' && <div className="flex gap-2 text-2xl text-accent opacity-30 tracking-tight">★★★★★</div>}
+												{q.type === 'CHECKBOX' && <div className="h-5 w-5 rounded border border-border bg-panel" />}
+												{(q.type === 'SHORT_TEXT' || q.type === 'LONG_TEXT') && (
+													<div className={`w-full rounded-xl border border-white/5 bg-panel-2 p-3 text-[10px] italic text-text-muted ${q.type === 'LONG_TEXT' ? 'h-24' : 'h-10'}`}>
+														{q.type === 'LONG_TEXT' ? "Qualitative technical feedback..." : "Short observation..."}
+													</div>
+												)}
+												{(q.type === 'LINEAR_SCALE' || q.type === 'MULTIPLE_CHOICE' || q.type === 'MULTI_SELECT') && (
+													<div className="h-2 w-full rounded-full bg-panel-2 overflow-hidden border border-white/5">
+														<div className="h-full w-1/3 bg-accent/40" />
+													</div>
+												)}
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 			</div>
 		</div>
 	);

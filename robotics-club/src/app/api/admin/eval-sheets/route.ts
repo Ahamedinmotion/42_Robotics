@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 		}
 
 		const body = await req.json();
-		const { projectId, passMark, sections } = body;
+		const { projectId, passMark, sections, updateActiveEvaluations } = body;
 
 		if (!projectId || !sections || !Array.isArray(sections)) {
 			return err("Missing required fields", 400);

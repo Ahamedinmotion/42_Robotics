@@ -6,6 +6,7 @@ type BadgeSize = "sm" | "md" | "lg";
 interface BadgeProps {
 	rank: RankValue;
 	size?: BadgeSize;
+	className?: string;
 }
 
 const rankColours: Record<RankValue, string> = {
@@ -23,13 +24,13 @@ const sizeStyles: Record<BadgeSize, string> = {
 	lg: "w-12 h-12 text-lg",
 };
 
-export function Badge({ rank, size = "md" }: BadgeProps) {
+export function Badge({ rank, size = "md", className = "" }: BadgeProps) {
 	const colour = rankColours[rank];
 	const isS = rank === "S";
 
 	return (
 		<span
-			className={`inline-flex items-center justify-center rounded-md border-2 font-bold uppercase tracking-wider ${sizeStyles[size]}`}
+			className={`inline-flex items-center justify-center rounded-md border-2 font-bold uppercase tracking-wider ${sizeStyles[size]} ${className}`}
 			style={{
 				color: colour,
 				borderColor: colour,

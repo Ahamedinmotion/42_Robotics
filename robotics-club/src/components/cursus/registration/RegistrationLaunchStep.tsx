@@ -8,19 +8,10 @@ import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-interface RegistrationLaunchStepProps {
-	project: any;
-	selectedMembers: any[];
-	onBack: () => void;
-	onSuccess: () => void;
-}
-
 export function RegistrationLaunchStep({ 
 	project, 
-	selectedMembers, 
-	onBack, 
-	onSuccess 
-}: RegistrationLaunchStepProps) {
+	selectedMembers
+}: { project: any; selectedMembers: any[]; }) {
 	const [isLaunching, setIsLaunching] = useState(false);
 	const { toast } = useToast();
 	const router = useRouter();
@@ -33,39 +24,13 @@ export function RegistrationLaunchStep({
 		year: "numeric" 
 	});
 
-	const handleLaunch = async () => {
-		setIsLaunching(true);
-		try {
-			const res = await fetch("/api/teams", {
-				method: "POST",
-				body: JSON.stringify({
-					projectId: project.id,
-					memberIds: selectedMembers.map(m => m.id),
-					status: "ACTIVE",
-				}),
-			});
-			const data = await res.json();
-
-			if (data.success) {
-				toast("Project Launched Successfully! 🚀", "success");
-				onSuccess();
-				router.push(`/cursus/projects/${project.id}/cockpit`);
-			} else {
-				toast(data.error || "Failed to launch project", "error");
-			}
-		} catch (error) {
-			toast("An unexpected error occurred", "error");
-		} finally {
-			setIsLaunching(false);
-		}
-	};
-
+	// Note: Actual launch is now handled by RegistrationModal for better UX
 	return (
 		<div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
 			<Card className="bg-panel-2 border-border p-5 border-2 shadow-inner">
 				<div className="flex flex-col items-center gap-4">
 					<div className="flex flex-col items-center gap-1">
-						<Badge rank={project.rank} size="lg" />
+						<Badge rank={project.rank || "E"} size="lg" />
 						<h3 className="text-xl font-black uppercase tracking-tighter text-text-primary">{project.title}</h3>
 					</div>
 
@@ -99,25 +64,6 @@ export function RegistrationLaunchStep({
 					</div>
 				</div>
 			</Card>
-
-			<div className="flex gap-4 pt-2">
-				<Button 
-					variant="ghost" 
-					onClick={onBack} 
-					disabled={isLaunching}
-					className="flex-1"
-				>
-					Back
-				</Button>
-				<Button 
-					variant="primary" 
-					className="flex-1 h-12 font-black uppercase tracking-[0.2em]" 
-					onClick={handleLaunch}
-					disabled={isLaunching}
-				>
-					{isLaunching ? "Launching..." : "Launch Project"}
-				</Button>
-			</div>
 		</div>
 	);
 }

@@ -81,7 +81,7 @@ export async function PATCH(
 		}
 
 		const body = await req.json();
-		const { passMark, sections } = body;
+		const { passMark, sections, updateActiveEvaluations } = body;
 
 		// We increment version and replace sections/questions
 		// Since we want to "archive" old ones, we delete existing and recreate.
@@ -100,7 +100,7 @@ export async function PATCH(
 			await (tx as any).evalSection.deleteMany({ where: { sheetId: params.id } });
 
 			// Update sheet and create new sections/questions
-			return await (tx as any).evalSheet.update({
+			const updated = await (tx as any).evalSheet.update({
 				where: { id: params.id },
 				data: {
 					passMark: passMark || 60,
@@ -138,6 +138,21 @@ export async function PATCH(
 					},
 				},
 			});
+
+			// NEW: Cascade update if requested
+			if (updateActiveEvaluations) {
+				await (tx as any).evaluation.updateMany({
+					where: { 
+						status: "PENDING",
+						projectId: updated.projectId 
+					},
+					data: {
+						sheetVersion: updated.version
+					}
+				});
+			}
+
+			return updated;
 		});
 
 		return ok(updatedSheet);

@@ -1,10 +1,14 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 // ── Types ────────────────────────────────────────────
 
 interface TeamHistoryTeam {
 	team: {
+		id: string;
 		status: string;
 		project: { title: string };
 		members: {
@@ -31,6 +35,36 @@ const statusColours: Record<string, string> = {
 };
 
 export function TeamHistory({ teams, currentUserId }: TeamHistoryProps) {
+	const router = useRouter();
+	const [cancellingId, setCancellingId] = useState<string | null>(null);
+	const [isConfirming, setIsConfirming] = useState(false);
+
+	const handleCancel = async (e: React.MouseEvent, teamId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		if (isConfirming) return;
+		
+		setIsConfirming(true);
+		const confirmed = confirm("Are you sure you want to cancel this team formation?");
+		setIsConfirming(false);
+		
+		if (!confirmed) return;
+		setCancellingId(teamId);
+		try {
+			const res = await fetch(`/api/teams/${teamId}/cancel`, { method: "POST" });
+			if (res.ok) {
+				router.refresh();
+			} else {
+				const data = await res.json();
+				alert(data.error || "Failed to cancel");
+			}
+		} catch (e) {
+			alert("An error occurred");
+		} finally {
+			setCancellingId(null);
+		}
+	};
+
 	if (teams.length === 0) {
 		return <p className="text-sm italic text-text-muted">No team history yet.</p>;
 	}
@@ -85,9 +119,20 @@ export function TeamHistory({ teams, currentUserId }: TeamHistoryProps) {
 							})}
 					</div>
 
-					<span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusColours[tm.team.status] || "bg-gray-800/40 text-gray-400"}`}>
-						{tm.team.status}
-					</span>
+					<div className="ml-auto flex items-center gap-3">
+						{tm.team.status === "FORMING" && (
+							<button
+								onClick={(e) => handleCancel(e, tm.team.id)}
+								disabled={cancellingId === tm.team.id}
+								className="text-[10px] font-bold uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors disabled:opacity-50"
+							>
+								{cancellingId === tm.team.id ? "..." : "Cancel"}
+							</button>
+						)}
+						<span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusColours[tm.team.status] || "bg-gray-800/40 text-gray-400"}`}>
+							{tm.team.status}
+						</span>
+					</div>
 				</li>
 			))}
 		</ul>

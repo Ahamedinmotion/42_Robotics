@@ -13,6 +13,7 @@ import { AlumniToggle } from "@/components/profile/AlumniToggle";
 import { ComplimentWall } from "@/components/profile/ComplimentWall";
 import { TitleSelector } from "@/components/profile/TitleSelector";
 import { AdminNotesSection } from "@/components/profile/AdminNotesSection";
+import { ActiveMissions } from "@/components/profile/ActiveMissions";
 
 export default async function ProfilePage() {
 	const session = await getServerSession(authOptions);
@@ -37,6 +38,27 @@ export default async function ProfilePage() {
 		} as any,
 	});
 	if (!user) redirect("/login");
+
+	// ── Active Missions ────────────────────────────
+	const activeTeams = await prisma.teamMember.findMany({
+		where: { 
+			userId, 
+			team: { 
+				status: { in: [TeamStatus.FORMING, TeamStatus.ACTIVE, TeamStatus.EVALUATING] } 
+			} 
+		},
+		include: {
+			team: {
+				include: {
+					project: { select: { title: true, rank: true } },
+					members: {
+						include: { user: { select: { login: true, id: true } } },
+					},
+				},
+			},
+		},
+		orderBy: { team: { createdAt: "desc" } },
+	});
 
 	// ── Completed teams ───────────────────────────
 	const completedTeams = await prisma.teamMember.findMany({
@@ -172,6 +194,14 @@ export default async function ProfilePage() {
 			/>
 
 			{isAdmin && <AdminNotesSection userId={userId} />}
+
+			{/* Section 1.5 — Active Missions */}
+			{activeTeams.length > 0 && (
+				<ActiveMissions 
+					teams={activeTeams.map(at => at.team)} 
+					currentUserId={userId} 
+				/>
+			)}
 
 			<div className="flex justify-end pt-2">
 				<TitleSelector

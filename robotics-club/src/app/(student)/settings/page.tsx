@@ -1,7 +1,7 @@
 "use client";
 
 import { useSound } from "@/components/providers/SoundProvider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { THEMES } from "@/lib/themes";
@@ -10,7 +10,23 @@ import { useSession } from "next-auth/react";
 
 export default function SettingsPage() {
 	const { soundsEnabled, setSoundsEnabled, playSFX } = useSound();
-	const { data: session } = useSession();
+	const { data: session, update: updateSession } = useSession();
+	const [unlockedThemes, setUnlockedThemes] = useState<string[]>([]);
+	const [activeTheme, setActiveTheme] = useState<string>("FORGE");
+
+	useEffect(() => {
+		// Fetch actual DB state to bypass session lag
+		fetch("/api/user/me")
+			.then(res => res.json())
+			.then(res => {
+				const data = res.data;
+				console.log("Settings hydration data:", data);
+				if (data?.unlockedThemes) setUnlockedThemes(data.unlockedThemes);
+				if (data?.activeTheme) setActiveTheme(data.activeTheme);
+			})
+			.catch(err => console.error("Settings hydration error:", err));
+	}, []);
+
 
 	const handleToggleSounds = (enabled: boolean) => {
 		setSoundsEnabled(enabled);
@@ -72,35 +88,72 @@ export default function SettingsPage() {
 
 			<section className="space-y-4">
 				<h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">Theme</h2>
-				<Card className="p-6">
-					<div className="flex items-center justify-between mb-6">
+				<Card className="p-6 overflow-hidden relative">
+					<div className="flex items-center justify-between mb-8">
 						<div>
-							<h3 className="font-bold text-text-primary">Visual Basis</h3>
-							<p className="text-xs text-text-muted">Choose your foundational lighting.</p>
+							<h3 className="font-bold text-text-primary text-lg">Visual Basis</h3>
+							<p className="text-xs text-text-muted">Choose your foundational theme.</p>
 						</div>
 					</div>
-					<div className="flex justify-center p-4 bg-background rounded-xl border border-border-color">
-						<ThemeToggle />
+
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						{THEMES.map(theme => {
+							const isUnlocked = unlockedThemes.includes(theme.id) || (session?.user as any)?.unlockedThemes?.includes(theme.id);
+							const isActive = activeTheme === theme.id || (session?.user as any)?.activeTheme === theme.id;
+							
+							return (
+								<div 
+									key={theme.id} 
+									className={`group relative p-5 rounded-2xl border transition-all duration-500 cursor-pointer overflow-hidden ${
+										isActive 
+											? 'border-accent bg-accent/5 ring-1 ring-accent/20 scale-[1.02] shadow-lg shadow-accent/5' 
+											: isUnlocked 
+												? 'border-border-color bg-panel/50 hover:bg-panel hover:border-text-muted/30'
+												: 'border-dashed border-border-color/50 bg-panel2/30 grayscale opacity-60'
+									}`}
+									onClick={() => isUnlocked && ThemeEngine.activateTheme(theme.id)}
+								>
+									{/* Lock icon for locked themes */}
+									{!isUnlocked && (
+										<div className="absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[1px] z-10">
+											<div className="bg-panel2/80 p-2 rounded-full border border-border-color shadow-sm">
+												<svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+												</svg>
+											</div>
+										</div>
+									)}
+
+									{/* Theme indicator accent */}
+									<div className="absolute top-0 right-0 p-3">
+										<div className="flex gap-1.5 items-center">
+											{isActive && <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />}
+											<div className={`h-1.5 w-1.5 rounded-full transition-opacity ${isActive ? 'bg-accent' : 'bg-text-muted opacity-20'}`} />
+										</div>
+									</div>
+
+									<div className="space-y-1">
+										<h4 className={`font-black tracking-tighter text-sm uppercase transition-colors ${isActive ? 'text-accent' : 'text-text-primary'}`}>
+											{isUnlocked ? theme.name : "Locked Theme"}
+										</h4>
+										<p className="text-[10px] text-text-muted line-clamp-1 leading-relaxed">
+											{isUnlocked ? theme.description : "Keep exploring to unlock this visual basis."}
+										</p>
+									</div>
+
+									{/* Color preview bar */}
+									{isUnlocked && (
+										<div className="mt-4 flex h-1 w-full gap-1 rounded-full overflow-hidden opacity-30 group-hover:opacity-60 transition-opacity">
+											<div className="flex-1 bg-accent" />
+											<div className="flex-1 bg-accent-secondary" />
+											<div className="flex-1 bg-accent-tertiary" />
+										</div>
+									)}
+								</div>
+							);
+						})}
 					</div>
 				</Card>
-
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					{THEMES.filter(t => (session?.user as any).unlockedThemes?.includes(t.id)).map(theme => (
-						<Card key={theme.id} className={`p-4 transition-all hover:scale-[1.02] cursor-pointer ${ (session?.user as any).activeTheme === theme.id ? 'ring-2 ring-accent' : ''}`} onClick={() => ThemeEngine.activateTheme(theme.id)}>
-							<div className="flex items-center justify-between">
-								<div>
-									<h4 className="font-bold text-sm text-text-primary">{theme.name}</h4>
-									<p className="text-[10px] text-text-muted">{theme.description}</p>
-								</div>
-								<div className="flex gap-1">
-									<div className="h-3 w-3 rounded-full bg-accent" />
-									<div className="h-3 w-3 rounded-full bg-accent-secondary" />
-									<div className="h-3 w-3 rounded-full bg-accent-tertiary" />
-								</div>
-							</div>
-						</Card>
-					))}
-				</div>
 			</section>
 
 			<section className="space-y-4">

@@ -24,6 +24,8 @@ interface ProjectItem {
 	isUnique: boolean;
 	subjectSheetUrl: string | null;
 	evaluationSheetUrl: string | null;
+	objectives: string[];
+	deliverables: string[];
 }
 
 interface ContentManagementProps {
@@ -63,7 +65,10 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 		skillTags: "", 
 		isUnique: false, 
 		subjectSheetUrl: "", 
-		evaluationSheetUrl: "" 
+		evaluationSheetUrl: "",
+		objectives: "", 
+		deliverables: "",
+		updateActiveTeams: false
 	});
 
 	// Load club settings for dynamic defaults
@@ -102,6 +107,8 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 			teamSizeMin: Number(form.teamSizeMin),
 			teamSizeMax: Number(form.teamSizeMax),
 			blackholeDays: Number(form.blackholeDays),
+			objectives: form.objectives.split("\n").map(s => s.trim()).filter(Boolean),
+			deliverables: form.deliverables.split("\n").map(s => s.trim()).filter(Boolean),
 		};
 
 		if (editingId) {
@@ -112,7 +119,21 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 		}
 		
 		setShowAdd(false);
-		setForm((f) => ({ ...f, title: "", description: "", rank: "E", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" }));
+		setForm({ 
+			title: "", 
+			description: "", 
+			rank: "E", 
+			teamSizeMin: "2", 
+			teamSizeMax: "5", 
+			blackholeDays: "60", 
+			skillTags: "", 
+			isUnique: false, 
+			subjectSheetUrl: "", 
+			evaluationSheetUrl: "", 
+			objectives: "", 
+			deliverables: "",
+			updateActiveTeams: false 
+		});
 	};
 
 	const handleEdit = (p: ProjectItem) => {
@@ -128,6 +149,9 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 			isUnique: p.isUnique,
 			subjectSheetUrl: p.subjectSheetUrl || "",
 			evaluationSheetUrl: p.evaluationSheetUrl || "",
+			objectives: p.objectives?.join("\n") || "",
+			deliverables: p.deliverables?.join("\n") || "",
+			updateActiveTeams: false
 		});
 		setShowAdd(true);
 		window.scrollTo({ top: 0, behavior: "smooth" });
@@ -177,7 +201,7 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 							onClick={() => {
 								if (showAdd && editingId) {
 									setEditingId(null);
-									setForm({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "5", blackholeDays: "60", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "" });
+									setForm({ title: "", description: "", rank: "E", teamSizeMin: "2", teamSizeMax: "5", blackholeDays: "60", skillTags: "", isUnique: false, subjectSheetUrl: "", evaluationSheetUrl: "", objectives: "", deliverables: "", updateActiveTeams: false });
 								}
 								setShowAdd(!showAdd);
 							}}
@@ -219,6 +243,22 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 					</div>
 					<input placeholder="Subject sheet URL (optional)" value={form.subjectSheetUrl} onChange={(e) => setForm({ ...form, subjectSheetUrl: e.target.value })} className={inputCls} />
 					<input placeholder="Evaluation sheet URL (optional)" value={form.evaluationSheetUrl} onChange={(e) => setForm({ ...form, evaluationSheetUrl: e.target.value })} className={inputCls} />
+					<textarea placeholder="Objectives (one per line)" value={form.objectives} onChange={(e) => setForm({ ...form, objectives: e.target.value })} rows={3} className={inputCls} />
+					<textarea placeholder="Deliverables (one per line)" value={form.deliverables} onChange={(e) => setForm({ ...form, deliverables: e.target.value })} rows={3} className={inputCls} />
+					
+					{editingId && (
+						<div className="flex items-center gap-4 bg-accent/5 p-3 rounded-xl border border-accent/10">
+							<label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-accent cursor-pointer">
+								<input 
+									type="checkbox" 
+									checked={form.updateActiveTeams} 
+									onChange={(e) => setForm({ ...form, updateActiveTeams: e.target.checked })} 
+									className="accent-accent" 
+								/>
+								Update for Current and Future Squads
+							</label>
+						</div>
+					)}
 					<div className="flex gap-2">
 						<Button variant="primary" size="sm" className="flex-1" disabled={loading || !form.title} onClick={submitProject}>
 							{editingId ? "Update Project" : "Save as Draft"}
@@ -246,10 +286,10 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 											<Button 
 												variant="ghost" 
 												size="sm" 
-												className="h-8 w-8 p-0 flex items-center justify-center opacity-40 hover:opacity-100 transition-opacity"
+												className="h-10 w-10 p-0 flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-accent/10 hover:text-accent transition-all border border-transparent hover:border-accent/20"
 												onClick={() => handleEdit(p)}
 											>
-												<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.243 3.243a3.003 3.003 0 014.242 4.242L10.828 17.172a4 4 0 01-1.414.828l-3.232.969.97-3.232a4 4 0 01.828-1.414l7.686-7.686z" />
 												</svg>
 											</Button>

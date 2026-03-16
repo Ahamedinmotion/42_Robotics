@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { useSound } from "@/components/providers/SoundProvider";
 
@@ -9,6 +10,7 @@ interface Achievement {
 	title: string;
 	description: string;
 	icon: string;
+	imageUrl?: string | null;
 	unlockedTitle?: { name: string } | null;
 }
 
@@ -45,8 +47,20 @@ export function AchievementsGrid({ allAchievements, userAchievements }: Achievem
 						)}
 
 						<div className="flex items-start gap-4">
-							<div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-500 group-hover:scale-110 ${isUnlocked ? "bg-accent/10 text-accent shadow-inner shadow-accent/20" : "bg-panel2 text-text-muted"}`}>
-								<span className="text-2xl">{a.icon || "🏆"}</span>
+							<div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-transform duration-500 group-hover:scale-110 ${isUnlocked ? "bg-accent/10 border border-accent/20 shadow-inner shadow-accent/20" : "bg-panel2 border border-border-color"}`}>
+								{a.imageUrl ? (
+									<Image 
+										src={a.imageUrl.startsWith('/') ? a.imageUrl : `/${a.imageUrl}`} 
+										alt={a.title} 
+										fill
+										sizes="48px"
+										className={`object-cover ${!isUnlocked && "grayscale opacity-50"}`} 
+									/>
+								) : (
+									<div className="flex flex-col items-center">
+										{a.icon === "rocket" ? "🚀" : a.icon === "brain" ? "🧠" : a.icon === "clock" ? "⏰" : (a.icon || "🏆")}
+									</div>
+								)}
 							</div>
 
 							<div className="min-w-0 flex-1">

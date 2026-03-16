@@ -242,23 +242,6 @@ export function RegistrationTeamStep({
 				</div>
 			</div>
 
-			<div className="flex gap-4 pt-2">
-				<Button variant="ghost" onClick={() => setMode(null)} className="flex-1">Back</Button>
-				<Button 
-					variant="primary" 
-					className="flex-1" 
-					onClick={onNext}
-					disabled={selectedMembers.length + 1 < project.teamSizeMin}
-				>
-					Next Step
-				</Button>
-			</div>
-
-			{selectedMembers.length + 1 < project.teamSizeMin && (
-				<p className="text-center text-[10px] font-bold uppercase tracking-widest text-text-muted opacity-50">
-					Minimum {project.teamSizeMin} members required.
-				</p>
-			)}
 		</div>
 	);
 }

@@ -45,10 +45,14 @@ export async function POST(req: Request) {
 					},
 				},
 			},
-			include: { user: { select: { login: true } } },
+			include: { user: { select: { login: true } }, team: { select: { projectId: true } } },
 		});
 
 		if (activeMembers.length > 0) {
+			const existingSameProject = activeMembers.find(m => m.team.projectId === projectId);
+			if (existingSameProject) {
+				return err(`${existingSameProject.user.login} is already registered for this project`, 400);
+			}
 			return err(`${activeMembers.map(m => m.user.login).join(", ")} already has an active project`, 400);
 		}
 

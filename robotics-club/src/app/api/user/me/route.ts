@@ -21,15 +21,6 @@ export async function GET() {
 						achievement: true,
 					},
 				},
-				teams: {
-					include: {
-						team: {
-							include: {
-								project: true,
-							},
-						},
-					},
-				},
 				_count: {
 					select: {
 						evaluationsGiven: true,

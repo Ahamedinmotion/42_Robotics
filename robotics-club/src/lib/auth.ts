@@ -115,6 +115,7 @@ export const authOptions: NextAuthOptions = {
 						hasSeenIntro: true,
 						hasSeenWaitlistModal: true,
 						impersonatorId: true,
+						unlockedThemes: true,
 					} as any,
 				})) as any;
 
@@ -127,18 +128,14 @@ export const authOptions: NextAuthOptions = {
 					token.activeTheme = dbUser.activeTheme;
 					token.hasSeenIntro = dbUser.hasSeenIntro;
 					token.hasSeenWaitlistModal = dbUser.hasSeenWaitlistModal;
+					token.unlockedThemes = dbUser.unlockedThemes;
 					token.realAdminId = (token as any).realAdminId || dbUser.id;
 
 					// Impersonation logic
 					if (dbUser.role === "PRESIDENT" && dbUser.impersonatorId) {
-						const targetUser = await prisma.user.findUnique({
+						const targetUser = (await prisma.user.findUnique({
 							where: { id: dbUser.impersonatorId },
-							select: {
-								id: true, login: true, role: true, status: true,
-								currentRank: true, activeTheme: true,
-								hasSeenIntro: true, hasSeenWaitlistModal: true,
-							} as any,
-						});
+						})) as any;
 
 						if (targetUser) {
 							token.id = targetUser.id;
@@ -148,6 +145,7 @@ export const authOptions: NextAuthOptions = {
 							token.currentRank = targetUser.currentRank;
 							token.activeTheme = targetUser.activeTheme;
 							token.hasSeenIntro = targetUser.hasSeenIntro;
+							token.unlockedThemes = targetUser.unlockedThemes;
 							token.isImpersonating = true;
 						}
 					} else {
@@ -179,6 +177,7 @@ export const authOptions: NextAuthOptions = {
 				(session.user as any).permissions = token.permissions as string[];
 				(session.user as any).isAdmin = token.isAdmin as boolean;
 				(session.user as any).isImpersonating = !!token.isImpersonating;
+				(session.user as any).unlockedThemes = token.unlockedThemes as string[];
 				(session.user as any).realAdminId = token.realAdminId as string;
 			}
 			return session;

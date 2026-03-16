@@ -49,6 +49,14 @@ export default async function ProjectCockpitPage({ params }: { params: { id: str
 			disputes: {
 				orderBy: { createdAt: "desc" }
 			},
+			checkouts: {
+				orderBy: { createdAt: "desc" },
+				include: {
+					user: {
+						select: { login: true, image: true }
+					}
+				}
+			},
 			postMortems: {
 				where: { userId }
 			}
