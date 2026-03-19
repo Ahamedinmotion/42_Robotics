@@ -14,6 +14,7 @@ export default async function RequestsPage() {
 	if (!session?.user?.id) redirect("/login");
 
 	const isAdmin = session.user.role !== "STUDENT";
+	const user = await import("@/lib/prisma").then(m => m.default.user.findUnique({ where: { id: session.user.id }, select: { currentRank: true }}));
 
-	return <RequestsDashboard isAdmin={isAdmin} />;
+	return <RequestsDashboard isAdmin={isAdmin} userRank={user?.currentRank || "E"} />;
 }

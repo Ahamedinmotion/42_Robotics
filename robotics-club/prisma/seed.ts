@@ -56,7 +56,10 @@ async function main() {
 	console.log(`Seeded ${rolesToSeed.length} dynamic roles.`);
 
 	// --- 1. Users ---
+	const allThemes = ["FORGE", "FIELD", "vaporwave", "terminal", "blueprint", "newspaper", "deepsea", "coffeeshop", "redacted", "windows95", "matrix", "gold", "crayola", "synthwave", "highcontrast", "godmode"];
+	
 	const usersToCreate = [
+		{ login: "sshameer", name: "Syed Ahamed", role: "PRESIDENT", status: Status.ACTIVE, currentRank: Rank.S, labAccessEnabled: true, unlockedThemes: allThemes },
 		{ login: "president_user", name: "Alex Carter", role: "PRESIDENT", status: Status.ACTIVE, currentRank: Rank.S, labAccessEnabled: true },
 		{ login: "vp_user", name: "Jordan Mills", role: "VP", status: Status.ACTIVE, currentRank: Rank.A, labAccessEnabled: true },
 		{ login: "projmanager_user", name: "Sam Rivera", role: "PROJECT_MANAGER", status: Status.ACTIVE, currentRank: Rank.B, labAccessEnabled: true },
@@ -75,7 +78,13 @@ async function main() {
 	for (const u of usersToCreate) {
 		const user = await prisma.user.upsert({
 			where: { login: u.login },
-			update: {},
+			update: {
+				role: u.role,
+				status: u.status,
+				currentRank: u.currentRank,
+				labAccessEnabled: u.labAccessEnabled,
+				unlockedThemes: (u as any).unlockedThemes || ["FORGE", "FIELD"],
+			},
 			create: {
 				fortyTwoId: `42_${u.login}`,
 				login: u.login,
@@ -85,6 +94,7 @@ async function main() {
 				status: u.status,
 				currentRank: u.currentRank,
 				labAccessEnabled: u.labAccessEnabled,
+				unlockedThemes: (u as any).unlockedThemes || ["FORGE", "FIELD"],
 				githubHandle: `${u.login}_gh`,
 				activeTheme: "FORGE",
 				joinedAt: new Date(),
@@ -149,7 +159,7 @@ async function main() {
 		},
 		{
 			title: "Robotic Arm — CAD & Print", rank: Rank.C, status: ProjectStatus.ACTIVE, teamSizeMin: 2, teamSizeMax: 3, blackholeDays: 35,
-			skillTags: ["cad", "mechanical_design", "3d_printing", "embedded_systems"], isUnique: false,
+			skillTags: ["cad", "mechanical_design", "3d_printing", "embedded_systems"], isUnique: false, isRequired: true,
 			description: "Design and 3D print a multi-joint robotic arm controlled by servo motors. Mandatory C rank fabrication project. Covers CAD fundamentals, slicing, print tolerances, and servo control.",
 			createdById: createdUsers["president_user"].id,
 		},
@@ -357,6 +367,24 @@ async function main() {
 		update: {},
 		create: { id: "singleton" },
 	});
+
+	// --- 11. Rank Requirements ---
+	const rankReqs = [
+		{ rank: Rank.E, projectsRequired: 4 },
+		{ rank: Rank.D, projectsRequired: 3 },
+		{ rank: Rank.C, projectsRequired: 3 },
+		{ rank: Rank.B, projectsRequired: 2 },
+		{ rank: Rank.A, projectsRequired: 2 },
+		{ rank: Rank.S, projectsRequired: 1 },
+	];
+
+	for (const rr of rankReqs) {
+		await prisma.rankRequirement.upsert({
+			where: { rank: rr.rank },
+			update: { projectsRequired: rr.projectsRequired },
+			create: rr,
+		});
+	}
 
 	// --- Summary ---
 	const userCount = await prisma.user.count();

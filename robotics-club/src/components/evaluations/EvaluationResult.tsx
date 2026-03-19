@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useSound } from "@/components/providers/SoundProvider";
+import { useToast } from "@/components/ui/Toast";
 import confetti from "canvas-confetti";
 
 interface EvaluationResultProps {
@@ -17,11 +18,17 @@ type Stage = "REVEAL_EVALUATOR" | "WEATHER_REPORT" | "VERDICT" | "DETAILS";
 export function EvaluationResult({ evaluationId }: EvaluationResultProps) {
 	const router = useRouter();
 	const { playSFX } = useSound();
+	const { toast } = useToast();
 	
 	const [loading, setLoading] = useState(true);
 	const [evaluation, setEvaluation] = useState<any>(null);
 	const [stage, setStage] = useState<Stage>("REVEAL_EVALUATOR");
 	const [animationPlayed, setAnimationPlayed] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const [verdictLoading, setVerdictLoading] = useState(false);
+	const [verdictResult, setVerdictResult] = useState<{ passed: boolean, newRank: string | null } | null>(null);
+	const [showRankAnim, setShowRankAnim] = useState(false);
 
 	useEffect(() => {
 		const fetchResult = async () => {
@@ -29,16 +36,24 @@ export function EvaluationResult({ evaluationId }: EvaluationResultProps) {
 				const res = await fetch(`/api/evaluations/${evaluationId}/result`);
 				const json = await res.json();
 				if (json.success) {
+					// Redirect evaluators away - they don't need the report
+					if (!json.data.isEvaluatee) {
+						router.push("/evaluations");
+						return;
+					}
 					setEvaluation(json.data);
+				} else {
+					setError(json.error || "Failed to retrieve mission data.");
 				}
 			} catch (error) {
 				console.error(error);
+				setError("Network disturbance detected. Data uplink failed.");
 			} finally {
 				setLoading(false);
 			}
 		};
 		fetchResult();
-	}, [evaluationId]);
+	}, [evaluationId, router]);
 
 	useEffect(() => {
 		if (stage === "VERDICT" && evaluation && !animationPlayed) {
@@ -58,6 +73,31 @@ export function EvaluationResult({ evaluationId }: EvaluationResultProps) {
 	}, [stage, evaluation, playSFX, animationPlayed]);
 
 	if (loading) return <div className="p-12 text-center text-text-muted animate-pulse font-mono uppercase tracking-[0.2em] text-[10px]">Processing Mission Output...</div>;
+	
+	if (error) return (
+		<div className="min-h-screen flex items-center justify-center p-6 bg-background">
+			<Card className="max-w-md w-full p-8 text-center border-accent-urgency/20 bg-accent-urgency/5">
+				<div className="w-16 h-16 bg-accent-urgency/10 border border-accent-urgency/20 rounded-full flex items-center justify-center mx-auto mb-6">
+					<svg className="w-8 h-8 text-accent-urgency" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					</svg>
+				</div>
+				<h2 className="text-xl font-black uppercase tracking-tighter text-text-primary mb-2">Access Restricted</h2>
+				<p className="text-xs text-text-muted uppercase tracking-widest leading-relaxed mb-8">
+					{error}
+				</p>
+				<Button 
+					variant="ghost" 
+					size="sm" 
+					className="text-[10px] uppercase font-black opacity-60 hover:opacity-100"
+					onClick={() => router.push("/evaluations")}
+				>
+					← Return to Mission Control
+				</Button>
+			</Card>
+		</div>
+	);
+
 	if (!evaluation) return <div className="p-12 text-center text-text-muted">Mission data corrupted or unavailable.</div>;
 
 	const nextStage = () => {
@@ -66,6 +106,78 @@ export function EvaluationResult({ evaluationId }: EvaluationResultProps) {
 		else if (stage === "VERDICT") setStage("DETAILS");
 		playSFX("button");
 	};
+
+	const handleFinalVerdict = async () => {
+		setVerdictLoading(true);
+		try {
+			const res = await fetch(`/api/evaluations/${evaluationId}/final-verdict`, { method: "POST" });
+			const json = await res.json();
+			if (json.ok) {
+				setVerdictResult({ passed: json.passed, newRank: json.newRank });
+				if (json.newRank) {
+					setTimeout(() => setShowRankAnim(true), 3000); // Wait for pass anim to finish
+				}
+			} else {
+				toast(json.error || "Failed to calculate verdict");
+			}
+		} catch {
+			toast("Network error");
+		} finally {
+			setVerdictLoading(false);
+		}
+	};
+
+	if (verdictResult) {
+		if (showRankAnim && verdictResult.newRank) {
+			return (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-3xl animate-in fade-in duration-1000 p-6">
+					<div className="text-center space-y-8 animate-in slide-in-from-bottom-12 duration-1000 delay-300">
+						<h1 className="text-7xl md:text-9xl font-black uppercase tracking-[0.5em] text-accent animate-pulse">RANK UP</h1>
+						<p className="text-2xl md:text-3xl font-bold text-text-primary tracking-widest leading-relaxed">
+							Welcome to Rank <span className="text-accent underline decoration-4 underline-offset-8">{verdictResult.newRank}</span>
+						</p>
+						<div className="pt-12">
+							<Button variant="primary" size="lg" className="px-12 py-6 text-sm" onClick={() => router.push("/cursus")}>
+								Return to Base →
+							</Button>
+						</div>
+					</div>
+				</div>
+			);
+		}
+
+		if (verdictResult.passed) {
+			return (
+				<div className="fixed inset-0 z-40 flex items-center justify-center bg-green-500/5 backdrop-blur-xl animate-in fade-in duration-500 p-6">
+					<div className="text-center space-y-6">
+						<h2 className="text-5xl md:text-7xl font-black uppercase tracking-[0.2em] text-green-400 drop-shadow-[0_0_20px_rgba(74,222,128,0.4)] transition-all">Mission Accomplished</h2>
+						<p className="text-lg md:text-xl text-text-primary uppercase tracking-widest font-bold opacity-80">All requirements met successfully.</p>
+						{!verdictResult.newRank && (
+							<div className="pt-8">
+								<Button variant="ghost" className="border border-green-500/50 text-green-400 hover:bg-green-500/20" onClick={() => router.push("/cursus")}>
+									Return to Base →
+								</Button>
+							</div>
+						)}
+					</div>
+				</div>
+			);
+		} else {
+			return (
+				<div className="fixed inset-0 z-40 flex items-center justify-center bg-red-500/5 backdrop-blur-xl animate-in fade-in duration-500 p-6">
+					<div className="text-center space-y-6">
+						<h2 className="text-5xl md:text-7xl font-black uppercase tracking-[0.2em] text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse">Mission Failed</h2>
+						<p className="text-lg md:text-xl text-text-primary uppercase tracking-widest font-bold opacity-80">Requirements were not met across evaluations.</p>
+						<div className="pt-8">
+							<Button variant="ghost" className="border border-red-500/50 text-red-500 hover:bg-red-500/20" onClick={() => router.push("/cursus")}>
+								Return to Base →
+							</Button>
+						</div>
+					</div>
+				</div>
+			);
+		}
+	}
 
 	return (
 		<div className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-1000 ${evaluation.totalScore === 42 ? "bg-accent/5" : "bg-background"}`}>
@@ -99,20 +211,16 @@ export function EvaluationResult({ evaluationId }: EvaluationResultProps) {
 					</div>
 				)}
 
+
+
 				{stage === "WEATHER_REPORT" && (
 					<div className="space-y-8 animate-in slide-in-from-right-8 fade-in duration-500">
 						<div className="border-l-2 border-accent pl-6 py-2">
-							<h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent mb-4">Tactical Weather Report</h3>
+							<h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent mb-4">Assessor's Tactical Summary</h3>
 							<p className="text-lg font-bold text-text-primary leading-relaxed italic font-serif">
-								{evaluation.totalScore === 100 ? (
-									"\"The performance was statistically impossible. Zero friction in logic, zero anomalies in execution. This is the gold standard for future mission parameters.\""
-								) : evaluation.attemptCount >= 6 ? (
-									"\"Intermittent failures have only reinforced the squad's resolve. The mission data shows extreme resilience despite the current setback.\""
-								) : (
-									"\"The squad demonstrated high adaptability during the stress test. Code modularity was the primary highlight, though documentation coverage appeared fragmented in the final quadrant.\""
-								)}
+								"{evaluation.writtenFeedback.slice(0, 300)}{evaluation.writtenFeedback.length > 300 ? '...' : ''}"
 							</p>
-							<p className="text-[10px] text-text-muted mt-4 uppercase tracking-widest">— AI Generated Synthesis</p>
+							<p className="text-[10px] text-text-muted mt-4 uppercase tracking-widest">— {evaluation.evaluator.name || evaluation.evaluator.login}</p>
 						</div>
 						<div className="pt-4 flex justify-center">
 							<Button variant="primary" size="lg" className="px-12 font-black uppercase tracking-[0.3em] bg-accent text-background border-none hover:bg-accent/90" onClick={nextStage}>Final Verdict →</Button>
@@ -183,8 +291,28 @@ export function EvaluationResult({ evaluationId }: EvaluationResultProps) {
 							)}
 						</Card>
 
-						<div className="flex justify-center pt-8">
-							<Button variant="primary" size="lg" className="px-12 font-black uppercase tracking-[0.3em]" onClick={() => router.push("/cursus")}>Back to Headquarters</Button>
+						<div className="flex flex-col items-center gap-4 pt-8">
+							<Button 
+								variant="primary" 
+								size="lg" 
+								disabled={verdictLoading}
+								className="px-12 font-black uppercase tracking-[0.3em]" 
+								onClick={() => {
+									if (evaluation.isFinal && evaluation.isEvaluatee) {
+										handleFinalVerdict();
+									} else {
+										router.push("/cursus");
+									}
+								}}
+							>
+								{verdictLoading ? "Calculating..." : (evaluation.isFinal && evaluation.isEvaluatee ? "View Final Verdict →" : "Back to Headquarters")}
+							</Button>
+							
+							{evaluation.passed && (
+								<p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent animate-pulse">
+									Outstanding performance, candidate. Keep pushing boundaries.
+								</p>
+							)}
 						</div>
 					</div>
 				)}

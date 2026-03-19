@@ -79,7 +79,7 @@ export function AvailableMissions() {
 
 							<Button 
 								className="w-full" 
-								onClick={() => setSelectedWindow(window)}
+								onClick={() => setSelectedWindow(mission)}
 							>
 								Claim a Slot
 							</Button>

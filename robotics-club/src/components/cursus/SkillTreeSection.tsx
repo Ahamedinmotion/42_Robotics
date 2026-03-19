@@ -1,6 +1,9 @@
 import prisma from "@/lib/prisma";
 import { TeamStatus } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { SkillTree, type ProjectNode } from "@/components/cursus/SkillTree";
+import { checkAdvancementEligibility } from "@/lib/rank-advancement";
+import { Rank } from "@prisma/client";
 
 const RANK_VALUES: Record<string, number> = {
 	E: 1, D: 2, C: 3, B: 4, A: 5, S: 6,
@@ -8,7 +11,7 @@ const RANK_VALUES: Record<string, number> = {
 
 export async function SkillTreeSection({ userId }: { userId: string }) {
 	// ── Parallel Data Fetching ─────────────────
-	const [user, allProjects, userTeams] = await Promise.all([
+	const [user, allProjects, userTeams, allRankReqs] = await Promise.all([
 		prisma.user.findUnique({
 			where: { id: userId },
 			select: { currentRank: true },
@@ -37,9 +40,18 @@ export async function SkillTreeSection({ userId }: { userId: string }) {
 				},
 			},
 		}),
+		prisma.rankRequirement.findMany(),
 	]);
 
-	if (!user) return null;
+	const rankRequirements = ["E", "D", "C", "B", "A", "S"].reduce((acc, r) => {
+		const f = allRankReqs.find(x => x.rank === r);
+		acc[r] = f ? f.projectsRequired : 4;
+		return acc;
+	}, {} as Record<string, number>);
+
+	if (!user) {
+		redirect("/login");
+	}
 
 	const userRankVal = RANK_VALUES[user.currentRank] ?? 1;
 
@@ -94,6 +106,7 @@ export async function SkillTreeSection({ userId }: { userId: string }) {
 			completionRate,
 			hasBeenCompleted: (p as any).hasBeenCompleted,
 			userState,
+			isRequired: p.isRequired || false,
 		};
 
 		if (grouped[p.rank]) {
@@ -101,12 +114,27 @@ export async function SkillTreeSection({ userId }: { userId: string }) {
 		}
 	}
 
+	const RANKS: Rank[] = ["E", "D", "C", "B", "A", "S"];
+	const rankProgress = await Promise.all(
+		RANKS.map(async (r) => {
+			const eligibility = await checkAdvancementEligibility(userId, r);
+			return { 
+				rank: r, 
+				isEligible: eligibility.isEligible, 
+				missingRequired: eligibility.missingRequired || [], 
+				neededCount: eligibility.neededCount || 0 
+			};
+		})
+	);
+
 	return (
 		<div className="-mx-4 sm:-mx-6 lg:-mx-8">
 			<SkillTree
 				projects={grouped}
 				userRank={user.currentRank}
 				activeTeamProjectId={activeTeamProjectId}
+				rankProgress={rankProgress}
+				rankRequirements={rankRequirements}
 			/>
 		</div>
 	);

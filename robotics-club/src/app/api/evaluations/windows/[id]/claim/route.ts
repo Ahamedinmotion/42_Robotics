@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { isEligibleEvaluator } from "@/lib/evaluation-eligibility";
-import { NotificationType, SlotStatus } from "@prisma/client";
+import { EvaluationStatus, NotificationType, SlotStatus } from "@prisma/client";
 
 // POST /api/evaluations/slots/[windowId]/claim
 export async function POST(
@@ -30,6 +30,9 @@ export async function POST(
 						project: true,
 						members: true,
 						evaluations: true,
+						evaluationSlots: {
+							select: { claimedById: true }
+						}
 					}
 				}
 			}
@@ -47,6 +50,7 @@ export async function POST(
 			id: window.team.id,
 			members: window.team.members.map((m: any) => ({ userId: m.userId })),
 			evaluations: window.team.evaluations,
+			claims: window.team.evaluationSlots
 		};
 		const projectInfo = {
 			id: window.team.project.id,
@@ -64,48 +68,65 @@ export async function POST(
 			return err("Requested slot is outside the availability window", 400);
 		}
 
-		// Validate 2h duration
-		if (end.getTime() - start.getTime() !== 2 * 60 * 60 * 1000) {
-			return err("Evaluation slots must be exactly 2 hours", 400);
+		// Validate 1h duration
+		if (end.getTime() - start.getTime() !== 1 * 60 * 60 * 1000) {
+			return err("Evaluation slots must be exactly 1 hour", 400);
 		}
 
-		// 5. Check for Overlaps
-		const overlappingClaim = await (prisma as any).evaluationSlot.findFirst({
-			where: {
-				claimedById: user.id,
-				status: (SlotStatus as any).CLAIMED || "CLAIMED",
-				OR: [
-					{ slotStart: { lt: end }, slotEnd: { gt: start } }
-				]
-			}
-		});
-		if (overlappingClaim) return err("You already have a claimed evaluation overlapping this time", 400);
+		// 5. Run in Transaction
+		const result = await prisma.$transaction(async (tx) => {
+			// Check for Overlaps again inside transaction
+			const overlappingClaim = await (tx as any).evaluationSlot.findFirst({
+				where: {
+					claimedById: user.id,
+					status: (SlotStatus as any).CLAIMED || "CLAIMED",
+					OR: [
+						{ slotStart: { lt: end }, slotEnd: { gt: start } }
+					]
+				}
+			});
+			if (overlappingClaim) throw new Error("You already have a claimed evaluation overlapping this time");
 
-		// 6. Create the EvaluationSlot
-		const slot = await (prisma as any).evaluationSlot.create({
-			data: {
-				availabilityWindowId: windowId,
-				teamId: window.teamId,
-				slotStart: start,
-				slotEnd: end,
-				claimedById: user.id,
-				claimedAt: new Date(),
-				status: (SlotStatus as any).CLAIMED || "CLAIMED",
-			}
+			// 6. Create the EvaluationSlot
+			const slot = await (tx as any).evaluationSlot.create({
+				data: {
+					availabilityWindowId: windowId,
+					teamId: window.teamId,
+					slotStart: start,
+					slotEnd: end,
+					claimedById: user.id,
+					claimedAt: new Date(),
+					status: (SlotStatus as any).CLAIMED || "CLAIMED",
+				}
+			});
+
+			// 7. Create the Evaluation
+			await (tx as any).evaluation.create({
+				data: {
+					teamId: window.teamId,
+					projectId: window.team.projectId,
+					evaluatorId: user.id,
+					slotId: slot.id,
+					status: EvaluationStatus.PENDING,
+					claimedAt: new Date(),
+				}
+			});
+
+			// 8. Notify Team Leader
+			await (tx as any).notification.create({
+				data: {
+					userId: window.team.leaderId,
+					type: (NotificationType as any).EVAL_SLOT_CLAIMED || "GENERAL",
+					title: "Evaluation Claimed",
+					body: `Someone has claimed a 1-hour window for your mission evaluation starting at ${start.toLocaleTimeString()}.`,
+					actionUrl: `/cursus/projects/${window.team.projectId}/cockpit`,
+				}
+			});
+
+			return slot;
 		});
 
-		// 7. Notify Team Leader
-		await (prisma as any).notification.create({
-			data: {
-				userId: window.team.leaderId,
-				type: (NotificationType as any).EVAL_SLOT_CLAIMED || "GENERAL",
-				title: "Evaluation Claimed",
-				body: `Someone has claimed a 2-hour window for your mission evaluation starting at ${start.toLocaleTimeString()}.`,
-				actionUrl: `/cursus/projects/${window.team.projectId}/cockpit`,
-			}
-		});
-
-		return ok(slot);
+		return ok(result);
 	} catch (error) {
 		return err((error as Error).message, 500);
 	}

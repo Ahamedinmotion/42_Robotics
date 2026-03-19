@@ -7,6 +7,13 @@ export async function AdminContentSection({ userRole }: { userRole: string }) {
 		include: { _count: { select: { teams: true } } },
 	});
 
+	const rankRequirementsRaw = await prisma.rankRequirement.findMany();
+	const rankRequirements = rankRequirementsRaw.map((req: any) => ({
+		id: req.id,
+		rank: req.rank,
+		projectsRequired: req.projectsRequired,
+	}));
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const mapProj = (p: any) => ({
 		id: p.id, title: p.title, rank: p.rank, status: p.status,
@@ -15,6 +22,7 @@ export async function AdminContentSection({ userRole }: { userRole: string }) {
 		blackholeDays: p.blackholeDays,
 		skillTags: (p.skillTags as string[]) || [],
 		isUnique: p.isUnique,
+		isRequired: p.isRequired || false,
 		subjectSheetUrl: p.subjectSheetUrl, 
 		evaluationSheetUrl: p.evaluationSheetUrl,
 		objectives: p.objectives || [],
@@ -25,6 +33,7 @@ export async function AdminContentSection({ userRole }: { userRole: string }) {
 		<ContentManagement
 			projects={projects.map(mapProj)}
 			userRole={userRole}
+			rankRequirements={rankRequirements}
 		/>
 	);
 }

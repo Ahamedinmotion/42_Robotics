@@ -23,10 +23,21 @@ export function ClaimSlotModal({ window, onClose, onClaimed }: ClaimSlotModalPro
 	const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
 	// Generate 30-min steps
-	const steps = [];
-	for (let i = 0; i <= durationHours * 2 - 4; i++) { // -4 because slot must be 2h (4 steps)
-		steps.push(new Date(start.getTime() + i * 30 * 60 * 1000));
+	const steps: Date[] = [];
+	const now = new Date();
+	for (let i = 0; i <= durationHours * 2 - 2; i++) {
+		const step = new Date(start.getTime() + i * 30 * 60 * 1000);
+		// Only add steps that are in the future
+		if (step > now) {
+			steps.push(step);
+		}
 	}
+	
+	// Generate time options for manual dropdown
+	const timeOptions = steps.map(step => ({
+		label: step.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+		value: step.toISOString()
+	}));
 
 	const handleClaim = async () => {
 		if (!selectedStart) return;
@@ -34,7 +45,7 @@ export function ClaimSlotModal({ window, onClose, onClaimed }: ClaimSlotModalPro
 		playSFX("claim");
 
 		try {
-			const slotEnd = new Date(selectedStart.getTime() + 2 * 60 * 60 * 1000);
+			const slotEnd = new Date(selectedStart.getTime() + 1 * 60 * 60 * 1000);
 			const res = await fetch(`/api/evaluations/windows/${window.id}/claim`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -65,13 +76,41 @@ export function ClaimSlotModal({ window, onClose, onClaimed }: ClaimSlotModalPro
 					<div className="mb-6 flex items-center justify-between">
 						<div>
 							<h2 className="text-2xl font-bold text-text-primary">Claim Evaluation Slot</h2>
-							<p className="text-text-muted">Select your preferred 2-hour window for {window.project.title}</p>
+							<p className="text-text-muted">Select your preferred 1-hour window for {window.project.title}</p>
 						</div>
 						<button onClick={onClose} className="rounded-full p-2 hover:bg-white/5 transition-colors">
 							<svg className="h-6 w-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 							</svg>
 						</button>
+					</div>
+
+					{/* Precision Controls */}
+					<div className="flex items-center gap-4 bg-panel2/50 p-3 rounded-xl border border-white/5 mb-6 animate-in slide-in-from-top-2 duration-300">
+						<div className="flex items-center gap-3">
+							<span className="text-[10px] font-black text-accent uppercase tracking-widest">Precision Start</span>
+							<select 
+								value={selectedStart?.toISOString() || ""} 
+								onChange={e => {
+									const step = steps.find(s => s.toISOString() === e.target.value);
+									if (step) {
+										setSelectedStart(step);
+										playSFX("button");
+									}
+								}}
+								className="bg-background border border-white/10 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 ring-accent font-mono text-white"
+							>
+								<option value="" disabled>Select Start Time</option>
+								{timeOptions.map(opt => (
+									<option key={opt.value} value={opt.value}>{opt.label}</option>
+								))}
+							</select>
+						</div>
+						<div className="h-6 w-px bg-white/10" />
+						<div className="flex items-center gap-2">
+							<span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Fixed Duration</span>
+							<span className="text-[10px] font-black text-accent bg-accent/10 px-2 py-1 rounded-md border border-accent/20">1.0H SLOT</span>
+						</div>
 					</div>
 
 					{/* Visual Timeline */}
@@ -83,34 +122,40 @@ export function ClaimSlotModal({ window, onClose, onClaimed }: ClaimSlotModalPro
 						</div>
 
 						<div className="relative h-24 w-full overflow-x-auto pb-4 custom-scrollbar">
-							<div className="flex min-w-max gap-1 px-1 h-12 items-end">
-								{steps.map((step, idx) => {
-									const isSelected = selectedStart?.getTime() === step.getTime();
-									return (
-										<button
-											key={idx}
-											onClick={() => {
-												setSelectedStart(step);
-												playSFX("button");
-											}}
-											className={`group relative w-12 rounded-t-lg transition-all ${
-												isSelected 
-													? "h-12 bg-accent shadow-[0_0_20px_rgba(255,107,0,0.3)]" 
-													: "h-8 bg-white/5 hover:bg-white/10 hover:h-10"
-											}`}
-										>
-											{/* Highlight the full 2h block visually */}
-											{isSelected && (
-												<div className="absolute left-0 top-0 h-full w-[204px] bg-accent/20 border-x border-accent pointer-events-none rounded-t-lg z-0" />
-											)}
-											
-											<div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-mono text-text-muted pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-												{step.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-											</div>
-										</button>
-									);
-								})}
-							</div>
+							{steps.length > 0 ? (
+								<div className="flex min-w-max gap-1 px-1 h-12 items-end">
+									{steps.map((step, idx) => {
+										const isSelected = selectedStart?.getTime() === step.getTime();
+										return (
+											<button
+												key={idx}
+												onClick={() => {
+													setSelectedStart(step);
+													playSFX("button");
+												}}
+												className={`group relative w-12 rounded-t-lg transition-all ${
+													isSelected 
+														? "h-12 bg-accent shadow-[0_0_20px_rgba(255,107,0,0.3)]" 
+														: "h-8 bg-white/5 hover:bg-white/10 hover:h-10"
+												}`}
+											>
+												{/* Highlight the full 1h block visually */}
+												{isSelected && (
+													<div className="absolute left-0 top-0 h-full w-[100px] bg-accent/20 border-x border-accent pointer-events-none rounded-t-lg z-0" />
+												)}
+												
+												<div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-mono text-text-muted pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+													{step.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+												</div>
+											</button>
+										);
+									})}
+								</div>
+							) : (
+								<div className="flex items-center justify-center h-full text-[10px] font-black uppercase text-accent/40 tracking-widest italic">
+									⚠️ All available slots in this window have passed
+								</div>
+							)}
 						</div>
 					</div>
 
@@ -123,7 +168,7 @@ export function ClaimSlotModal({ window, onClose, onClaimed }: ClaimSlotModalPro
 								</span>{" "}
 								to{" "}
 								<span className="text-accent underline decoration-accent/30">
-									{new Date(selectedStart.getTime() + 2 * 60 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+									{new Date(selectedStart.getTime() + 1 * 60 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 								</span>
 							</p>
 						</div>

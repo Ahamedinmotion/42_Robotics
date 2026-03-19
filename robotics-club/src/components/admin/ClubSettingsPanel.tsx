@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { RankRequirementsEditor } from "./RankRequirementsEditor";
 
 interface Settings {
 	clubName: string;
@@ -256,6 +257,9 @@ export function ClubSettingsPanel() {
 					</div>
 				</div>
 			</section>
+
+			{/* ── Rank Requirements ── */}
+			<RankRequirementsEditor />
 		</div>
 	);
 }

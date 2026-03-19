@@ -6,8 +6,9 @@ import { BlackholeTimer } from "@/components/ui/BlackholeTimer";
 import Image from "next/image";
 import { TeamStatus } from "@prisma/client";
 
-function daysAgo(date: Date) {
-	const diff = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+function daysAgo(date: Date | string) {
+	const dateObj = new Date(date);
+	const diff = Math.floor((Date.now() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
 	if (diff === 0) return "today";
 	if (diff === 1) return "1 day ago";
 	return `${diff} days ago`;

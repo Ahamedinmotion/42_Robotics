@@ -29,7 +29,7 @@ export async function GET(
 					},
 				},
 				feedback: {
-					where: { fromRole: "TEAM_MEMBER" as any },
+					where: { fromRole: "TEAM" as any },
 				},
 			},
 		});
@@ -46,7 +46,8 @@ export async function GET(
 		}
 
 		// Disclosure Policy: If team member, must have submitted feedback OR 24h passed
-		if (isTeamMember && !isAdmin) {
+		// EXCEPT: The evaluator can always see the results they submitted.
+		if (isTeamMember && !isEvaluator && !isAdmin) {
 			const hasSubmittedFeedback = (evaluation as any).feedback.length > 0;
 			const timeSinceCompletion = Date.now() - new Date(evaluation.completedAt || evaluation.updatedAt).getTime();
 			const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -56,16 +57,25 @@ export async function GET(
 			}
 		}
 
-		// Count attempts for this project
-		const attemptCount = await prisma.evaluation.count({
+		// Count COMPLETED evaluations for this team/project to determine if it's the final one
+		const completedCount = await prisma.evaluation.count({
 			where: {
 				teamId: evaluation.teamId,
 				projectId: (evaluation as any).projectId,
-				status: { in: ["COMPLETED", "FAILED"] as any },
+				status: "COMPLETED" as any,
 			},
 		});
 
-		return ok({ ...evaluation, attemptCount });
+		// isFinal is true if there are at least 1 completed evaluation before this one (so this is 2nd+)
+		// Or we can base it on a specific count if known. Using >= 2 as per user "second or third".
+		const isFinal = completedCount >= 2;
+
+		return ok({ 
+			...evaluation, 
+			attemptCount: completedCount,
+			isFinal,
+			isEvaluatee: isTeamMember
+		});
 	} catch (error) {
 		return err((error as Error).message, 500);
 	}

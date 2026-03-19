@@ -72,6 +72,25 @@ export function ProjectHero({
 						{project.title}
 					</h1>
 
+					{project.isRequired && (
+						<div className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-orange-500/5 p-5 max-w-2xl shadow-[0_0_30px_rgba(249,115,22,0.1)] group transition-all duration-500 hover:border-orange-500/50 hover:bg-orange-500/10">
+							<div className="absolute top-0 left-0 w-1.5 h-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,1)]" />
+							<div className="flex items-center gap-4">
+								<div className="flex shrink-0 items-center justify-center w-12 h-12 rounded-full bg-orange-500/10 text-orange-500 border border-orange-500/30 group-hover:scale-110 transition-transform duration-500 shadow-[inset_0_0_15px_rgba(249,115,22,0.2)]">
+									<svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+								</div>
+								<div className="space-y-0.5">
+									<h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]">
+										Mandatory Mission
+									</h3>
+									<p className="text-[10px] font-bold uppercase tracking-widest text-text-muted leading-relaxed opacity-80">
+										You must pass this project to advance beyond Rank {project.rank}
+									</p>
+								</div>
+							</div>
+						</div>
+					)}
+
 					<div className="flex flex-wrap gap-2">
 						{project.skillTags.map((tag: string) => (
 							<span 

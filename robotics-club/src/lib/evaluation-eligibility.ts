@@ -35,6 +35,7 @@ type TeamInfo = {
 	id: string;
 	members: { userId: string }[];
 	evaluations: { evaluatorId: string }[];
+	claims?: { claimedById: string | null }[];
 };
 
 export function isEligibleEvaluator(
@@ -47,8 +48,11 @@ export function isEligibleEvaluator(
 		return false;
 	}
 
-	// 2. Evaluator has not already evaluated this project for this team
-	if (team.evaluations.some((e) => e.evaluatorId === evaluator.id)) {
+	// 2. Evaluator has not already claimed or evaluated this project for this team
+	const alreadyEvaluated = team.evaluations.some((e) => e.evaluatorId === evaluator.id);
+	const alreadyClaimed = team.claims?.some((c) => c.claimedById === evaluator.id);
+
+	if (alreadyEvaluated || alreadyClaimed) {
 		return false;
 	}
 

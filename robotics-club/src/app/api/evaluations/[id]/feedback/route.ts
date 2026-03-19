@@ -34,19 +34,25 @@ export async function POST(
 		const isTeamMember = evaluation.team.members.some(m => m.userId === session.user.id);
 		const isEvaluator = evaluation.evaluatorId === session.user.id;
 
-		if (fromRole === "TEAM_MEMBER" && !isTeamMember) return err("Forbidden", 403);
+		if (fromRole === "TEAM" && !isTeamMember) return err("Forbidden", 403);
 		if (fromRole === "EVALUATOR" && !isEvaluator) return err("Forbidden", 403);
 
+		// Determine recipient
+		const data: any = {
+			evaluationId: params.id,
+			rating,
+			comment,
+			fromRole,
+		};
+
+		if (fromRole === "TEAM") {
+			data.toEvaluatorId = evaluation.evaluatorId;
+		} else {
+			data.toTeamId = evaluation.teamId;
+		}
+
 		// Create feedback
-		const feedback = await (prisma as any).evaluationFeedback.create({
-			data: {
-				evaluationId: params.id,
-				authorId: session.user.id,
-				rating,
-				comment,
-				fromRole,
-			},
-		});
+		const feedback = await (prisma as any).evaluationFeedback.create({ data });
 
 		return ok(feedback);
 	} catch (error) {

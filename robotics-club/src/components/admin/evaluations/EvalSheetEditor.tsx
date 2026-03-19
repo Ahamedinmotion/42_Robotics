@@ -55,6 +55,8 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 			required: true,
 			isHardRequirement: false,
 			weight: 1,
+			passThreshold: 3, // Default for stars
+			options: [],
 		});
 		setSections(newSections);
 	};
@@ -184,7 +186,7 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 													}}
 												/>
 											</div>
-											<div className="grid grid-cols-2 gap-3">
+											<div className="space-y-4">
 												<div className="space-y-2">
 													<label className="text-[9px] font-black uppercase tracking-widest text-text-muted">Type</label>
 													<select
@@ -201,20 +203,7 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 														))}
 													</select>
 												</div>
-												<div className="space-y-2">
-													<label className="text-[9px] font-black uppercase tracking-widest text-text-muted">Rel. Weight</label>
-													<input
-														type="number"
-														className="w-full bg-panel border-border-color border rounded px-3 py-1.5 text-xs text-text-primary"
-														value={q.weight}
-														onChange={(e) => {
-															const newSections = [...sections];
-															newSections[sIdx].questions[qIdx].weight = Number(e.target.value);
-															setSections(newSections);
-														}}
-													/>
-												</div>
-												<div className="col-span-2 flex items-center gap-6 pt-2">
+												<div className="flex items-center gap-6 pt-2">
 													<label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-primary cursor-pointer">
 														<input
 															type="checkbox"
@@ -241,6 +230,21 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 														/>
 														Auto-Fail Threshold
 													</label>
+													{q.isHardRequirement && (q.type === 'STAR_RATING' || q.type === 'LINEAR_SCALE') && (
+														<div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
+															<span className="text-[9px] font-black uppercase tracking-widest text-red-500/60">Must Be ≥</span>
+															<input 
+																type="number"
+																className="w-12 bg-panel border border-red-500/30 rounded px-2 py-0.5 text-xs text-red-500 font-mono outline-none focus:ring-1 ring-red-500"
+																value={q.passThreshold || 0}
+																onChange={(e) => {
+																	const newSections = [...sections];
+																	newSections[sIdx].questions[qIdx].passThreshold = Number(e.target.value);
+																	setSections(newSections);
+																}}
+															/>
+														</div>
+													)}
 												</div>
 											</div>
 										</div>
@@ -251,6 +255,71 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 											<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
 										</button>
 									</div>
+
+									{/* Options Builder for MCQ */}
+									{q.type === 'MULTIPLE_CHOICE' && (
+										<div className="border-t border-white/5 pt-4 space-y-3">
+											<div className="flex items-center justify-between">
+												<label className="text-[9px] font-black uppercase tracking-widest text-accent">Option Parameters</label>
+												<Button 
+													variant="ghost" 
+													size="sm" 
+													className="h-6 text-[8px] font-black uppercase tracking-widest bg-accent/5 border border-accent/10"
+													onClick={() => {
+														const newSections = [...sections];
+														const options = q.options || [];
+														newSections[sIdx].questions[qIdx].options = [...options, { label: "New Option", isCorrect: false }];
+														setSections(newSections);
+													}}
+												>
+													+ Add Option
+												</Button>
+											</div>
+											<div className="grid gap-2">
+												{(q.options || []).map((opt: any, oIdx: number) => (
+													<div key={oIdx} className="flex items-center gap-2 bg-panel p-2 rounded-lg border border-white/5 group/opt">
+														<input 
+															className="flex-1 bg-transparent text-[11px] font-medium text-text-primary outline-none focus:border-b border-accent/20"
+															value={opt.label}
+															onChange={(e) => {
+																const newSections = [...sections];
+																newSections[sIdx].questions[qIdx].options[oIdx].label = e.target.value;
+																setSections(newSections);
+															}}
+														/>
+														<label className="flex items-center gap-1 cursor-pointer">
+															<input 
+																type="checkbox"
+																className="accent-emerald-500 scale-90"
+																checked={opt.isCorrect}
+																onChange={(e) => {
+																	const newSections = [...sections];
+																	newSections[sIdx].questions[qIdx].options[oIdx].isCorrect = e.target.checked;
+																	setSections(newSections);
+																}}
+															/>
+															<span className={`text-[8px] font-black uppercase tracking-tighter ${opt.isCorrect ? 'text-emerald-500' : 'text-text-muted opacity-50'}`}>Correct</span>
+														</label>
+														<button 
+															className="p-1 text-text-muted hover:text-red-500 transition-colors opacity-0 group-hover/opt:opacity-100"
+															onClick={() => {
+																const newSections = [...sections];
+																newSections[sIdx].questions[qIdx].options = q.options.filter((_: any, i: number) => i !== oIdx);
+																setSections(newSections);
+															}}
+														>
+															<svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+														</button>
+													</div>
+												))}
+												{(q.options || []).length === 0 && (
+													<div className="text-center py-4 border border-dashed border-white/5 rounded-lg">
+														<p className="text-[10px] text-text-muted uppercase tracking-widest italic opacity-50">No options defined yet</p>
+													</div>
+												)}
+											</div>
+										</div>
+									)}
 								</div>
 							))}
 							<button
@@ -306,7 +375,7 @@ export function EvalSheetEditor({ projectId, projectTitle }: EvalSheetEditorProp
 														{q.type === 'LONG_TEXT' ? "Qualitative technical feedback..." : "Short observation..."}
 													</div>
 												)}
-												{(q.type === 'LINEAR_SCALE' || q.type === 'MULTIPLE_CHOICE' || q.type === 'MULTI_SELECT') && (
+												{(q.type === 'LINEAR_SCALE' || q.type === 'MULTIPLE_CHOICE') && (
 													<div className="h-2 w-full rounded-full bg-panel-2 overflow-hidden border border-white/5">
 														<div className="h-full w-1/3 bg-accent/40" />
 													</div>

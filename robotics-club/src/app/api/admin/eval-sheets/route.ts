@@ -49,6 +49,7 @@ export async function POST(req: Request) {
 								scaleMax: q.scaleMax,
 								scaleMinLabel: q.scaleMinLabel,
 								scaleMaxLabel: q.scaleMaxLabel,
+								passThreshold: q.passThreshold,
 							})),
 						},
 					})),

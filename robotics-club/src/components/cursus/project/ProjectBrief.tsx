@@ -31,7 +31,7 @@ export function ProjectBrief({ project }: ProjectBriefProps) {
 
 	// Calculating stats for duration
 	const completedTeams = (project.teams || []).filter((t: any) => t.status === "COMPLETED" && t.activatedAt && t.updatedAt);
-	const durations = completedTeams.map((t: any) => (t.updatedAt.getTime() - t.activatedAt.getTime()) / (1000 * 60 * 60 * 24));
+	const durations = completedTeams.map((t: any) => (new Date(t.updatedAt).getTime() - new Date(t.activatedAt).getTime()) / (1000 * 60 * 60 * 24));
 	
 	const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a: number, b: number) => a + b, 0) / durations.length) : project.blackholeDays / 2;
 	const fastest = durations.length > 0 ? Math.round(Math.min(...durations)) : null;

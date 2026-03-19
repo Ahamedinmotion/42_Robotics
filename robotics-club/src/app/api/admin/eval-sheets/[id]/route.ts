@@ -125,6 +125,7 @@ export async function PATCH(
 									scaleMax: q.scaleMax,
 									scaleMinLabel: q.scaleMinLabel,
 									scaleMaxLabel: q.scaleMaxLabel,
+									passThreshold: q.passThreshold,
 								})),
 							},
 						})),

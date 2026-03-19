@@ -55,7 +55,11 @@ export function UpcomingEvaluations() {
 							{isGiving ? "You are evaluating" : "You will be evaluated by"}
 						</h4>
 						<p className="truncate text-xs text-text-muted">
-							{topOne.maskedIdentity} on <span className="text-accent">{topOne.team.project.title}</span> in {topOne.revealStatus.remainingMins}m
+							{topOne.maskedIdentity} on <span className="text-accent">{topOne.team.project.title}</span> {
+								topOne.revealStatus.remainingMins > 0 
+									? `in ${topOne.revealStatus.remainingMins}m` 
+									: `started ${Math.abs(topOne.revealStatus.remainingMins)}m ago`
+							}
 						</p>
 					</div>
 

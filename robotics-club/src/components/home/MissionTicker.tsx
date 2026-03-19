@@ -31,8 +31,8 @@ export async function MissionTicker({ userId }: { userId: string }) {
 	let mission = "Keep building.";
 	if (!activeTeam) {
 		mission = "You're not on a project. Check the cursus and get started.";
-	} else if (lastReport && (now.getTime() - lastReport.createdAt.getTime()) > 7 * 24 * 60 * 60 * 1000) {
-		const days = Math.floor((now.getTime() - lastReport.createdAt.getTime()) / (24 * 60 * 60 * 1000));
+	} else if (lastReport && (now.getTime() - new Date(lastReport.createdAt).getTime()) > 7 * 24 * 60 * 60 * 1000) {
+		const days = Math.floor((now.getTime() - new Date(lastReport.createdAt).getTime()) / (24 * 60 * 60 * 1000));
 		mission = `Your last report was ${days} days ago. Submit one today.`;
 	} else {
 		const availableSlots = await prisma.evaluationSlot.count({

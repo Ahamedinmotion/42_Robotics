@@ -11,7 +11,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 		const role = await (prisma as any).dynamicRole.findUnique({ where: { name: params.id } });
 		if (!role) return err("Role not found", 404);
-		if (role.isSystem) return err("System roles cannot be edited", 403);
+
+		// Safety first: Nobody (not even President) can modify the President role itself via API
+		if (role.name === "PRESIDENT") return err("The President role is immutable for system safety", 403);
+
+		// System roles are normally protected, but the President can override them
+		if (role.isSystem && auth.user.role !== "PRESIDENT") {
+			return err("System roles can only be modified by the President", 403);
+		}
 
 		const body = await req.json();
 		const data: any = {};
@@ -42,7 +49,16 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
 		const role = await (prisma as any).dynamicRole.findUnique({ where: { name: params.id } });
 		if (!role) return err("Role not found", 404);
-		if (role.isSystem) return err("System roles cannot be deleted", 403);
+
+		// Safety first: Cannot delete critical roles
+		if (role.name === "PRESIDENT" || role.name === "STUDENT") {
+			return err(`The ${role.name} role is required for system operation and cannot be deleted`, 403);
+		}
+
+		// System roles can only be deleted by the President
+		if (role.isSystem && auth.user.role !== "PRESIDENT") {
+			return err("System roles can only be deleted by the President", 403);
+		}
 
 		// Reassign all users with this role to STUDENT
 		await prisma.user.updateMany({

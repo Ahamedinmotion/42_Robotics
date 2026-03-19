@@ -15,6 +15,8 @@ export default async function ProjectCockpitPage({ params }: { params: { id: str
 		where: { id: teamId },
 		include: {
 			project: true,
+			evaluations: { where: { status: "COMPLETED" } },
+			evaluationSlots: { where: { status: { in: ["OPEN", "CLAIMED"] } } },
 			members: {
 				include: {
 					user: {

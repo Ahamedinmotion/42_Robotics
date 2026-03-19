@@ -2,8 +2,8 @@ import prisma from "@/lib/prisma";
 import { MemberControl } from "@/components/admin/MemberControl";
 import { getClubSettings } from "@/lib/club-settings";
 
-function daysAgoFrom(date: Date) {
-	return Math.floor((Date.now() - date.getTime()) / 86400000);
+function daysAgoFrom(date: Date | string) {
+	return Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
 }
 
 export async function AdminMembersSection() {

@@ -139,6 +139,7 @@ model Project {
   evaluationSheetUrl String?           @map("evaluation_sheet_url")
   createdById        String            @map("created_by_id")
   hasBeenCompleted   Boolean           @default(false) @map("has_been_completed")
+  isRequired         Boolean           @default(false) @map("is_required")
   evaluations        Evaluation[]
   proposalsConverted ProjectProposal[] @relation("ConvertedProject")
   createdBy          User              @relation("ProjectCreator", fields: [createdById], references: [id])
@@ -148,6 +149,17 @@ model Project {
 
   @@index([createdById])
   @@map("projects")
+}
+
+model RankRequirement {
+  id               String   @id @default(cuid())
+  rank             Rank
+  projectsRequired Int      @default(4) @map("projects_required")
+  updatedById      String?  @map("updated_by_id")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([rank])
+  @@map("rank_requirements")
 }
 
 model UserSkillProgress {
@@ -991,6 +1003,7 @@ model EvalQuestion {
   scaleMax          Int?           @map("scale_max")
   scaleMinLabel     String?        @map("scale_min_label")
   scaleMaxLabel     String?        @map("scale_max_label")
+  passThreshold     Float?         @map("pass_threshold") // minimum value to pass for auto-fail
   responses         EvalResponse[]
 
   @@map("eval_questions")
@@ -1013,7 +1026,6 @@ enum QuestionType {
   CHECKBOX
   LINEAR_SCALE
   MULTIPLE_CHOICE
-  MULTI_SELECT
   SHORT_TEXT
   LONG_TEXT
 }

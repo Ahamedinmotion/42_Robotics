@@ -31,6 +31,9 @@ export async function GET(req: Request) {
 						project: true,
 						members: true,
 						evaluations: true,
+						evaluationSlots: {
+							select: { claimedById: true }
+						}
 					}
 				},
 				slots: true,
@@ -44,6 +47,7 @@ export async function GET(req: Request) {
 				id: window.team.id,
 				members: window.team.members.map((m: any) => ({ userId: m.userId })),
 				evaluations: window.team.evaluations,
+				claims: window.team.evaluationSlots
 			};
 			const projectInfo = {
 				id: window.team.project.id,

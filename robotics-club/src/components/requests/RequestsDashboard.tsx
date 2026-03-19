@@ -6,11 +6,13 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { MaterialRequestList } from "./MaterialRequestList";
 import { FabricationRequestList } from "./FabricationRequestList";
+import { ProjectProposalForm } from "./ProjectProposalForm";
 
-type RequestTab = "features" | "materials" | "fabrication" | "checkouts";
+type RequestTab = "features" | "materials" | "fabrication" | "checkouts" | "proposals";
 
-export function RequestsDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
+export function RequestsDashboard({ isAdmin = false, userRank = "E" }: { isAdmin?: boolean, userRank?: string }) {
 	const [activeTab, setActiveTab] = useState<RequestTab>("features");
+	const canPropose = ["B", "A", "S"].includes(userRank);
 
 	const tabs: { key: RequestTab; label: string; icon: string }[] = [
 		{ key: "features", label: "Feature Requests", icon: "💡" },
@@ -18,6 +20,10 @@ export function RequestsDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
 		{ key: "fabrication", label: "3D Print & CNC", icon: "⚙️" },
 		{ key: "checkouts", label: "Equipment Loans", icon: "🛠️" },
 	];
+
+	if (canPropose) {
+		tabs.push({ key: "proposals", label: "Project Proposals", icon: "✨" });
+	}
 
 	return (
 		<div className="space-y-6">
@@ -49,6 +55,7 @@ export function RequestsDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
 				{activeTab === "materials" && <MaterialRequestList />}
 				{activeTab === "fabrication" && <FabricationRequestList />}
 				{activeTab === "checkouts" && <ComingSoon title="Equipment Loans" />}
+				{activeTab === "proposals" && canPropose && <ProjectProposalForm />}
 			</div>
 		</div>
 	);

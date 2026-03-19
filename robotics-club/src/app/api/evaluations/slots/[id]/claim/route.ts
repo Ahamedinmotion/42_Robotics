@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { isEligibleEvaluator } from "@/lib/evaluation-eligibility";
-import { EvaluationStatus, NotificationType, Rank } from "@prisma/client";
+import { EvaluationStatus, NotificationType, Rank, SlotStatus } from "@prisma/client";
 
 export async function POST(
 	req: Request,
@@ -30,6 +30,7 @@ export async function POST(
 							project: true,
 							members: true,
 							evaluations: { select: { evaluatorId: true } },
+							evaluationSlots: { select: { claimedById: true } },
 						},
 					},
 					evaluations: {
@@ -77,6 +78,7 @@ export async function POST(
 				id: slot.team.id,
 				members: slot.team.members.map((m) => ({ userId: m.userId })),
 				evaluations: slot.team.evaluations,
+				claims: slot.team.evaluationSlots,
 			};
 
 			const projectInfo = {
@@ -181,7 +183,7 @@ export async function POST(
 			if (totalAfterClaim >= maxClaimed) {
 				await tx.evaluationSlot.update({
 					where: { id: slot.id },
-					data: { status: "FILLED" },
+					data: { status: SlotStatus.CLAIMED },
 				});
 			}
 

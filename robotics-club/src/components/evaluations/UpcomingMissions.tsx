@@ -79,7 +79,7 @@ export function UpcomingMissions() {
 											{" - "}
 											{new Date(slot.slotEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 										</div>
-										{slot.revealStatus.isImminent ? (
+										{slot.revealStatus.isImminent || slot.revealStatus.isInProgress ? (
 											<Button size="sm" onClick={() => setPrepSlot(slot)}>Start Prep</Button>
 										) : (
 											<span className="text-[10px] text-accent uppercase font-bold animate-pulse">Waiting for Imminent window</span>

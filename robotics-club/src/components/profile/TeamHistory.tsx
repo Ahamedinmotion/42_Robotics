@@ -25,13 +25,15 @@ interface TeamHistoryProps {
 
 // ── Component ────────────────────────────────────────
 
-const statusColours: Record<string, string> = {
-	COMPLETED: "bg-green-900/40 text-green-400",
-	ACTIVE: "bg-blue-900/40 text-blue-400",
-	EVALUATING: "bg-orange-900/40 text-orange-400",
-	FORMING: "bg-yellow-900/40 text-yellow-400",
-	FAILED: "bg-red-900/40 text-red-400",
-	DISBANDED: "bg-gray-800/40 text-gray-400",
+const statusStyles: Record<string, string> = {
+	COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
+	ACTIVE: "bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]",
+	EVALUATING: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+	FORMING: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+	FAILED: "bg-red-500/10 text-red-500 border-red-500/20",
+	ABANDONED: "bg-red-500/10 text-red-500 border-red-500/20 opacity-80",
+	BLACKHOLED: "bg-zinc-900 text-zinc-400 border-zinc-700",
+	DISBANDED: "bg-zinc-800/50 text-zinc-500 border-zinc-700/30",
 };
 
 export function TeamHistory({ teams, currentUserId }: TeamHistoryProps) {
@@ -129,7 +131,7 @@ export function TeamHistory({ teams, currentUserId }: TeamHistoryProps) {
 								{cancellingId === tm.team.id ? "..." : "Cancel"}
 							</button>
 						)}
-						<span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusColours[tm.team.status] || "bg-gray-800/40 text-gray-400"}`}>
+						<span className={`rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${statusStyles[tm.team.status] || "bg-zinc-800 text-zinc-500 border-zinc-700"}`}>
 							{tm.team.status}
 						</span>
 					</div>

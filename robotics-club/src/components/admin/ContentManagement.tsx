@@ -22,15 +22,23 @@ interface ProjectItem {
 	blackholeDays: number;
 	skillTags: string[];
 	isUnique: boolean;
+	isRequired: boolean;
 	subjectSheetUrl: string | null;
 	evaluationSheetUrl: string | null;
 	objectives: string[];
 	deliverables: string[];
 }
 
+interface RankRequirementItem {
+	id: string;
+	rank: string;
+	projectsRequired: number;
+}
+
 interface ContentManagementProps {
 	projects: ProjectItem[];
 	userRole: string;
+	rankRequirements?: RankRequirementItem[];
 }
 
 // ── Component ────────────────────────────────────────
@@ -43,11 +51,11 @@ const statusChip: Record<string, string> = {
 
 const RANKS_LIST = ["E", "D", "C", "B", "A", "S"];
 
-export function ContentManagement({ projects, userRole }: ContentManagementProps) {
+export function ContentManagement({ projects, userRole, rankRequirements = [] }: ContentManagementProps) {
 	const router = useRouter();
 	const { toast } = useToast();
 	const [showAdd, setShowAdd] = useState(false);
-	const [activeTab, setActiveTab] = useState<"projects" | "sheets">("projects");
+	const [activeTab, setActiveTab] = useState<"projects" | "sheets" | "rankReqs">("projects");
 	const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
 	const [loading, setLoading] = useState(false);
 	const isVpOrPres = userRole === "VP" || userRole === "PRESIDENT";
@@ -55,6 +63,7 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 
 	// New/Edit project form state — defaults loaded from settings
 	const [editingId, setEditingId] = useState<string | null>(null);
+	const [togglingReq, setTogglingReq] = useState<string | null>(null);
 	const [form, setForm] = useState({ 
 		title: "", 
 		description: "", 
@@ -88,6 +97,35 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 			})
 			.catch(() => {});
 	}, [editingId]);
+
+	const [editingReqs, setEditingReqs] = useState<Record<string, number>>(() => {
+		const initial: Record<string, number> = {};
+		for (const rank of RANKS_LIST) {
+			const existing = rankRequirements.find(r => r.rank === rank);
+			initial[rank] = existing ? existing.projectsRequired : 4;
+		}
+		return initial;
+	});
+	const [savingReqs, setSavingReqs] = useState<Record<string, boolean>>({});
+
+	const saveRankReq = async (rank: string) => {
+		setSavingReqs(prev => ({ ...prev, [rank]: true }));
+		try {
+			const res = await fetch(`/api/admin/rank-requirements/${rank}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ projectsRequired: editingReqs[rank] }),
+			});
+			const json = await res.json();
+			if (!json.ok) throw new Error(json.error);
+			toast(`Rank ${rank} requirement updated`);
+			router.refresh();
+		} catch (err: any) {
+			toast(err.message || "Failed to update rank requirement", "error");
+		} finally {
+			setSavingReqs(prev => ({ ...prev, [rank]: false }));
+		}
+	};
 
 	if (!canManage) {
 		return <p className="py-12 text-center text-sm text-text-muted">Access restricted to Project Managers and above.</p>;
@@ -163,6 +201,28 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 		else callApi(`/api/admin/projects/${id}`, "PATCH", { status: "ACTIVE" }, "Reactivated");
 	};
 
+	const toggleRequired = async (p: ProjectItem) => {
+		setTogglingReq(p.id);
+		try {
+			const res = await fetch(`/api/admin/projects/${p.id}/required`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ isRequired: !p.isRequired })
+			});
+			const json = await res.json();
+			if (!json.ok) {
+				toast(json.error || "Validation failed", "error");
+			} else {
+				toast(`Project marked as ${!p.isRequired ? "REQUIRED" : "OPTIONAL"}`);
+				router.refresh();
+			}
+		} catch {
+			toast("Network error", "error");
+		} finally {
+			setTogglingReq(null);
+		}
+	};
+
 	const grouped = RANKS_LIST.map((rank) => ({
 		rank,
 		items: projects.filter((p) => p.rank === rank),
@@ -189,9 +249,17 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 				>
 					Evaluation Sheets
 				</button>
+				<button
+					onClick={() => setActiveTab("rankReqs")}
+					className={`text-xs font-black uppercase tracking-[0.2em] transition-all px-4 py-2 rounded-lg ${
+						activeTab === "rankReqs" ? "text-accent bg-accent/10 border border-accent/20" : "text-text-muted hover:text-text-primary"
+					}`}
+				>
+					Rank Requirements
+				</button>
 			</div>
 
-			{activeTab === "projects" ? (
+			{activeTab === "projects" && (
 				<div className="space-y-6">
 					<div className="flex items-center justify-between">
 						<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Skill Tree Editor</h3>
@@ -279,10 +347,25 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 										<div className="flex items-center gap-3">
 											<Badge rank={p.rank as any} size="sm" />
 											<span className="text-sm font-bold text-text-primary">{p.title}</span>
+											{p.isRequired && (
+												<span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest bg-red-500/20 text-red-500">REQUIRED</span>
+											)}
 											<span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusChip[p.status] || ""}`}>{p.status}</span>
 											<span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{p.teamCount} Squads</span>
 										</div>
 										<div className="flex items-center gap-2">
+											{isVpOrPres && (
+												<label className="flex items-center gap-1.5 cursor-pointer mr-2 pr-2 border-r border-white/10" title="Toggle Required Status">
+													<span className={`text-[10px] font-black uppercase tracking-widest ${p.isRequired ? "text-red-500" : "text-text-muted/50"}`}>Req</span>
+													<input 
+														type="checkbox" 
+														checked={p.isRequired} 
+														disabled={togglingReq === p.id}
+														onChange={() => toggleRequired(p)} 
+														className="accent-red-500 h-3 w-3 opacity-50 hover:opacity-100 transition-opacity disabled:opacity-20 cursor-pointer" 
+													/>
+												</label>
+											)}
 											<Button 
 												variant="ghost" 
 												size="sm" 
@@ -305,7 +388,9 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 						</Card>
 					))}
 				</div>
-			) : (
+			)}
+			
+			{activeTab === "sheets" && (
 				<div className="space-y-6">
 					{!selectedProject ? (
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -338,6 +423,43 @@ export function ContentManagement({ projects, userRole }: ContentManagementProps
 							/>
 						</div>
 					)}
+				</div>
+			)}
+			
+			{activeTab === "rankReqs" && (
+				<div className="space-y-6">
+					<Card className="space-y-4">
+						<h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">Rank Advancements</h3>
+						<p className="text-xs text-text-muted mb-4">Set the minimum number of completed required projects needed to advance from each rank.</p>
+						<div className="space-y-4">
+							{RANKS_LIST.map((rank) => (
+								<div key={rank} className="flex items-center justify-between rounded-xl bg-panel2/50 border border-white/5 p-4 hover:bg-panel2 transition-colors">
+									<div className="flex items-center gap-4">
+										<Badge rank={rank as any} size="lg" />
+										<span className="text-sm font-bold text-text-primary">Rank {rank}</span>
+									</div>
+									<div className="flex items-center gap-3">
+										<label className="text-xs text-text-muted font-medium">Projects Required:</label>
+										<input 
+											type="number" 
+											min="1"
+											value={editingReqs[rank] ?? 4} 
+											onChange={(e) => setEditingReqs(prev => ({ ...prev, [rank]: parseInt(e.target.value) || 1 }))}
+											className="w-20 rounded-md border border-border-color bg-background p-2 text-sm text-text-primary text-center" 
+										/>
+										<Button 
+											variant="primary" 
+											size="sm" 
+											disabled={savingReqs[rank]}
+											onClick={() => saveRankReq(rank)}
+										>
+											{savingReqs[rank] ? "Saving..." : "Save"}
+										</Button>
+									</div>
+								</div>
+							))}
+						</div>
+					</Card>
 				</div>
 			)}
 		</div>

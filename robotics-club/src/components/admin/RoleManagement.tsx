@@ -46,7 +46,8 @@ export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 	const router = useRouter();
 	const { toast } = useToast();
 	const { playSFX } = useSound();
-	const { update } = useSession();
+	const { data: session, update } = useSession();
+	const currentUserRole = (session?.user as any)?.role;
 
 	const [roles, setRoles] = useState<DynamicRoleItem[]>([]);
 	const [users, setUsers] = useState<UserItem[]>([]);
@@ -224,7 +225,7 @@ export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 								<span className="text-[10px] text-text-muted">{r._count.users} user{r._count.users !== 1 ? "s" : ""}</span>
 							</div>
 							<div className="flex gap-2">
-								{!r.isSystem && editingRole !== r.name && (
+								{editingRole !== r.name && r.name !== "PRESIDENT" && (!r.isSystem || currentUserRole === "PRESIDENT") && (
 									<>
 										<Button variant="ghost" size="sm" onClick={() => { setEditingRole(r.name); setEditPerms([...r.permissions]); }}>Edit</Button>
 										<Button variant="ghost" size="sm" className="text-accent-urgency" onClick={() => deleteRole(r.name)} disabled={submitting}>Delete</Button>

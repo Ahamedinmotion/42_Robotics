@@ -108,6 +108,15 @@ function ActionMenu({
 						>
 							⬆ Promote Rank
 						</button>
+						
+						{/* Demote Rank */}
+						<button
+							onClick={() => { onAction("demote-rank"); setOpen(false); }}
+							disabled={loading}
+							className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-text-muted transition-colors hover:bg-panel2"
+						>
+							⬇ Demote Rank
+						</button>
 
 						{/* Grant Alumni */}
 						<button
@@ -168,9 +177,30 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 	const callApi = async (url: string, body: any, successMsg: string, method = "PATCH") => {
 		setLoading(url);
 		try {
-			const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-			if (res.ok) { toast(successMsg); router.refresh(); } else { const j = await res.json(); toast(j.error || "Failed", "error"); }
-		} catch { toast("Network error", "error"); } finally { setLoading(null); }
+			const res = await fetch(url, { 
+				method, 
+				headers: { "Content-Type": "application/json" }, 
+				body: JSON.stringify(body) 
+			});
+
+			const contentType = res.headers.get("content-type");
+			let data;
+			if (contentType && contentType.includes("application/json")) {
+				data = await res.json();
+			}
+
+			if (res.ok) {
+				toast(successMsg, "success");
+				router.refresh();
+			} else {
+				toast(data?.error || `Error ${res.status}: ${res.statusText}`, "error");
+			}
+		} catch (err) {
+			console.error("API Call Error:", err);
+			toast("Network error. Check console for details.", "error");
+		} finally {
+			setLoading(null);
+		}
 	};
 
 	const handleAction = (member: ActiveMember, action: string, payload?: any) => {
@@ -184,6 +214,10 @@ export function MemberControl({ activeMembers, waitlist, blackholed, alumni, act
 			case "promote-rank":
 				if (confirm(`Promote ${member.login} to next rank?`))
 					callApi(`/api/admin/users/${member.id}/promote-rank`, {}, `${member.login} promoted`);
+				break;
+			case "demote-rank":
+				if (confirm(`Demote ${member.login} to previous rank?`))
+					callApi(`/api/admin/users/${member.id}/demote-rank`, {}, `${member.login} demoted`);
 				break;
 			case "alumni":
 				if (confirm(`Grant alumni status to ${member.login}?`))

@@ -35,27 +35,32 @@ export async function POST(req: Request) {
 		const previousEvals = await prisma.evaluation.findMany({
 			where: {
 				teamId: team.id,
-				status: { in: ["COMPLETED", "FAILED"] as any },
+				OR: [
+					{ status: "FAILED" },
+					{ status: "COMPLETED", passed: false }
+				] as any,
 			},
 			orderBy: { completedAt: "desc" },
 		});
 
 		const attemptCount = previousEvals.length + 1;
 		const lastEval = previousEvals[0];
+		const isAdmin = session.user.role === "ADMIN";
+		const isImpersonating = !!(session.user as any).impersonatorId;
 
-		if (attemptCount > 2 && lastEval) {
+		if (attemptCount > 2 && lastEval && !isAdmin && !isImpersonating) {
 			const lastDate = new Date(lastEval.completedAt || lastEval.updatedAt);
 			const now = new Date();
 			const hoursSinceLast = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
 			
 			if (attemptCount <= 4 && hoursSinceLast < 24) {
-				return err("Cooldown active: 1 day wait required after 2 attempts", 403);
+				return err("Cooldown active: 1 day wait required after 2 failed attempts", 403);
 			}
 			if (attemptCount <= 6 && hoursSinceLast < 72) {
-				return err("Cooldown active: 3 day wait required after 4 attempts", 403);
+				return err("Cooldown active: 3 day wait required after 4 failed attempts", 403);
 			}
 			if (attemptCount > 6 && !(team as any).nextAttemptApproved) {
-				return err("Maximum attempts exceeded. Requires manual approval from VP or President.", 403);
+				return err("Maximum failed attempts exceeded. Requires manual approval from VP or President.", 403);
 			}
 		}
 
@@ -65,9 +70,9 @@ export async function POST(req: Request) {
 			const start = new Date(w.startTime);
 			const end = new Date(w.endTime);
 
-			// Validate 2h minimum
-			if (end.getTime() - start.getTime() < 2 * 60 * 60 * 1000) {
-				return err("Availability window must be at least 2 hours", 400);
+			// Validate 1h minimum
+			if (end.getTime() - start.getTime() < 1 * 60 * 60 * 1000) {
+				return err("Availability window must be at least 1 hour", 400);
 			}
 
 			// Validate no overlap
