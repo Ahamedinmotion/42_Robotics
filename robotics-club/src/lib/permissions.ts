@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 
 // ── Master permission keys ──────────────────────
 export const ALL_PERMISSIONS = [
+	"ALL",
+	"CAN_IMPERSONATE",
 	"CAN_SEND_ANNOUNCEMENTS",
 	"CAN_MANAGE_MEMBERS",
 	"CAN_MANAGE_WAITLIST",
@@ -67,10 +69,10 @@ export async function isRoleAdmin(roleName: string): Promise<boolean> {
 
 /** Check if a permissions array includes a specific key. */
 export function hasPermission(permissions: string[], key: string): boolean {
-	return permissions.includes(key);
+	return permissions.includes("ALL") || permissions.includes(key);
 }
 
 /** Check if a permissions array includes any of the given keys. */
 export function hasAnyPermission(permissions: string[], keys: string[]): boolean {
-	return keys.some((k) => permissions.includes(k));
+	return permissions.includes("ALL") || keys.some((k) => permissions.includes(k));
 }

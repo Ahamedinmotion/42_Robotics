@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
 	try {
-		const auth = await requirePermission("CAN_MANAGE_ROLES");
+		const auth = await requirePermission("CAN_IMPERSONATE");
 		if (auth instanceof Response) return auth;
 
 		const { targetUserId } = await req.json();

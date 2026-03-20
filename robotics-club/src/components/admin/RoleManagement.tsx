@@ -11,6 +11,8 @@ import { useSession } from "next-auth/react";
 
 // ── Master Permission Keys ─────────────────────
 const ALL_PERMISSIONS = [
+	"ALL",
+	"CAN_IMPERSONATE",
 	"CAN_SEND_ANNOUNCEMENTS", "CAN_MANAGE_MEMBERS", "CAN_MANAGE_WAITLIST",
 	"CAN_EXTEND_DEADLINES", "CAN_APPROVE_FABRICATION", "CAN_APPROVE_MATERIALS",
 	"CAN_APPROVE_PROPOSALS", "CAN_RESOLVE_CONFLICTS", "CAN_MANAGE_DAMAGE",
@@ -20,6 +22,7 @@ const ALL_PERMISSIONS = [
 ];
 
 function permLabel(key: string) {
+	if (key === "ALL") return "ALL PERMISSIONS";
 	return key.replace(/^CAN_/, "").replace(/_/g, " ");
 }
 
@@ -324,8 +327,10 @@ export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 										<Button 
 											variant="ghost" 
 											size="sm" 
-											className="text-[10px] uppercase tracking-wider text-accent hover:bg-accent/10"
-											disabled={submitting}
+											className={`text-[10px] uppercase tracking-wider text-accent hover:bg-accent/10 ${
+												!(session?.user as any)?.permissions?.some((p: string) => p === "ALL" || p === "CAN_IMPERSONATE") ? "opacity-30 cursor-not-allowed grayscale" : ""
+											}`}
+											disabled={submitting || !(session?.user as any)?.permissions?.some((p: string) => p === "ALL" || p === "CAN_IMPERSONATE")}
 											onClick={() => impersonateUser(u.id)}
 										>
 											🕵️ Impersonate

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { err } from "@/lib/api";
-import { getRolePermissions, hasPermission, isRoleAdmin } from "@/lib/permissions";
+import { getRolePermissions, hasAnyPermission, hasPermission, isRoleAdmin } from "@/lib/permissions";
 
 /**
  * Require a specific permission key. Returns { user, permissions } or a Response error.
@@ -43,8 +43,8 @@ export async function requireAnyPermission(permissionKeys: string[]) {
 	}
 
 	const permissions = session.user.permissions as string[] | undefined;
-
-	if (!permissions || !permissionKeys.some((k) => permissions.includes(k))) {
+	
+	if (!permissions || !hasAnyPermission(permissions, permissionKeys)) {
 		return err("Forbidden — insufficient permissions", 403);
 	}
 
