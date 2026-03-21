@@ -17,6 +17,7 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 	const { toast } = useToast();
 	const { playSFX } = useSound();
 	const [showForm, setShowForm] = useState(false);
+	const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 
 	// Form State
@@ -35,6 +36,7 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 
 	const handleSubmit = async () => {
 		if (!summary) return toast("Report summary is required", "error");
+		if (photos.length < 5) return toast("At least 5 build photos are required", "error");
 		setIsLoading(true);
 		try {
 			const res = await fetch(`/api/teams/${team.id}/reports`, {
@@ -70,19 +72,59 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 		setPhotos(prev => prev.filter(p => p !== url));
 	};
 
+	const getThumb = (url: string) => {
+		if (!url.includes("cloudinary.com")) return url;
+		return url.replace("/upload/", "/upload/w_200,h_150,c_fill,g_auto/");
+	};
+
+	// Biweekly report enforcement
+	const lastReportDate = team.weeklyReports?.length > 0
+		? new Date(Math.max(...team.weeklyReports.map((r: any) => new Date(r.createdAt).getTime())))
+		: team.createdAt ? new Date(team.createdAt) : null;
+	const daysSinceLastReport = lastReportDate
+		? Math.floor((Date.now() - lastReportDate.getTime()) / 86400000)
+		: 0;
+	const isReportOverdue = daysSinceLastReport >= 14;
+	const daysUntilDue = Math.max(0, 14 - daysSinceLastReport);
+
 	return (
 		<div className="max-w-4xl mx-auto space-y-12">
+			{/* Overdue Report Warning */}
+			{!showForm && team.status === "ACTIVE" && isReportOverdue && (
+				<div className="p-5 rounded-2xl bg-red-500/5 border border-red-500/20 animate-pulse-slow space-y-3">
+					<div className="flex items-center gap-3">
+						<div className="h-3 w-3 rounded-full bg-red-500 animate-ping" />
+						<h4 className="text-sm font-black uppercase tracking-widest text-red-400">Report Overdue</h4>
+					</div>
+					<p className="text-xs text-red-400/70 leading-relaxed">
+						Your last report was <span className="font-bold text-red-400">{daysSinceLastReport} days ago</span>. 
+						Reports are required every 2 weeks. Submit one now to stay on track.
+					</p>
+				</div>
+			)}
+
+			{/* Due Soon Warning */}
+			{!showForm && team.status === "ACTIVE" && !isReportOverdue && daysUntilDue <= 3 && daysUntilDue > 0 && (
+				<div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-3">
+					<span className="text-amber-400 text-sm">⚠️</span>
+					<p className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+						Report due in {daysUntilDue} day{daysUntilDue !== 1 ? "s" : ""}
+					</p>
+				</div>
+			)}
+
 			{/* Submission Area */}
 			{!showForm && team.status === "ACTIVE" && (
 				<div className="flex justify-center">
 					<Button 
 						size="lg" 
 						onClick={() => setShowForm(true)}
-						className="h-16 px-12 text-sm font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.05)]"
+						className={`h-16 px-12 text-sm font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.05)] ${isReportOverdue ? "animate-pulse ring-2 ring-red-500/30" : ""}`}
 					>
-						✨ Submit Week {nextWeek} Report
+						{isReportOverdue ? "⚠️ Submit Overdue Report — Week " + nextWeek : "✨ Submit Week " + nextWeek + " Report"}
 					</Button>
 				</div>
+
 			)}
 
 			{showForm && (
@@ -103,7 +145,10 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 							/>
 							
 							<div className="space-y-4 pt-4">
-								<label className="text-xs font-black uppercase tracking-widest text-text-muted">Mission Photos ({photos.length}/5)</label>
+								<div className="flex items-center justify-between">
+									<label className="text-xs font-black uppercase tracking-widest text-text-muted">Build Photos <span className="text-accent-urgency">*</span></label>
+									<span className={`text-[10px] font-black uppercase tracking-widest ${photos.length >= 5 ? "text-emerald-400" : "text-red-400"}`}>{photos.length}/5 minimum</span>
+								</div>
 								<div className="grid grid-cols-3 gap-4">
 									{photos.map((url) => (
 										<div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group/img">
@@ -199,8 +244,8 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 
 					<div className="flex justify-end gap-4 mt-8">
 						<Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-						<Button disabled={isLoading} onClick={handleSubmit}>
-							{isLoading ? "Broadcasting..." : "🚀 Broadcast Report"}
+						<Button disabled={isLoading || photos.length < 5} onClick={handleSubmit}>
+							{isLoading ? "Broadcasting..." : photos.length < 5 ? `📸 ${5 - photos.length} more photo(s) required` : "🚀 Broadcast Report"}
 						</Button>
 					</div>
 				</Card>
@@ -247,6 +292,24 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 									)}
 								</div>
 
+								{/* Report Photos */}
+								{report.photoUrls?.length > 0 && (
+									<div className="space-y-2 pt-2">
+										<p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Build Photos ({report.photoUrls.length})</p>
+										<div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+											{report.photoUrls.map((url: string, pIdx: number) => (
+												<div
+													key={`${url}-${pIdx}`}
+													onClick={() => setLightboxUrl(url)}
+													className="relative h-[80px] w-[110px] shrink-0 rounded-lg overflow-hidden border border-white/5 cursor-pointer hover:border-accent/40 transition-all group/thumb"
+												>
+													<Image src={getThumb(url)} alt={`Week ${report.weekNumber} photo`} fill className="object-cover group-hover/thumb:scale-110 transition-transform duration-500" />
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
 								<div className="flex items-center gap-6 pt-4 border-t border-white/5">
 									<div className="flex items-center gap-2">
 										<span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Hours</span>
@@ -256,12 +319,30 @@ export function CockpitReports({ team, isAdmin }: CockpitReportsProps) {
 										<span className="text-[10px] font-black uppercase tracking-widest text-text-muted">By</span>
 										<span className="text-xs font-bold text-accent">{report.submittedBy?.login}</span>
 									</div>
+									{report.photoUrls?.length > 0 && (
+										<div className="flex items-center gap-2">
+											<span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Photos</span>
+											<span className="text-xs font-bold text-text-primary">{report.photoUrls.length}</span>
+										</div>
+									)}
 								</div>
 							</Card>
 						</div>
 					))
 				)}
 			</div>
+			{/* Photo Lightbox */}
+			{lightboxUrl && (
+				<div
+					className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300"
+					onClick={() => setLightboxUrl(null)}
+				>
+					<button className="absolute top-8 right-8 text-white/40 hover:text-white text-3xl transition-colors">✕</button>
+					<div className="relative w-full max-w-5xl aspect-video" onClick={(e) => e.stopPropagation()}>
+						<Image src={lightboxUrl} alt="Build photo" fill className="object-contain" />
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { EvalSheetEditor } from "./evaluations/EvalSheetEditor";
+import { DefenseCriteriaEditor } from "./DefenseCriteriaEditor";
 
 // ── Types ────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ export function ContentManagement({ projects, userRole, rankRequirements = [] }:
 	const router = useRouter();
 	const { toast } = useToast();
 	const [showAdd, setShowAdd] = useState(false);
-	const [activeTab, setActiveTab] = useState<"projects" | "sheets" | "rankReqs">("projects");
+	const [activeTab, setActiveTab] = useState<"projects" | "sheets" | "rankReqs" | "defenseCriteria">("projects");
 	const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
 	const [loading, setLoading] = useState(false);
 	const isVpOrPres = userRole === "VP" || userRole === "PRESIDENT";
@@ -256,6 +257,14 @@ export function ContentManagement({ projects, userRole, rankRequirements = [] }:
 					}`}
 				>
 					Rank Requirements
+				</button>
+				<button
+					onClick={() => setActiveTab("defenseCriteria")}
+					className={`text-xs font-black uppercase tracking-[0.2em] transition-all px-4 py-2 rounded-lg ${
+						activeTab === "defenseCriteria" ? "text-accent bg-accent/10 border border-accent/20" : "text-text-muted hover:text-text-primary"
+					}`}
+				>
+					Defense Criteria
 				</button>
 			</div>
 
@@ -461,6 +470,10 @@ export function ContentManagement({ projects, userRole, rankRequirements = [] }:
 						</div>
 					</Card>
 				</div>
+			)}
+
+			{activeTab === "defenseCriteria" && (
+				<DefenseCriteriaEditor />
 			)}
 		</div>
 	);

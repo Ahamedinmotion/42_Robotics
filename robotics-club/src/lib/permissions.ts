@@ -21,6 +21,7 @@ export const ALL_PERMISSIONS = [
 	"CAN_MANAGE_CLUB_SETTINGS",
 	"CAN_MANAGE_ANNOUNCEMENTS",
 	"CAN_OVERRIDE_EVALUATIONS",
+	"CAN_MANAGE_DEFENSES",
 ] as const;
 
 export type PermissionKey = (typeof ALL_PERMISSIONS)[number];

@@ -41,7 +41,7 @@ async function main() {
 				"CAN_APPROVE_PROPOSALS", "CAN_RESOLVE_CONFLICTS", "CAN_MANAGE_DAMAGE",
 				"CAN_MANAGE_PROJECTS", "CAN_MANAGE_LAB_ACCESS", "CAN_VIEW_ANALYTICS",
 				"CAN_EDIT_CONTENT", "CAN_MANAGE_ROLES", "CAN_MANAGE_CLUB_SETTINGS",
-				"CAN_MANAGE_ANNOUNCEMENTS",
+				"CAN_MANAGE_ANNOUNCEMENTS", "CAN_MANAGE_DEFENSES",
 			],
 		},
 	];
@@ -384,6 +384,42 @@ async function main() {
 			update: { projectsRequired: rr.projectsRequired },
 			create: rr,
 		});
+	}
+
+	// --- 12. Defense Criteria & Settings ---
+	console.log('Seeding Defense Criteria & Settings...');
+	await (prisma as any).defenseCriteriaSettings.upsert({
+		where: { id: "singleton" },
+		update: {},
+		create: {
+			id: "singleton",
+			ratingScale: 5,
+			overallMinChars: 150,
+			passThreshold: 60,
+			maxCriteria: 15,
+			minCriteria: 5,
+		},
+	});
+
+	const existingCriteriaCount = await (prisma as any).defenseCriteria.count();
+	if (existingCriteriaCount === 0) {
+		const defaultCriteria = [
+			{ name: "It Works", description: "The project functions as intended, demonstrated live, under real conditions — not just in a controlled setup.", order: 1 },
+			{ name: "The Build", description: "The quality of construction — hardware, software, or both. Is it engineered or improvised? Intentional or accidental?", order: 2 },
+			{ name: "They Know Their Stack", description: "Every component, every layer, every decision — the team can speak to all of it. No black boxes they cannot explain.", order: 3 },
+			{ name: "The Hard Parts Were Actually Hard", description: "Evidence that the team encountered genuine technical difficulty and solved it. Not a smooth ride. Real engineering.", order: 4 },
+			{ name: "It Holds Together as a System", description: "Hardware, software, mechanics, logic — they work as one thing, not separate parts that happen to coexist.", order: 5 },
+			{ name: "The Thinking is Visible", description: "You can see the engineering decisions in the final product. Why it is shaped this way, why these components, why this approach.", order: 6 },
+			{ name: "It Could Be Handed Over", description: "Documentation, code structure, reproducibility. Someone else could pick this up and continue it.", order: 7 },
+			{ name: "They Know Its Limits", description: "The team accurately understands what their project does well, where it struggles, and why. No overselling.", order: 8 },
+			{ name: "The Scope Was Real", description: "What they set out to build and what they delivered are honestly represented. Ambition was calibrated to reality.", order: 9 },
+			{ name: "Would You Stake Your Name On It", description: "The gut check. As an engineer — is this work you would be proud to put your name on?", order: 10 },
+		];
+
+		for (const c of defaultCriteria) {
+			await (prisma as any).defenseCriteria.create({ data: c });
+		}
+		console.log(`Seeded ${defaultCriteria.length} default defense criteria.`);
 	}
 
 	// --- Summary ---

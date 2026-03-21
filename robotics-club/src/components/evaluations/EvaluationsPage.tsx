@@ -8,6 +8,7 @@ import { useSound } from "@/components/providers/SoundProvider";
 import { AvailableMissions } from "./AvailableMissions";
 import { UpcomingMissions } from "./UpcomingMissions";
 import { EvaluationHistory } from "./EvaluationHistory";
+import { PublicDefenseSection } from "./PublicDefenseSection";
 
 export default function EvaluationsPage() {
 	const [activeTab, setActiveTab] = useState<"available" | "upcoming" | "history">("available");
@@ -25,6 +26,9 @@ export default function EvaluationsPage() {
 				<h1 className="text-3xl font-bold tracking-tight text-text-primary">Evaluation Hub</h1>
 				<p className="text-text-muted">Broadcast your expertise or track your upcoming peer evaluations.</p>
 			</div>
+
+		{/* Public Defenses - shown above tabs */}
+			<PublicDefenseSection />
 
 			{/* Tabs */}
 			<div className="flex gap-2 rounded-xl bg-panel p-1 border border-border/50">

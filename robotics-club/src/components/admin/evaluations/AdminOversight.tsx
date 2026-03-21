@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatDistanceToNow } from "date-fns";
 import { CalibrationPortal } from "./CalibrationPortal";
+import { DefenseOversight } from "./DefenseOversight";
 
 interface Evaluation {
 	id: string;
@@ -42,7 +43,7 @@ interface AdminOversightProps {
 
 export function AdminOversight({ userRole, permissions }: AdminOversightProps) {
 	const { toast } = useToast();
-	const [activeTab, setActiveTab] = useState<"monitoring" | "calibration">("monitoring");
+	const [activeTab, setActiveTab] = useState<"monitoring" | "calibration" | "defenses">("monitoring");
 	const [data, setData] = useState<{
 		liveEvaluations: Evaluation[];
 		anomalies: Evaluation[];
@@ -133,10 +134,18 @@ export function AdminOversight({ userRole, permissions }: AdminOversightProps) {
 				>
 					Calibration Matrix
 				</button>
+				<button 
+					onClick={() => setActiveTab("defenses")}
+					className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-lg transition-all ${activeTab === "defenses" ? "bg-accent/10 text-accent border border-accent/20" : "text-text-muted hover:text-text-primary"}`}
+				>
+					Public Defenses
+				</button>
 			</div>
 
 			{activeTab === "calibration" ? (
 				<CalibrationPortal />
+			) : activeTab === "defenses" ? (
+				<DefenseOversight userRole={userRole} permissions={permissions} />
 			) : (
 				<>
 					{/* Stats Overview */}

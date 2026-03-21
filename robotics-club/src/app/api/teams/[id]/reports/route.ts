@@ -64,6 +64,10 @@ export async function POST(
 			return err("weekNumber and summary are required", 400);
 		}
 
+		if (!photoUrls || !Array.isArray(photoUrls) || photoUrls.length < 5) {
+			return err("At least 5 build photos are required per report", 400);
+		}
+
 		const team = await prisma.team.findUnique({
 			where: { id: teamId },
 		});

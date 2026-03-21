@@ -83,6 +83,12 @@ model User {
   extensionRequestsReviewed ExtensionRequest[]
   disputesReviewed       EvaluationDispute[]
   claimedSlots         EvaluationSlot[]      @relation("ClaimedSlots")
+  defenseRegistrations  DefenseRegistration[]
+  defenseEvaluations    DefenseEvaluation[]
+  defensesOpened        PublicDefense[] @relation("DefenseOpenedBy")
+  defensesClosedBy      PublicDefense[] @relation("DefenseClosedBy")
+  defensesReopened      PublicDefense[] @relation("DefenseReopenedBy")
+  defenseSettingsUpdates DefenseCriteriaSettings[] @relation("DefenseSettingsUpdater")
 
   @@map("users")
 }
@@ -146,6 +152,7 @@ model Project {
   teams              Team[]
   postMortems        ProjectPostMortem[]
   evalSheet          EvalSheet?
+  publicDefenses     PublicDefense[]
 
   @@index([createdById])
   @@map("projects")
@@ -205,6 +212,7 @@ model Team {
   disputes            EvaluationDispute[]
   nextAttemptApproved Boolean              @default(false) @map("next_attempt_approved")
   postMortems         ProjectPostMortem[]
+  publicDefense       PublicDefense?
 
   @@index([projectId])
   @@index([leaderId])
@@ -872,6 +880,7 @@ enum NotificationType {
   DAMAGE_REPORT_UPDATE
   GENERAL
   PLATFORM_OBSERVATION
+  PUBLIC_DEFENSE
 }
 
 enum ConflictStatus {
@@ -1069,4 +1078,169 @@ enum FeatureRequestCategory {
   CNC
   EQUIPMENT
   FACILITY
+}
+
+model DefenseCriteria {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  order         Int
+  minChars      Int      @default(100)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  scores        DefenseCriteriaScore[]
+
+  @@map("defense_criteria")
+}
+
+model DefenseCriteriaSettings {
+  id              String  @id @default("singleton")
+  ratingScale     Int     @default(5) @map("rating_scale")
+  overallMinChars Int     @default(150) @map("overall_min_chars")
+  passThreshold   Int     @default(60) @map("pass_threshold")
+  maxCriteria     Int     @default(15) @map("max_criteria")
+  minCriteria     Int     @default(5) @map("min_criteria")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedById    String? @map("updated_by_id")
+  updatedBy      User?   @relation("DefenseSettingsUpdater", fields: [updatedById], references: [id])
+
+  @@map("defense_criteria_settings")
+}
+
+model PublicDefense {
+  id                    String        @id @default(cuid())
+  teamId                String        @unique @map("team_id")
+  team                  Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  projectId             String        @map("project_id")
+  project               Project       @relation(fields: [projectId], references: [id])
+  scheduledAt           DateTime      @map("scheduled_at")
+  status                DefenseStatus @default(SCHEDULED)
+  
+  evaluationOpen        Boolean       @default(false) @map("evaluation_open")
+  evaluationOpenedAt    DateTime?     @map("evaluation_opened_at")
+  evaluationOpenedById  String?       @map("evaluation_opened_by_id")
+  evaluationOpenedBy    User?         @relation("DefenseOpenedBy", fields: [evaluationOpenedById], references: [id])
+  
+  evaluationClosed      Boolean       @default(false) @map("evaluation_closed")
+  evaluationClosedAt    DateTime?     @map("evaluation_closed_at")
+  evaluationClosedById  String?       @map("evaluation_closed_by_id")
+  evaluationClosedBy    User?         @relation("DefenseClosedBy", fields: [evaluationClosedById], references: [id])
+  
+  reopened              Boolean       @default(false)
+  reopenedAt            DateTime?     @map("reopened_at")
+  reopenedById          String?       @map("reopened_by_id")
+  reopenedBy            User?         @relation("DefenseReopenedBy", fields: [reopenedById], references: [id])
+  reopenNote            String?       @map("reopen_note")
+  
+  expertJuryOnly        Boolean       @default(false) @map("expert_jury_only")
+  expertJuryOnlySetById String?       @map("expert_jury_only_set_by_id")
+  expertJuryOnlySetAt   DateTime?     @map("expert_jury_only_set_at")
+  
+  lowerRankDispelled    Boolean       @default(false) @map("lower_rank_dispelled")
+  lowerRankDispelledById String?      @map("lower_rank_dispelled_by_id")
+  lowerRankDispelledAt  DateTime?     @map("lower_rank_dispelled_at")
+  lowerRankDispelledNote String?      @map("lower_rank_dispelled_note")
+  
+  minimumMet            Boolean       @default(false) @map("minimum_met")
+  provisionalReason     String?       @map("provisional_reason")
+  
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  
+  registrations         DefenseRegistration[]
+  evaluations           DefenseEvaluation[]
+  result                DefenseResult?
+
+  @@map("public_defenses")
+}
+
+enum DefenseStatus {
+  SCHEDULED
+  MINIMUM_NOT_MET
+  OPEN
+  CLOSED
+  PROVISIONAL
+  PASSED
+  FAILED
+  RESCHEDULED
+}
+
+model DefenseRegistration {
+  id           String        @id @default(cuid())
+  defenseId    String        @map("defense_id")
+  defense      PublicDefense @relation(fields: [defenseId], references: [id], onDelete: Cascade)
+  userId       String        @map("user_id")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userRank     String        @map("user_rank")
+  isAdmin      Boolean       @default(false) @map("is_admin")
+  registeredAt DateTime      @default(now()) @map("registered_at")
+  
+  @@unique([defenseId, userId])
+  @@map("defense_registrations")
+}
+
+model DefenseEvaluation {
+  id              String        @id @default(cuid())
+  defenseId       String        @map("defense_id")
+  defense         PublicDefense @relation(fields: [defenseId], references: [id], onDelete: Cascade)
+  evaluatorId     String        @map("evaluator_id")
+  evaluator       User          @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  evaluatorRank   String        @map("evaluator_rank")
+  evaluatorWeight Float         @map("evaluator_weight")
+  isAdmin         Boolean       @default(false) @map("is_admin")
+  
+  criteriaScores  DefenseCriteriaScore[]
+  overallReview   String        @db.Text @map("overall_review")
+  totalScore      Float?        @map("total_score")
+  
+  submittedAt     DateTime      @default(now()) @map("submitted_at")
+  
+  @@unique([defenseId, evaluatorId])
+  @@map("defense_evaluations")
+}
+
+model DefenseCriteriaScore {
+  id           String            @id @default(cuid())
+  evaluationId String            @map("evaluation_id")
+  evaluation   DefenseEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  criteriaId   String            @map("criteria_id")
+  criteria     DefenseCriteria   @relation(fields: [criteriaId], references: [id])
+  score        Int
+  note         String            @db.Text
+  
+  @@unique([evaluationId, criteriaId])
+  @@map("defense_criteria_scores")
+}
+
+model DefenseResult {
+  id                   String        @id @default(cuid())
+  defenseId            String        @unique @map("defense_id")
+  defense              PublicDefense @relation(fields: [defenseId], references: [id], onDelete: Cascade)
+  
+  adminAverage         Float?        @map("admin_average")
+  adminPassed          Boolean?      @map("admin_passed")
+  adminCount           Int           @default(0) @map("admin_count")
+  
+  expertAverage        Float?        @map("expert_average")
+  expertPassed         Boolean?      @map("expert_passed")
+  expertCount          Int           @default(0) @map("expert_count")
+  
+  galleryWeighted      Float?        @map("gallery_weighted")
+  galleryCount         Int           @default(0) @map("gallery_count")
+  galleryExcluded      Boolean       @default(false) @map("gallery_excluded")
+  
+  finalScore           Float         @map("final_score")
+  passed               Boolean
+  provisional          Boolean       @default(false)
+  provisionalReason    String?       @map("provisional_reason")
+  
+  presidentConfirmed   Boolean       @default(false) @map("president_confirmed")
+  presidentConfirmedById String?      @map("president_confirmed_by_id")
+  presidentConfirmedAt DateTime?     @map("president_confirmed_at")
+  
+  calculatedAt         DateTime      @default(now()) @map("calculated_at")
+
+  @@map("defense_results")
 }

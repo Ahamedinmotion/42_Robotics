@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AvailabilityPicker } from "./AvailabilityPicker";
+import { PublicDefenseScheduler } from "./PublicDefenseScheduler";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -29,6 +30,7 @@ export function CockpitSubmission({ team, isAdmin }: CockpitSubmissionProps) {
 	const reportsCount = team.weeklyReports?.length || 0;
 	const hasRepo = !!team.repoUrl;
 	const isEvaluating = team.status === "EVALUATING";
+	const isHighRank = team.project?.rank === "A" || team.project?.rank === "S";
 
 	const checklist = [
 		{ id: "reports", label: "Weekly Progress Reports", status: reportsCount > 0, detail: `${reportsCount} reports submitted` },
@@ -134,7 +136,9 @@ export function CockpitSubmission({ team, isAdmin }: CockpitSubmissionProps) {
 					))}
 				</div>
 
-				{isEvaluating ? (
+				{isEvaluating && isHighRank ? (
+					<PublicDefenseScheduler team={team} />
+				) : isEvaluating ? (
 					<div className="space-y-8 animate-in fade-in duration-500">
 						<div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/20 text-center space-y-2">
 							<h4 className="text-lg font-black text-emerald-400">Mission Evaluating</h4>
