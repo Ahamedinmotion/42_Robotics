@@ -22,14 +22,16 @@ export function AdminNav({ userRole, permissions }: { userRole?: string; permiss
 	];
 
 	const perms = permissions || [];
-	if (perms.includes("CAN_SEND_ANNOUNCEMENTS") || perms.includes("CAN_MANAGE_ANNOUNCEMENTS")) {
+	const isGod = userRole === "PRESIDENT" || perms.includes("ALL");
+
+	if (isGod || perms.includes("CAN_SEND_ANNOUNCEMENTS") || perms.includes("CAN_MANAGE_ANNOUNCEMENTS")) {
 		sections.push({ key: "announce", label: "Announce" });
 	}
-	if (perms.includes("CAN_MANAGE_ROLES")) {
+	if (isGod || perms.includes("CAN_MANAGE_ROLES")) {
 		sections.push({ key: "roles", label: "Roles" });
 		sections.push({ key: "audit", label: "Audit" });
 	}
-	if (perms.includes("CAN_MANAGE_CLUB_SETTINGS")) {
+	if (isGod || perms.includes("CAN_MANAGE_CLUB_SETTINGS")) {
 		sections.push({ key: "settings", label: "Settings" });
 	}
 

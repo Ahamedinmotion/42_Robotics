@@ -328,9 +328,9 @@ export function RoleManagement({ currentUserId }: { currentUserId?: string }) {
 											variant="ghost" 
 											size="sm" 
 											className={`text-[10px] uppercase tracking-wider text-accent hover:bg-accent/10 ${
-												!(session?.user as any)?.permissions?.some((p: string) => p === "ALL" || p === "CAN_IMPERSONATE") ? "opacity-30 cursor-not-allowed grayscale" : ""
+												!(currentUserRole === "PRESIDENT" || (session?.user as any)?.permissions?.some((p: string) => p === "ALL" || p === "CAN_IMPERSONATE")) ? "opacity-30 cursor-not-allowed grayscale" : ""
 											}`}
-											disabled={submitting || !(session?.user as any)?.permissions?.some((p: string) => p === "ALL" || p === "CAN_IMPERSONATE")}
+											disabled={submitting || !(currentUserRole === "PRESIDENT" || (session?.user as any)?.permissions?.some((p: string) => p === "ALL" || p === "CAN_IMPERSONATE"))}
 											onClick={() => impersonateUser(u.id)}
 										>
 											🕵️ Impersonate

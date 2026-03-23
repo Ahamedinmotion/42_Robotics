@@ -65,14 +65,14 @@ export default async function AdminPage({
 			)}
 			{section === "board" && <MoodBoard />}
 			{section === "achievements" && <AchievementEditor />}
-			{section === "announce" && (permissions.includes("CAN_SEND_ANNOUNCEMENTS") || permissions.includes("CAN_MANAGE_ANNOUNCEMENTS")) && (
+			{section === "announce" && (userRole === "PRESIDENT" || permissions.includes("ALL") || permissions.includes("CAN_SEND_ANNOUNCEMENTS") || permissions.includes("CAN_MANAGE_ANNOUNCEMENTS")) && (
 				<AnnouncementManager />
 			)}
-			{section === "audit" && permissions.includes("CAN_MANAGE_ROLES") && <AuditLogView />}
-			{section === "roles" && permissions.includes("CAN_MANAGE_ROLES") && (
+			{section === "audit" && (userRole === "PRESIDENT" || permissions.includes("ALL") || permissions.includes("CAN_MANAGE_ROLES")) && <AuditLogView />}
+			{section === "roles" && (userRole === "PRESIDENT" || permissions.includes("ALL") || permissions.includes("CAN_MANAGE_ROLES")) && (
 				<RoleManagement currentUserId={session.user.id} />
 			)}
-			{section === "settings" && permissions.includes("CAN_MANAGE_CLUB_SETTINGS") && (
+			{section === "settings" && (userRole === "PRESIDENT" || permissions.includes("ALL") || permissions.includes("CAN_MANAGE_CLUB_SETTINGS")) && (
 				<ClubSettingsPanel />
 			)}
 			
