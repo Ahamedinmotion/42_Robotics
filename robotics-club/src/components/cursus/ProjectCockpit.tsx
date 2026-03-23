@@ -192,21 +192,12 @@ export function ProjectCockpit({ team, userId }: ProjectCockpitProps) {
 	const openEvalSlot = async () => {
 		setSubmitting(true);
 		try {
-			// Calculate a default 24h window if none provided
-			const now = new Date();
-			const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-			
-			await fetch("/api/evaluations/availability", {
+			await fetch("/api/evaluations/slots", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					teamId: team.id,
-					windows: [
-						{
-							startTime: now.toISOString(),
-							endTime: tomorrow.toISOString(),
-						}
-					],
+					availableWindows: [{ note: evalAvailability }],
 				}),
 			});
 			setShowEvalForm(false);

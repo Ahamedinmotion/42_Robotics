@@ -51,9 +51,9 @@ export default async function HallOfFamePage() {
 
 	return (
 		<div className="min-h-screen bg-black text-white p-8 md:p-24 selection:bg-accent selection:text-black">
-			<style dangerouslySetInnerHTML={{ __html: `
+			<style jsx global>{`
 				body { background: black !important; color: white !important; }
-			` }} />
+			`}</style>
 			
 			<div className="max-w-2xl mx-auto space-y-16">
 				<div className="text-center space-y-2">

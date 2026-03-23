@@ -86,13 +86,6 @@ export default async function PublicProfilePage({
 				title={title}
 				completedProjects={completedTeams.length}
 				evalsGiven={evalsGivenCount}
-				milestones={[]}
-				funStats={{
-					totalLabHours: 0,
-					longestReportWords: 0,
-					mostUsedWord: "None",
-					ungodlyCount: 0,
-				}}
 			/>
 
 			<div className="flex justify-end">
