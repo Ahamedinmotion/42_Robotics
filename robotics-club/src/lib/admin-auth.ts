@@ -13,7 +13,12 @@ export async function requirePermission(permissionKey: string) {
 		return err("Unauthorized", 401);
 	}
 
-	const permissions = session.user.permissions as string[] | undefined;
+	const permissions = (session.user as any).permissions as string[] | undefined;
+	const userRole = session.user.role;
+
+	if (userRole === "PRESIDENT") {
+		return { user: session.user, permissions: permissions || [] };
+	}
 
 	if (!permissions || !hasPermission(permissions, permissionKey)) {
 		return err("Forbidden — insufficient permissions", 403);
@@ -42,7 +47,12 @@ export async function requireAnyPermission(permissionKeys: string[]) {
 		return err("Unauthorized", 401);
 	}
 
-	const permissions = session.user.permissions as string[] | undefined;
+	const permissions = (session.user as any).permissions as string[] | undefined;
+	const userRole = session.user.role;
+
+	if (userRole === "PRESIDENT") {
+		return { user: session.user, permissions: permissions || [] };
+	}
 	
 	if (!permissions || !hasAnyPermission(permissions, permissionKeys)) {
 		return err("Forbidden — insufficient permissions", 403);
