@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { requirePermission } from "@/lib/admin-auth";
+
+export const dynamic = "force-dynamic";
 
 export async function PATCH(
 	req: Request,
