@@ -292,7 +292,7 @@ export function ModerationQueue({ fabrication, materials, proposals, conflicts, 
 								<div className="flex items-center justify-between mb-4 relative">
 									<div className="flex items-center gap-3">
 										<div className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
-										<span className="text-sm font-black text-text-primary tracking-tight uppercase">{c.teamName} <span className="text-red-500/60 font-medium">// CRITICAL_ANOMALY</span></span>
+										<span className="text-sm font-black text-text-primary tracking-tight uppercase">{c.teamName} <span className="text-red-500/60 font-medium">{"// CRITICAL_ANOMALY"}</span></span>
 									</div>
 									<span className="text-[9px] font-black text-text-muted tabular-nums opacity-60 tracking-[0.2em]">{formatDate(c.createdAt)}</span>
 								</div>

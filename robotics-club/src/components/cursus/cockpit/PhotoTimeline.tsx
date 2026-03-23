@@ -25,8 +25,6 @@ export function PhotoTimeline({ reports }: PhotoTimelineProps) {
 			milestoneTitle: r.milestoneTitle
 		})));
 
-	if (allPhotos.length === 0) return null;
-
 	const handleKeyDown = (e: KeyboardEvent) => {
 		if (e.key === "Escape") setSelectedPhoto(null);
 		if (e.key === "ArrowLeft") {
@@ -42,7 +40,9 @@ export function PhotoTimeline({ reports }: PhotoTimelineProps) {
 			window.addEventListener("keydown", handleKeyDown);
 			return () => window.removeEventListener("keydown", handleKeyDown);
 		}
-	}, [selectedPhoto]);
+	}, [selectedPhoto, handleKeyDown]); // Added handleKeyDown to deps
+
+	if (allPhotos.length === 0) return null;
 
 	// Cloudinary transformation for thumbnails
 	const getThumb = (url: string) => {

@@ -3,16 +3,14 @@ import React from "react";
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 	children: React.ReactNode;
 	className?: string;
-	onClick?: () => void;
 	glowing?: boolean;
 }
 
-export function Card({ children, className = "", onClick, glowing = false, ...rest }: CardProps) {
-	const interactive = onClick ? "cursor-pointer hover:border-accent transition-colors" : "";
+export function Card({ children, className = "", glowing = false, ...rest }: CardProps) {
+	const interactive = rest.onClick ? "cursor-pointer hover:border-accent transition-colors" : "";
 
 	return (
 		<div
-			onClick={onClick}
 			className={`rounded-xl border border-border-color bg-panel p-4 ${interactive} ${className}`}
 			style={
 				glowing

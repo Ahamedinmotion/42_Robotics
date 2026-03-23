@@ -10,11 +10,13 @@ import { useSound } from "@/components/providers/SoundProvider";
 
 function useCountdown(targetDate: string | null) {
 	const [timeLeft, setTimeLeft] = useState("");
+	const [hasFired, setHasFired] = useState(false); // Moved useState to top level of hook
 	useEffect(() => {
 		if (!targetDate) return;
 		const tick = () => {
 			const diff = new Date(targetDate).getTime() - Date.now();
 			if (diff <= 0) { setTimeLeft("Now"); return; }
+			// ── 42 Hour Firework Logic ─────────────────
 			const d = Math.floor(diff / 86400000);
 			const h = Math.floor((diff % 86400000) / 3600000);
 			const m = Math.floor((diff % 3600000) / 60000);
@@ -191,74 +193,83 @@ export function PublicDefenseSection() {
 				<div className="space-y-4">
 					<h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Upcoming Defenses</h3>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						{upcoming.map(d => {
-							const isRegistered = myRegistrations.has(d.id);
-							const isMyTeam = d.teamId === myTeamId;
-							const tiers = d.registrationTiers || { admin: 0, expert: 0, gallery: 0 };
-							const countdown = useCountdown(d.scheduledAt);
-
-							return (
-								<Card key={d.id} className="p-6 space-y-4 hover:border-accent/30 transition-colors">
-									<div className="flex items-start justify-between">
-										<div className="flex items-center gap-3">
-											<Badge rank={d.team?.project?.rank || "A"} size="sm" />
-											<div>
-												<h4 className="text-sm font-black text-text-primary">{d.team?.project?.title}</h4>
-												<p className="text-[10px] text-text-muted">{d.team?.name || "Team"}</p>
-											</div>
-										</div>
-										{d.minimumMet ? (
-											<div className="h-2 w-2 rounded-full bg-emerald-500" title="Minimum met" />
-										) : (
-											<div className="h-2 w-2 rounded-full bg-red-500" title="Minimum not met" />
-										)}
-									</div>
-
-									<div className="flex items-center justify-between text-[10px] text-text-muted">
-										<span>{new Date(d.scheduledAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-										<span className="font-mono font-bold text-accent">{countdown}</span>
-									</div>
-
-									{/* Tier Breakdown */}
-									<div className="flex gap-2 text-[9px] font-black uppercase tracking-widest text-text-muted">
-										<span>Admins: {tiers.admin}</span>
-										<span className="text-white/10">|</span>
-										<span>A/S: {tiers.expert}</span>
-										<span className="text-white/10">|</span>
-										<span>Gallery: {tiers.gallery}</span>
-									</div>
-
-									{/* Action */}
-									{isRegistered ? (
-										<div className="flex items-center justify-between">
-											<span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">✓ Registered</span>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="text-[9px] font-black uppercase tracking-widest text-accent-urgency opacity-50 hover:opacity-100"
-												disabled={actionLoading === d.id}
-												onClick={() => handleCancel(d.id)}
-											>
-												Cancel
-											</Button>
-										</div>
-									) : (
-										<Button
-											variant="secondary"
-											size="sm"
-											className="w-full font-black uppercase tracking-[0.15em] text-[10px]"
-											disabled={actionLoading === d.id || isMyTeam}
-											onClick={() => handleRegister(d.id)}
-										>
-											{isMyTeam ? "Your Team's Defense" : actionLoading === d.id ? "Registering..." : "Register to Evaluate"}
-										</Button>
-									)}
-								</Card>
-							);
-						})}
+						{upcoming.map(d => (
+							<UpcomingDefenseCard
+								key={d.id}
+								defense={d}
+								myTeamId={myTeamId}
+								actionLoading={actionLoading}
+								handleRegister={handleRegister}
+								handleCancel={handleCancel}
+								isRegistered={myRegistrations.has(d.id)}
+							/>
+						))}
 					</div>
 				</div>
 			)}
 		</div>
+	);
+}
+
+function UpcomingDefenseCard({ defense, myTeamId, actionLoading, handleRegister, handleCancel, isRegistered }: any) {
+	const countdown = useCountdown(defense.scheduledAt);
+	const isMyTeam = defense.teamId === myTeamId;
+	const tiers = defense.registrationTiers || { admin: 0, expert: 0, gallery: 0 };
+
+	return (
+		<Card key={defense.id} className="p-6 space-y-4 hover:border-accent/30 transition-colors">
+			<div className="flex items-start justify-between">
+				<div className="flex items-center gap-3">
+					<Badge rank={defense.team?.project?.rank || "A"} size="sm" />
+					<div>
+						<h4 className="text-sm font-black text-text-primary">{defense.team?.project?.title}</h4>
+						<p className="text-[10px] text-text-muted">{defense.team?.name || "Team"}</p>
+					</div>
+				</div>
+				{defense.minimumMet ? (
+					<div className="h-2 w-2 rounded-full bg-emerald-500" title="Minimum met" />
+				) : (
+					<div className="h-2 w-2 rounded-full bg-red-500" title="Minimum not met" />
+				)}
+			</div>
+
+			<div className="flex items-center justify-between text-[10px] text-text-muted">
+				<span>{new Date(defense.scheduledAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+				<span className="font-mono font-bold text-accent">{countdown}</span>
+			</div>
+
+			<div className="flex gap-2 text-[9px] font-black uppercase tracking-widest text-text-muted">
+				<span>Admins: {tiers.admin}</span>
+				<span className="text-white/10">|</span>
+				<span>A/S: {tiers.expert}</span>
+				<span className="text-white/10">|</span>
+				<span>Gallery: {tiers.gallery}</span>
+			</div>
+
+			{isRegistered ? (
+				<div className="flex items-center justify-between">
+					<span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">✓ Registered</span>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="text-[9px] font-black uppercase tracking-widest text-accent-urgency opacity-50 hover:opacity-100"
+						disabled={actionLoading === defense.id}
+						onClick={() => handleCancel(defense.id)}
+					>
+						Cancel
+					</Button>
+				</div>
+			) : (
+				<Button
+					variant="secondary"
+					size="sm"
+					className="w-full font-black uppercase tracking-[0.15em] text-[10px]"
+					disabled={actionLoading === defense.id || isMyTeam}
+					onClick={() => handleRegister(defense.id)}
+				>
+					{isMyTeam ? "Your Team's Defense" : actionLoading === defense.id ? "Registering..." : "Register to Evaluate"}
+				</Button>
+			)}
+		</Card>
 	);
 }

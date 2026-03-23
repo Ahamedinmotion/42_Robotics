@@ -71,7 +71,7 @@ export default function VoidPage() {
 
 	return (
 		<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black font-mono text-white transition-opacity duration-1000 overflow-hidden">
-			<style jsx global>{`
+			<style dangerouslySetInnerHTML={{ __html: `
 				body { background: black !important; }
 				* { cursor: crosshair !important; }
 				@keyframes subtle-flicker {
@@ -82,7 +82,7 @@ export default function VoidPage() {
 				.creepy-vignette {
 					box-shadow: inset 0 0 100px #000, inset 0 0 200px #000;
 				}
-			`}</style>
+			` }} />
 
 			<div className="absolute inset-0 pointer-events-none creepy-vignette" />
 			
