@@ -131,8 +131,15 @@ export const authOptions: NextAuthOptions = {
 					token.unlockedThemes = dbUser.unlockedThemes;
 					token.realAdminId = (token as any).realAdminId || dbUser.id;
 
+					// Permissions (memoized by role if possible, but here we just fetch)
+					token.permissions = (await getRolePermissions(dbUser.role)) as string[];
+					token.isAdmin = await isRoleAdmin(dbUser.role);
+
 					// Impersonation logic
-					if (dbUser.role === "PRESIDENT" && dbUser.impersonatorId) {
+					// Allow if user is President OR has explicit permission
+					const hasImpersonatePerm = token.permissions.includes("ALL") || token.permissions.includes("CAN_IMPERSONATE");
+
+					if ((dbUser.role === "PRESIDENT" || hasImpersonatePerm) && dbUser.impersonatorId) {
 						const targetUser = (await prisma.user.findUnique({
 							where: { id: dbUser.impersonatorId },
 						})) as any;
@@ -151,10 +158,6 @@ export const authOptions: NextAuthOptions = {
 					} else {
 						token.isImpersonating = false;
 					}
-
-					// Permissions (memoized by role if possible, but here we just fetch)
-					token.permissions = await getRolePermissions(dbUser.role);
-					token.isAdmin = await isRoleAdmin(dbUser.role);
 				}
 			}
 

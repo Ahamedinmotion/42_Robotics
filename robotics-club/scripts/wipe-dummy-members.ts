@@ -2,44 +2,28 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const DUMMY_LOGINS = [
-  "president_user",
-  "vp_user",
-  "projmanager_user",
-  "secretary_user",
-  "social_user",
-  "student_a",
-  "student_b",
-  "student_c",
-  "student_d",
-  "student_e",
-  "waitlist_user",
-  "blackholed_user"
+const PROTECTED_LOGINS = [
+  "sshameer", "akheiral", "aelsafi", "fmohamed", "nateliya", "mamuzamm", "eabdelfa",
+  "samamaev", "awaahmed", "fkuruthl", "iabdul-n", "ssujaude", "haiqbal",
+  "moashraf", "hajmoham", "khzernou", "eihebini", "assempas", "smorlier",
+  "jalsadik", "mdheen", "krajbans"
 ];
 
-const PROTECTED_LOGIN = "sshameer";
-
 async function main() {
-  console.log("Starting dummy user wipe...");
+  console.log("Starting intelligent member cleanup...");
 
-  for (const login of DUMMY_LOGINS) {
-    if (login === PROTECTED_LOGIN) {
-      console.log(`Skipped (protected): ${login}`);
-      continue;
-    }
+  // Find all users not in the whitelist
+  const dummyUsers = await prisma.user.findMany({
+    where: {
+      login: { notIn: PROTECTED_LOGINS }
+    },
+    select: { login: true, id: true }
+  });
 
+  console.log(`Found ${dummyUsers.length} potential dummy/filler members.`);
+
+  for (const { login, id: userId } of dummyUsers) {
     try {
-      const user = await prisma.user.findUnique({
-        where: { login },
-        select: { id: true }
-      });
-
-      if (!user) {
-        console.log(`Skipped (not found): ${login}`);
-        continue;
-      }
-
-      const userId = user.id;
 
       // 1. Handle deep dependencies that prevent Team/Project/User deletion
       // These are relations without ON DELETE CASCADE or that block parent deletion
