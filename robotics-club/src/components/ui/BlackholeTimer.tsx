@@ -24,21 +24,6 @@ export function BlackholeTimer({ deadline, activatedAt, className = "" }: Blackh
 
 	const progress = Math.min(Math.max(elapsedMs / totalMs, 0), 1);
 
-	if (remainingMs <= 0) {
-		return (
-			<div className={`${className}`}>
-				<span className="text-sm font-bold text-accent-urgency">BLACKHOLED</span>
-				<div className="mt-1 h-1 w-full rounded-full bg-panel2">
-					<div className="h-full rounded-full bg-accent-urgency" style={{ width: "100%" }} />
-				</div>
-			</div>
-		);
-	}
-
-	const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
-	const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-	const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
 	// ── 42 Hour Firework Logic ─────────────────
 	const [hasFired, setHasFired] = useState(false);
 	useEffect(() => {
@@ -61,6 +46,21 @@ export function BlackholeTimer({ deadline, activatedAt, className = "" }: Blackh
 			setHasFired(true);
 		}
 	}, [remainingMs, hasFired]);
+
+	if (remainingMs <= 0) {
+		return (
+			<div className={`${className}`}>
+				<span className="text-sm font-bold text-accent-urgency">BLACKHOLED</span>
+				<div className="mt-1 h-1 w-full rounded-full bg-panel2">
+					<div className="h-full rounded-full bg-accent-urgency" style={{ width: "100%" }} />
+				</div>
+			</div>
+		);
+	}
+
+	const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+	const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+	const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
 
 	let colour: string;
 	let label: string;

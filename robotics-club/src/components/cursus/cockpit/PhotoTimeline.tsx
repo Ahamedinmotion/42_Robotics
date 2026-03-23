@@ -25,24 +25,24 @@ export function PhotoTimeline({ reports }: PhotoTimelineProps) {
 			milestoneTitle: r.milestoneTitle
 		})));
 
-	if (allPhotos.length === 0) return null;
-
-	const handleKeyDown = (e: KeyboardEvent) => {
-		if (e.key === "Escape") setSelectedPhoto(null);
-		if (e.key === "ArrowLeft") {
-			setSelectedPhoto(prev => (prev !== null && prev > 0 ? prev - 1 : prev));
-		}
-		if (e.key === "ArrowRight") {
-			setSelectedPhoto(prev => (prev !== null && prev < allPhotos.length - 1 ? prev + 1 : prev));
-		}
-	};
-
 	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setSelectedPhoto(null);
+			if (e.key === "ArrowLeft") {
+				setSelectedPhoto(prev => (prev !== null && prev > 0 ? prev - 1 : prev));
+			}
+			if (e.key === "ArrowRight") {
+				setSelectedPhoto(prev => (prev !== null && prev < allPhotos.length - 1 ? prev + 1 : prev));
+			}
+		};
+
 		if (selectedPhoto !== null) {
 			window.addEventListener("keydown", handleKeyDown);
 			return () => window.removeEventListener("keydown", handleKeyDown);
 		}
-	}, [selectedPhoto]);
+	}, [selectedPhoto, allPhotos.length]);
+
+	if (allPhotos.length === 0) return null;
 
 	// Cloudinary transformation for thumbnails
 	const getThumb = (url: string) => {

@@ -74,6 +74,11 @@ export default async function PublicProfilePage({
 
 	const title = user.achievements[0]?.achievement?.title ?? null;
 
+	const milestones = completedTeams.map(ct => ({
+		title: ct.team.project.title,
+		timestamp: ct.team.updatedAt,
+	})).reverse();
+
 	// ── Render ─────────────────────────────────────
 	return (
 		<div className="space-y-6">
@@ -86,6 +91,8 @@ export default async function PublicProfilePage({
 				title={title}
 				completedProjects={completedTeams.length}
 				evalsGiven={evalsGivenCount}
+				milestones={milestones}
+				funStats={{ totalLabHours: 0, longestReportWords: 0, mostUsedWord: "none", ungodlyCount: 0 }}
 			/>
 
 			<div className="flex justify-end">

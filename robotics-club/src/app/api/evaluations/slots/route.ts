@@ -52,12 +52,23 @@ export async function POST(req: Request) {
 			return err("An OPEN evaluation slot already exists for this team", 400);
 		}
 
+		const window = await prisma.availabilityWindow.create({
+			data: {
+				teamId,
+				startTime: new Date(),
+				endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 1 week valid window
+				isOpen: true,
+			}
+		});
+
 		// Create the OPEN evaluation slot
 		const slot = await prisma.evaluationSlot.create({
 			data: {
 				teamId,
+				availabilityWindowId: window.id,
+				slotStart: new Date(),
+				slotEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
 				status: "OPEN",
-				availableWindows,
 			},
 		});
 

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
 		const folder = `robotics-club/${uploadType || "general"}/${teamId}`;
 
-		return new Promise((resolve) => {
+		return new Promise<Response>((resolve) => {
 			const uploadStream = cloudinary.uploader.upload_stream(
 				{ 
 					folder,
