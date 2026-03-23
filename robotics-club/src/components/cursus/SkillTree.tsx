@@ -203,28 +203,23 @@ export function SkillTree({ projects, userRank, activeTeamProjectId, rankRequire
 	const prevNodeStates = useRef<Record<string, string>>({});
 
 	// ── Background Particles (State 1) ──
-	const bgParticles = useRef<{x:number,y:number,vx:number,vy:number,baseVx:number,baseVy:number,rank:string,opacity:number,size:number,color:string}[]>(
+	const bgParticles = useRef<{x:number,y:number,vx:number,vy:number,baseVx:number,baseVy:number,rank:string,opacity:number,size:number,color:string,pulseSpeed:number,pulseOffset:number}[]>(
 		(() => {
-			const desaturate = (hex: string) => {
-				const r = parseInt(hex.slice(1,3),16);
-				const g = parseInt(hex.slice(3,5),16);
-				const b = parseInt(hex.slice(5,7),16);
-				const dr = Math.round(r*0.2+128*0.8);
-				const dg = Math.round(g*0.2+128*0.8);
-				const db = Math.round(b*0.2+128*0.8);
-				return `rgb(${dr},${dg},${db})`;
-			};
-			const ranks = ["E","D","C","B","A"] as const;
-			return Array.from({length:60},() => {
-				const vx = (Math.random()-0.5)*0.3;
-				const vy = (Math.random()-0.5)*0.3;
-				const rank = ranks[Math.floor(Math.random()*5)];
+			const ranks = ["E","D","C","B","A","S"] as const;
+			const colors = ["#44AAFF", "#44FF88", "#FFD700", "#FF6B00", "#CC44FF", "#FF4488"];
+			return Array.from({length: 120}, (_, i) => {
+				const vx = (Math.random()-0.5)*0.2;
+				const vy = (Math.random()-0.5)*0.2;
+				const rank = ranks[i % ranks.length];
+				const color = colors[i % colors.length];
 				return {
-					x:(Math.random()-0.5)*900, y:(Math.random()-0.5)*900,
+					x:(Math.random()-0.5)*1000, y:(Math.random()-0.5)*1000,
 					vx, vy, baseVx:vx, baseVy:vy, rank,
-					opacity:0.1+Math.random()*0.2,
-					size:1+Math.random()*2,
-					color:desaturate(RANK_COLOURS[rank])
+					opacity: 0.15 + Math.random() * 0.25,
+					size: 0.8 + Math.random() * 2.5,
+					color,
+					pulseSpeed: 0.02 + Math.random() * 0.03,
+					pulseOffset: Math.random() * Math.PI * 2
 				};
 			});
 		})()
@@ -263,31 +258,34 @@ export function SkillTree({ projects, userRank, activeTeamProjectId, rankRequire
 			const smx = svgMousePos.x;
 			const smy = svgMousePos.y;
 			for (const bp of bgParticles.current) {
-				// Force calculations every 2 frames
-				if (frameCount.current % 2 === 0) {
-					const dx = bp.x - smx;
-					const dy = bp.y - smy;
-					const dist = Math.sqrt(dx*dx + dy*dy);
-					if (dist < 60 && dist > 0) {
-						const force = (1 - dist/60) * 2.5;
-						const angle = Math.atan2(dy, dx);
-						bp.vx += Math.cos(angle) * force;
-						bp.vy += Math.sin(angle) * force;
-					} else if (dist < 150 && dist > 60) {
-						const force = (1 - dist/150) * 0.8;
-						const angle = Math.atan2(-dy, -dx);
-						bp.vx += Math.cos(angle) * force;
-						bp.vy += Math.sin(angle) * force;
-					}
+				const dx = bp.x - smx;
+				const dy = bp.y - smy;
+				const dist = Math.sqrt(dx*dx + dy*dy);
+				
+				if (dist < 100) {
+					// Strong repulsion when close
+					const force = (1 - dist/100) * 4;
+					const angle = Math.atan2(dy, dx);
+					bp.vx += Math.cos(angle) * force;
+					bp.vy += Math.sin(angle) * force;
+				} else if (dist < 250) {
+					// Gentle attraction when medium distance (magnetic feel)
+					const force = (1 - dist/250) * 0.4;
+					const angle = Math.atan2(-dy, -dx);
+					bp.vx += Math.cos(angle) * force;
+					bp.vy += Math.sin(angle) * force;
 				}
-				bp.vx *= 0.92; bp.vy *= 0.92;
-				bp.vx += (bp.baseVx - bp.vx) * 0.02;
-				bp.vy += (bp.baseVy - bp.vy) * 0.02;
-				bp.vx = Math.max(-4, Math.min(4, bp.vx));
-				bp.vy = Math.max(-4, Math.min(4, bp.vy));
+
+				bp.vx *= 0.94; // Slightly less friction for more "floaty" feel
+				bp.vy *= 0.94;
+				bp.vx += (bp.baseVx - bp.vx) * 0.015; // Return to base velocity
+				bp.vy += (bp.baseVy - bp.vy) * 0.015;
+				
 				bp.x += bp.vx; bp.y += bp.vy;
-				if (bp.x > 500) bp.x = -500; if (bp.x < -500) bp.x = 500;
-				if (bp.y > 500) bp.y = -500; if (bp.y < -500) bp.y = 500;
+				
+				// Wrap around with a bit of padding
+				if (bp.x > 550) bp.x = -550; if (bp.x < -550) bp.x = 550;
+				if (bp.y > 550) bp.y = -550; if (bp.y < -550) bp.y = 550;
 			}
 			// Cursor trail aging
 			const ct = cursorTrail.current;
@@ -998,6 +996,13 @@ export function SkillTree({ projects, userRank, activeTeamProjectId, rankRequire
 					0%, 100% { r: 52; stroke-opacity: 0.15; }
 					50% { r: 58; stroke-opacity: 0.05; }
 				}
+				.particle-glow {
+					filter: blur(1px);
+					mix-blend-mode: plus-lighter;
+				}
+				:global(.dark) .particle-glow {
+					filter: blur(1.5px) drop-shadow(0 0 3px var(--glow-col));
+				}
 				.rank-aura { animation: rank-aura 3s ease-in-out infinite; }
 				@keyframes dash-rotate {
 					from { stroke-dashoffset: 0; }
@@ -1060,9 +1065,27 @@ export function SkillTree({ projects, userRank, activeTeamProjectId, rankRequire
 						{surgeFlag === 1 && <circle cx={CX} cy={CY} fill="none" stroke={RANK_COLOURS["S"]} strokeWidth={4} className="s-expanding-ring" />}
 
 						{/* Background particles — State 1, behind everything */}
-						{!activeRing && !perfMode && bgParticles.current.map((p, i) => (
-							<circle key={`bgp-${i}`} cx={p.x} cy={p.y} r={p.size} fill={p.color} opacity={p.opacity} style={{ pointerEvents: "none" }} />
-						))}
+						{!activeRing && !perfMode && bgParticles.current.map((p, i) => {
+							const pulse = Math.sin(frameCount.current * p.pulseSpeed + p.pulseOffset);
+							const currentOpacity = p.opacity * (0.6 + pulse * 0.4);
+							const currentSize = p.size * (0.8 + pulse * 0.2);
+							
+							return (
+								<circle 
+									key={`bgp-${i}`} 
+									cx={p.x} 
+									cy={p.y} 
+									r={currentSize} 
+									fill={p.color} 
+									opacity={currentOpacity} 
+									className="particle-glow"
+									style={{ 
+										pointerEvents: "none",
+										"--glow-col": p.color 
+									} as any} 
+								/>
+							);
+						})}
 
 						{/* Cursor trail — State 1 */}
 						{!activeRing && !perfMode && cursorTrail.current.map((point, i) => {
@@ -1077,7 +1100,7 @@ export function SkillTree({ projects, userRank, activeTeamProjectId, rankRequire
 								const diff = Math.abs(ringRadii[r] - distFromCenter);
 								if (diff < minDiff) { minDiff = diff; nearestRank = r; }
 							});
-							return <circle key={`trail-${i}`} cx={point.x} cy={point.y} r={size} fill={RANK_COLOURS[nearestRank as keyof typeof RANK_COLOURS]} opacity={opacity} filter={i < 3 ? "url(#glow)" : "none"} style={{ pointerEvents: "none" }} />;
+							return <circle key={`trail-${i}`} cx={point.x} cy={point.y} r={size} fill={RANK_COLOURS[nearestRank as keyof typeof RANK_COLOURS]} opacity={opacity} filter="blur(2px)" className="particle-glow" style={{ pointerEvents: "none", "--glow-col": RANK_COLOURS[nearestRank as keyof typeof RANK_COLOURS] } as any} />;
 						})}
 
 						{/* Nebula atmosphere behind rings */}
