@@ -179,7 +179,7 @@ export const THEMES: ThemeDefinition[] = [
 	{
 		id: "retro",
 		name: "RETRO",
-		description: "RC_SYSTEMS_OVERRIDE: Legacy mainframe active.",
+		description: "Arcade Mode: Insert Coin to continue.",
 		unlockHint: "Up, Up, Down, Down...",
 		duration: "toggle",
 		isExclusive: false,
