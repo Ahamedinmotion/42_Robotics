@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 // GET — active announcements (not expired, not dismissed by current user)
 export async function GET() {
 	try {

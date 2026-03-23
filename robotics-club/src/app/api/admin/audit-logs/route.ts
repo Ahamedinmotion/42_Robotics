@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { ok, err } from "@/lib/api";
 import { requirePermission } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
 	try {
 		const auth = await requirePermission("CAN_MANAGE_ROLES");

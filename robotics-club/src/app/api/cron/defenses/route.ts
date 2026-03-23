@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { DefenseStatus, NotificationType } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Public Defense Scheduled Check
  * Runs every 5 minutes to notify admins of starting defenses.
