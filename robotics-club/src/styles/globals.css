@@ -382,6 +382,33 @@ body.theme-highcontrast {
   font-size: 1.1em;
 }
 
+body.theme-retro {
+  --background: #050805;
+  --panel: #0a0f0a;
+  --panel-2: #0e140e;
+  --accent: #33ff33;
+  --accent-secondary: #1aff1a;
+  --accent-rgb: 51 255 51;
+  --text-primary: #33ff33;
+  --text-muted: #1e6e1e;
+  --border: #33ff3333;
+  --glow-primary: rgba(51, 255, 51, 0.4);
+  --font-primary: 'Share Tech Mono', monospace;
+  --bg-texture: none;
+}
+
+body.theme-retro * {
+  text-shadow: 0 0 5px rgba(51, 255, 51, 0.5) !important;
+}
+
+body.theme-retro input,
+body.theme-retro textarea,
+body.theme-retro select {
+  background: #000 !important;
+  color: #33ff33 !important;
+  border-color: #33ff33 !important;
+}
+
 body.theme-godmode {
   transform: rotate(3deg);
   transform-origin: center center;

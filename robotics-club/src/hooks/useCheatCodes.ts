@@ -48,6 +48,7 @@ export function useCheatCodes() {
 				// Konami Code (Retro)
 				const konami = "ArrowUpArrowUpArrowDownArrowDownArrowLeftArrowRightArrowLeftArrowRight";
 				if (newBuffer.endsWith(konami) || newBuffer.endsWith(konami.toLowerCase()) || newBuffer.endsWith(konami + "ba")) {
+					ThemeEngine.activateTheme("retro", undefined, (session?.user as any)?.id);
 					window.dispatchEvent(new CustomEvent("rc-retro"));
 					toast("🎮 Konami Code! Retro mode activated.", "success");
 					return "";

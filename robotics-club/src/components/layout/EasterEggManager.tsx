@@ -329,14 +329,14 @@ export function EasterEggManager() {
 
 			{/* RETRO OVERLAY (Konami) */}
 			{isRetro && (
-				<div className="fixed inset-0 z-[9998] pointer-events-none overflow-hidden bg-black/20">
-					<div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-40" />
+				<div className="fixed inset-0 z-[9998] pointer-events-none overflow-hidden bg-green-500/5">
+					<div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(51,255,51,0.06),rgba(51,255,51,0.02),rgba(51,255,51,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-40 shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
 					<div className="absolute inset-0 flex flex-col items-center justify-center">
-						<div className="text-white font-mono text-4xl font-black tracking-[0.2em] mb-8 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse">
+						<div className="text-accent font-mono text-4xl font-black tracking-[0.2em] mb-8 drop-shadow-[0_0_15px_rgba(51,255,51,0.8)] animate-pulse">
 							RC_SYSTEMS_OVERRIDE
 						</div>
-						<div className="text-white/80 font-mono text-xl tracking-[0.5em] animate-flicker uppercase">
-							INSERT_COIN
+						<div className="text-accent/80 font-mono text-xl tracking-[0.5em] animate-flicker uppercase">
+							TERMINAL_ACTIVE
 						</div>
 					</div>
 					<style dangerouslySetInnerHTML={{ __html: `

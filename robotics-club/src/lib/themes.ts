@@ -176,6 +176,18 @@ export const THEMES: ThemeDefinition[] = [
 		triggerType: "type",
 		triggerValue: "godmode",
 	},
+	{
+		id: "retro",
+		name: "RETRO",
+		description: "RC_SYSTEMS_OVERRIDE: Legacy mainframe active.",
+		unlockHint: "Up, Up, Down, Down...",
+		duration: "toggle",
+		isExclusive: false,
+		bodyClass: "theme-retro",
+		triggerType: "type",
+		triggerValue: "konami",
+		fontFamily: "'Share Tech Mono', monospace",
+	},
 ];
 
 export const getThemeById = (id: string) => THEMES.find((t) => t.id === id);
