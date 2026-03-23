@@ -329,14 +329,19 @@ export function EasterEggManager() {
 
 			{/* RETRO OVERLAY (Konami) */}
 			{isRetro && (
-				<div className="fixed inset-0 z-[9998] pointer-events-none overflow-hidden bg-accent/5">
-					<div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,68,0.06),rgba(0,255,238,0.02),rgba(255,0,68,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-40 shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
+				<div className="fixed inset-0 z-[9998] pointer-events-none overflow-hidden bg-background/40">
+					<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(78,78,142,0.15)_0%,transparent_100%)] pointer-events-none" />
 					<div className="absolute inset-0 flex flex-col items-center justify-center">
-						<div className="text-accent font-black tracking-[0.2em] mb-8 drop-shadow-[0_0_15px_rgba(255,0,68,0.8)] animate-pulse" style={{ fontFamily: "'Press Start 2P', cursive", fontSize: "2.5rem" }}>
+						<div className="text-accent font-black tracking-[0.3em] mb-4 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] animate-pulse" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "3.5rem" }}>
 							PRESS START
 						</div>
-						<div className="text-white/80 font-mono text-xl tracking-[0.5em] animate-flicker uppercase" style={{ fontFamily: "'Press Start 2P', cursive", fontSize: "1rem" }}>
-							PLAYER 1 READY
+						<div className="text-white/60 font-mono text-sm tracking-[0.5em] animate-flicker uppercase" style={{ fontFamily: "'Share Tech Mono', monospace" }}>
+							— PLAYER 1 READY —
+						</div>
+						<div className="mt-12 text-accent/40 animate-bounce">
+							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+								<path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+							</svg>
 						</div>
 					</div>
 					<style dangerouslySetInnerHTML={{ __html: `

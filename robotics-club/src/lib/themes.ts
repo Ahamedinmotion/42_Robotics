@@ -179,7 +179,7 @@ export const THEMES: ThemeDefinition[] = [
 	{
 		id: "retro",
 		name: "RETRO",
-		description: "Arcade Mode: Insert Coin to continue.",
+		description: "SNES RPG Mode: Quest for the Binary Robot.",
 		unlockHint: "Up, Up, Down, Down...",
 		duration: "toggle",
 		isExclusive: false,
