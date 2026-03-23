@@ -62,7 +62,7 @@ export function FileUpload({
 			xhr.onload = () => {
 				if (xhr.status === 200) {
 					const response = JSON.parse(xhr.responseText);
-					if (response.status === "ok") {
+					if (response.ok) {
 						onUploadComplete(response.data);
 						playSFX("achievement");
 					}

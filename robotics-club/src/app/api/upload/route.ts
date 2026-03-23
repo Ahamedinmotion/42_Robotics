@@ -4,11 +4,6 @@ import { authOptions } from "@/lib/auth";
 import cloudinary from "@/lib/cloudinary";
 import { err, ok } from "@/lib/api";
 
-export const config = {
-	api: {
-		bodyParser: false,
-	},
-};
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf", "image/svg+xml"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
