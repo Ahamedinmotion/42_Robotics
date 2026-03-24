@@ -64,28 +64,56 @@ export const authOptions: NextAuthOptions = {
 			try {
 				const p = profile as any;
 
-				const dbUser = await prisma.user.upsert({
-					where: {
-						fortyTwoId: account.providerAccountId
-					},
-					update: {
-						name: p.usual_full_name || p.displayname || p.login,
-						email: p.email,
-						image: p.image?.versions?.medium || p.image?.link || null,
-						login: p.login,
-						birthday: p.birthday ? new Date(p.birthday) : null,
-					} as any,
-					create: {
-						fortyTwoId: account.providerAccountId,
-						login: p.login,
-						name: p.usual_full_name || p.displayname || p.login,
-						email: p.email,
-						image: p.image?.versions?.medium || p.image?.link || null,
-						birthday: p.birthday ? new Date(p.birthday) : null,
-						status: "WAITLIST",
-						role: "STUDENT",
-					} as any
+				let dbUser = await prisma.user.findUnique({
+					where: { fortyTwoId: account.providerAccountId }
 				});
+
+				if (!dbUser) {
+					// Check if a manually seeded user exists by login
+					dbUser = await prisma.user.findUnique({
+						where: { login: p.login }
+					});
+
+					if (dbUser) {
+						// Link 42 ID to existing seeded user
+						dbUser = await prisma.user.update({
+							where: { login: p.login },
+							data: {
+								fortyTwoId: account.providerAccountId,
+								name: p.usual_full_name || p.displayname || p.login,
+								email: p.email,
+								image: p.image?.versions?.medium || p.image?.link || null,
+								birthday: p.birthday ? new Date(p.birthday) : null,
+							} as any
+						});
+					} else {
+						// Create brand new user
+						dbUser = await prisma.user.create({
+							data: {
+								fortyTwoId: account.providerAccountId,
+								login: p.login,
+								name: p.usual_full_name || p.displayname || p.login,
+								email: p.email,
+								image: p.image?.versions?.medium || p.image?.link || null,
+								birthday: p.birthday ? new Date(p.birthday) : null,
+								status: "WAITLIST",
+								role: "STUDENT",
+							} as any
+						});
+					}
+				} else {
+					// Update existing mapped user profile info
+					dbUser = await prisma.user.update({
+						where: { fortyTwoId: account.providerAccountId },
+						data: {
+							name: p.usual_full_name || p.displayname || p.login,
+							email: p.email,
+							image: p.image?.versions?.medium || p.image?.link || null,
+							login: p.login,
+							birthday: p.birthday ? new Date(p.birthday) : null,
+						} as any
+					});
+				}
 
 				console.log("Manual User Upsert Success:", dbUser.id);
 
